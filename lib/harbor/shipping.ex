@@ -8,21 +8,21 @@ defmodule Harbor.Shipping do
   alias Harbor.Shipping.DeliveryMethod
 
   @doc """
-  Returns the list of delivery_methods.
+  Returns the list of delivery methods.
   """
   def list_delivery_methods do
     Repo.all(DeliveryMethod)
   end
 
   @doc """
-  Gets a single delivery_method.
+  Gets a single delivery method.
   """
   def get_delivery_method!(id) do
     Repo.get!(DeliveryMethod, id)
   end
 
   @doc """
-  Creates a delivery_method.
+  Creates a delivery method.
   """
   def create_delivery_method(attrs) do
     %DeliveryMethod{}
@@ -31,7 +31,7 @@ defmodule Harbor.Shipping do
   end
 
   @doc """
-  Updates a delivery_method.
+  Updates a delivery method.
   """
   def update_delivery_method(%DeliveryMethod{} = delivery_method, attrs) do
     delivery_method
@@ -40,14 +40,14 @@ defmodule Harbor.Shipping do
   end
 
   @doc """
-  Deletes a delivery_method.
+  Deletes a delivery method.
   """
   def delete_delivery_method(%DeliveryMethod{} = delivery_method) do
     Repo.delete(delivery_method)
   end
 
   @doc """
-  Returns an `%Ecto.Changeset{}` for tracking delivery_method changes.
+  Returns an `%Ecto.Changeset{}` for tracking delivery method changes.
   """
   def change_delivery_method(%DeliveryMethod{} = delivery_method, attrs \\ %{}) do
     DeliveryMethod.changeset(delivery_method, attrs)
