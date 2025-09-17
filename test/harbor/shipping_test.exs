@@ -25,7 +25,7 @@ defmodule Harbor.ShippingTest do
 
   describe "create_delivery_method/1" do
     test "with valid data creates a delivery_method" do
-      valid_attrs = %{name: "some name", price: 42}
+      valid_attrs = %{name: "some name", price: 42, fulfillment_type: :ship}
 
       assert {:ok, %DeliveryMethod{} = delivery_method} =
                Shipping.create_delivery_method(valid_attrs)
@@ -43,13 +43,14 @@ defmodule Harbor.ShippingTest do
   describe "update_delivery_method/2" do
     test "with valid data updates the delivery_method" do
       delivery_method = delivery_method_fixture()
-      update_attrs = %{name: "some updated name", price: 43}
+      update_attrs = %{name: "some updated name", price: 43, fulfillment_type: :pickup}
 
       assert {:ok, %DeliveryMethod{} = delivery_method} =
                Shipping.update_delivery_method(delivery_method, update_attrs)
 
       assert delivery_method.name == "some updated name"
       assert delivery_method.price == 43
+      assert delivery_method.fulfillment_type == :pickup
     end
 
     test "with invalid data returns error changeset" do

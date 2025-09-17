@@ -9,6 +9,7 @@ defmodule Harbor.Shipping.DeliveryMethod do
   schema "delivery_methods" do
     field :name, :string
     field :price, :integer
+    field :fulfillment_type, Ecto.Enum, values: [:ship, :pickup]
 
     timestamps()
   end
@@ -16,8 +17,8 @@ defmodule Harbor.Shipping.DeliveryMethod do
   @doc false
   def changeset(delivery_method, attrs) do
     delivery_method
-    |> cast(attrs, [:name, :price])
-    |> validate_required([:name, :price])
+    |> cast(attrs, [:name, :price, :fulfillment_type])
+    |> validate_required([:name, :price, :fulfillment_type])
     |> unique_constraint(:name)
   end
 end

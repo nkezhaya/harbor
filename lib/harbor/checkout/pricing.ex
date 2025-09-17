@@ -16,6 +16,7 @@ defmodule Harbor.Checkout.Pricing do
   """
 
   alias Harbor.Checkout.{CartItem, Session}
+  alias Harbor.Shipping.DeliveryMethod
 
   defstruct [:items, count: 0, subtotal: 0, shipping_price: 0, tax: nil, total_price: 0]
 
@@ -32,6 +33,8 @@ defmodule Harbor.Checkout.Pricing do
           tax: nil | non_neg_integer(),
           total_price: non_neg_integer()
         }
+
+  @type t() :: %__MODULE__{}
 
   @doc """
   Returns a summary map for the given session.
@@ -52,6 +55,10 @@ defmodule Harbor.Checkout.Pricing do
 
   defp put_subtotal(%__MODULE__{items: items} = state) do
     %{state | subtotal: Enum.sum_by(items, & &1.total_price)}
+  end
+
+  defp put_shipping(%__MODULE__{} = state, %DeliveryMethod{fulfillment_type: :pickup}) do
+    %{state | shipping_price: 0}
   end
 
   defp put_shipping(%__MODULE__{} = state, delivery_method) do

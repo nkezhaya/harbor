@@ -19,7 +19,8 @@ defmodule Harbor.ShippingFixtures do
       attrs
       |> Enum.into(%{
         name: unique_delivery_method_name(),
-        price: 42
+        price: 42,
+        fulfillment_type: :ship
       })
       |> Harbor.Shipping.create_delivery_method()
 
