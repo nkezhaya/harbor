@@ -74,10 +74,10 @@ defmodule Harbor.Checkout do
       :delivery_method,
       cart: [items: [:variant], user: []]
     ])
-    |> do_place_order_from_session()
+    |> do_complete_session()
   end
 
-  defp do_place_order_from_session(%Session{order_id: nil} = session) do
+  defp do_complete_session(%Session{order_id: nil} = session) do
     with :ok <- ensure_active(session),
          :ok <- ensure_not_expired(session),
          {:ok, email} <- resolve_email(session),
@@ -114,7 +114,7 @@ defmodule Harbor.Checkout do
 
       Repo.transact(fn ->
         with {:ok, order} <- Orders.create_order(order_attrs),
-             {:ok, _session} <- complete_session(session, order) do
+             {:ok, _session} <- put_session_order(session, order) do
           {:ok, order}
         else
           {:error, error} -> Repo.rollback(error)
@@ -125,12 +125,12 @@ defmodule Harbor.Checkout do
     end
   end
 
-  defp do_place_order_from_session(%Session{} = session) do
+  defp do_complete_session(%Session{} = session) do
     session = Repo.preload(session, [:order])
     {:ok, session.order}
   end
 
-  defp complete_session(%Session{} = session, %Order{} = order) do
+  defp put_session_order(%Session{} = session, %Order{} = order) do
     session
     |> Session.order_changeset(order)
     |> Repo.update()
