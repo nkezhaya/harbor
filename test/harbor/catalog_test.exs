@@ -4,6 +4,7 @@ defmodule Harbor.CatalogTest do
 
   alias Harbor.Catalog
   alias Harbor.Catalog.{Category, Product, ProductImage}
+  alias Harbor.TaxFixtures
 
   describe "list_products/0" do
     test "returns all products" do
@@ -21,11 +22,14 @@ defmodule Harbor.CatalogTest do
 
   describe "create_product/1" do
     test "with valid data creates a product" do
+      tax_code = TaxFixtures.get_general_tax_code!()
+
       valid_attrs = %{
         name: "some name",
         status: :draft,
         description: "some description",
-        slug: "some slug"
+        slug: "some slug",
+        tax_code_id: tax_code.id
       }
 
       assert {:ok, %Product{} = product} = Catalog.create_product(valid_attrs)
@@ -33,6 +37,7 @@ defmodule Harbor.CatalogTest do
       assert product.status == :draft
       assert product.description == "some description"
       assert product.slug == "some slug"
+      assert product.tax_code_id == tax_code.id
     end
 
     test "with invalid data returns error changeset" do

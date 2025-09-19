@@ -3,8 +3,11 @@ defmodule Harbor.CatalogFixtures do
   Test helpers for creating entities via the `Harbor.Catalog` context.
   """
   alias Harbor.Catalog
+  alias Harbor.TaxFixtures
 
   def product_fixture(attrs \\ %{}) do
+    tax_code = TaxFixtures.get_general_tax_code!()
+
     {:ok, product} =
       attrs
       |> Enum.into(%{
@@ -12,6 +15,7 @@ defmodule Harbor.CatalogFixtures do
         name: "some name",
         slug: unique_product_slug(),
         status: :draft,
+        tax_code_id: tax_code.id,
         variants: [
           %{
             master: true,

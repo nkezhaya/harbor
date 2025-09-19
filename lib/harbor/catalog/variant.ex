@@ -5,6 +5,7 @@ defmodule Harbor.Catalog.Variant do
   use Harbor.Schema
 
   alias Harbor.Catalog.{OptionValue, Product}
+  alias Harbor.Tax.TaxCode
 
   @type t() :: %__MODULE__{}
 
@@ -17,6 +18,7 @@ defmodule Harbor.Catalog.Variant do
     field :track_inventory, :boolean, default: true
 
     belongs_to :product, Product
+    belongs_to :tax_code, TaxCode
 
     many_to_many :option_values, OptionValue,
       join_through: "variants_option_values",
@@ -34,7 +36,8 @@ defmodule Harbor.Catalog.Variant do
       :price,
       :quantity_available,
       :enabled,
-      :track_inventory
+      :track_inventory,
+      :tax_code_id
     ])
     |> validate_required([
       :sku,
@@ -56,5 +59,6 @@ defmodule Harbor.Catalog.Variant do
       name: "variants_product_id_master_index",
       message: "product already has a master variant"
     )
+    |> assoc_constraint(:tax_code)
   end
 end

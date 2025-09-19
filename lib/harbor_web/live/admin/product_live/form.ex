@@ -4,7 +4,7 @@ defmodule HarborWeb.Admin.ProductLive.Form do
   """
   use HarborWeb, :live_view
 
-  alias Harbor.Catalog
+  alias Harbor.{Catalog, Tax}
   alias Harbor.Catalog.Product
 
   @impl true
@@ -27,6 +27,13 @@ defmodule HarborWeb.Admin.ProductLive.Form do
           prompt="Choose a value"
           options={Ecto.Enum.values(Harbor.Catalog.Product, :status)}
         />
+        <.input
+          field={@form[:tax_code_id]}
+          type="select"
+          label="Tax Code"
+          prompt="Choose a value"
+          options={@tax_code_options}
+        />
         <footer>
           <.button phx-disable-with="Saving..." variant="primary">Save Product</.button>
           <.button navigate={return_path(@return_to, @product)}>Cancel</.button>
@@ -41,7 +48,14 @@ defmodule HarborWeb.Admin.ProductLive.Form do
     {:ok,
      socket
      |> assign(:return_to, return_to(params["return_to"]))
+     |> assign(:tax_code_options, tax_code_options())
      |> apply_action(socket.assigns.live_action, params)}
+  end
+
+  defp tax_code_options do
+    for tax_code <- Tax.list_tax_codes() do
+      {tax_code.name, tax_code.id}
+    end
   end
 
   defp return_to("show"), do: "show"

@@ -87,9 +87,9 @@ defmodule HarborWeb do
       import HarborWeb.CoreComponents
 
       # Common modules used in templates
-      alias Phoenix.LiveView.JS
       alias HarborWeb.AdminLayouts
       alias HarborWeb.Layouts
+      alias Phoenix.LiveView.JS
 
       # Routes generation with the ~p sigil
       unquote(verified_routes())

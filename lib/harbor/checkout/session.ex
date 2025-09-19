@@ -8,6 +8,7 @@ defmodule Harbor.Checkout.Session do
   alias Harbor.Checkout.Cart
   alias Harbor.Orders.Order
   alias Harbor.Shipping.DeliveryMethod
+  alias Harbor.Tax.Calculation
 
   @type t() :: %__MODULE__{}
 
@@ -20,12 +21,14 @@ defmodule Harbor.Checkout.Session do
     field :payment_method_ref, :string
     field :email, :string
     field :expires_at, :utc_datetime_usec
+    field :current_tax_calculation, :map, virtual: true
 
     belongs_to :cart, Cart
     belongs_to :order, Order
     belongs_to :billing_address, Address
     belongs_to :shipping_address, Address
     belongs_to :delivery_method, DeliveryMethod
+    has_many :tax_calculations, Calculation, foreign_key: :checkout_session_id
 
     timestamps()
   end

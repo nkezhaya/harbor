@@ -31,35 +31,5 @@ defmodule Harbor.Repo.Migrations.CreateCarts do
     create index(:cart_items, [:variant_id])
     create unique_index(:cart_items, [:cart_id, :variant_id])
     create constraint(:cart_items, :quantity_gte_zero, check: "quantity > 0")
-
-    ## Checkout sessions
-
-    create table(:checkout_sessions) do
-      add :cart_id, references(:carts, on_delete: :delete_all), null: false
-      add :order_id, references(:orders, on_delete: :delete_all), null: true
-      add :status, :string, null: false, default: "active"
-      add :expires_at, :timestamptz, null: false
-
-      add :billing_address_id, references(:addresses, on_delete: :nilify_all)
-      add :shipping_address_id, references(:addresses, on_delete: :nilify_all)
-      add :delivery_method_id, references(:delivery_methods, on_delete: :nilify_all)
-
-      # payments (provider refs only)
-      add :payment_intent_id, :string
-      add :payment_method_ref, :string
-
-      # guest email if not logged in
-      add :email, :string
-
-      timestamps()
-    end
-
-    create unique_index(:checkout_sessions, [:cart_id], where: "status = 'active'")
-    create unique_index(:checkout_sessions, [:order_id], where: "order_id IS NOT NULL")
-    create index(:checkout_sessions, [:expires_at])
-
-    create constraint(:checkout_sessions, :check_status,
-             check: "status in ('active', 'abandoned', 'completed', 'expired')"
-           )
   end
 end

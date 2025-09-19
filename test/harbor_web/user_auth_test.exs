@@ -1,12 +1,11 @@
 defmodule HarborWeb.UserAuthTest do
   use HarborWeb.ConnCase, async: true
+  import Harbor.AccountsFixtures
 
-  alias Phoenix.LiveView
   alias Harbor.Accounts.Scope
   alias Harbor.Auth
   alias HarborWeb.UserAuth
-
-  import Harbor.AccountsFixtures
+  alias Phoenix.LiveView
 
   @remember_me_cookie "_harbor_web_user_remember_me"
   @remember_me_cookie_max_age 60 * 60 * 24 * 14

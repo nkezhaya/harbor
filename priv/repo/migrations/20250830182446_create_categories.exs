@@ -8,6 +8,7 @@ defmodule Harbor.Repo.Migrations.CreateCategories do
       add :position, :integer, null: false, default: 0
       add :parent_id, references(:categories)
       add :parent_ids, {:array, :integer}, null: false, default: []
+      add :tax_code_id, references(:tax_codes)
 
       timestamps()
     end

@@ -4,24 +4,7 @@ defmodule HarborWeb.Admin.ProductLiveTest do
   import Phoenix.LiveViewTest
   import Harbor.CatalogFixtures
 
-  @create_attrs %{
-    name: "some name",
-    status: :draft,
-    description: "some description",
-    slug: "some slug"
-  }
-  @update_attrs %{
-    name: "some updated name",
-    status: :active,
-    description: "some updated description",
-    slug: "some updated slug"
-  }
-  @invalid_attrs %{name: nil, status: nil, description: nil, slug: nil}
-
-  defp create_product(_) do
-    product = product_fixture()
-    %{product: product}
-  end
+  alias Harbor.TaxFixtures
 
   describe "Index" do
     setup [:register_and_log_in_admin, :create_product]
@@ -45,12 +28,12 @@ defmodule HarborWeb.Admin.ProductLiveTest do
       assert render(form_live) =~ "New Product"
 
       assert form_live
-             |> form("#product-form", product: @invalid_attrs)
+             |> form("#product-form", product: invalid_attrs())
              |> render_change() =~ "can&#39;t be blank"
 
       assert {:ok, index_live, _html} =
                form_live
-               |> form("#product-form", product: @create_attrs)
+               |> form("#product-form", product: create_attrs())
                |> render_submit()
                |> follow_redirect(conn, ~p"/admin/products")
 
@@ -71,12 +54,12 @@ defmodule HarborWeb.Admin.ProductLiveTest do
       assert render(form_live) =~ "Edit Product"
 
       assert form_live
-             |> form("#product-form", product: @invalid_attrs)
+             |> form("#product-form", product: invalid_attrs())
              |> render_change() =~ "can&#39;t be blank"
 
       assert {:ok, index_live, _html} =
                form_live
-               |> form("#product-form", product: @update_attrs)
+               |> form("#product-form", product: update_attrs())
                |> render_submit()
                |> follow_redirect(conn, ~p"/admin/products")
 
@@ -115,12 +98,12 @@ defmodule HarborWeb.Admin.ProductLiveTest do
       assert render(form_live) =~ "Edit Product"
 
       assert form_live
-             |> form("#product-form", product: @invalid_attrs)
+             |> form("#product-form", product: invalid_attrs())
              |> render_change() =~ "can&#39;t be blank"
 
       assert {:ok, show_live, _html} =
                form_live
-               |> form("#product-form", product: @update_attrs)
+               |> form("#product-form", product: update_attrs())
                |> render_submit()
                |> follow_redirect(conn, ~p"/admin/products/#{product}")
 
@@ -128,5 +111,35 @@ defmodule HarborWeb.Admin.ProductLiveTest do
       assert html =~ "Product updated successfully"
       assert html =~ "some updated name"
     end
+  end
+
+  defp create_product(_) do
+    product = product_fixture()
+    %{product: product}
+  end
+
+  defp create_attrs do
+    tax_code = TaxFixtures.get_general_tax_code!()
+
+    %{
+      name: "some name",
+      status: :draft,
+      description: "some description",
+      slug: "some slug",
+      tax_code_id: tax_code.id
+    }
+  end
+
+  defp update_attrs do
+    %{
+      name: "some updated name",
+      status: :active,
+      description: "some updated description",
+      slug: "some updated slug"
+    }
+  end
+
+  defp invalid_attrs do
+    %{name: nil, status: nil, description: nil, slug: nil}
   end
 end

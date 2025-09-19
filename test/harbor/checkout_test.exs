@@ -1,7 +1,9 @@
 defmodule Harbor.CheckoutTest do
   use Harbor.DataCase
+
+  import Mox
   import Harbor.CatalogFixtures
-  import Harbor.{CheckoutFixtures, ShippingFixtures, AccountsFixtures}
+  import Harbor.{AccountsFixtures, CheckoutFixtures, ShippingFixtures}
 
   alias Harbor.Checkout
   alias Harbor.Checkout.{Cart, CartItem, Session}
@@ -157,6 +159,10 @@ defmodule Harbor.CheckoutTest do
         |> Repo.insert()
 
       # Exercise
+      expect(Harbor.Tax.TaxProviderMock, :calculate_taxes, fn _req, _key ->
+        {:ok, %{id: "taxid", amount: 1000, line_items: []}}
+      end)
+
       assert {:ok, %Order{} = order} = Checkout.complete_session(session)
 
       # Subtotal is variant.price * quantity, tax defaults to 0, total is computed column
@@ -164,7 +170,7 @@ defmodule Harbor.CheckoutTest do
       assert order.delivery_method_name == delivery_method.name
       assert order.subtotal == variant.price * 2
       assert order.shipping_price == delivery_method.price
-      assert order.tax == 0
+      assert order.tax == 1000
       assert order.total_price == order.subtotal + order.shipping_price + order.tax
 
       # Order items snapshot
@@ -210,6 +216,10 @@ defmodule Harbor.CheckoutTest do
           delivery_method_id: delivery_method.id
         })
         |> Repo.insert()
+
+      expect(Harbor.Tax.TaxProviderMock, :calculate_taxes, fn _req, _key ->
+        {:ok, %{id: "taxid", amount: 1000, line_items: []}}
+      end)
 
       assert {:ok, order1} = Checkout.complete_session(session)
       assert {:ok, order2} = Checkout.complete_session(session)

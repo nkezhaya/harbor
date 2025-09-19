@@ -9,6 +9,7 @@ defmodule Harbor.Repo.Migrations.CreateProducts do
       add :slug, :string, null: false
       add :description, :text
       add :status, :string, null: false, default: "draft"
+      add :tax_code_id, references(:tax_codes), null: false
 
       timestamps()
     end
@@ -52,6 +53,8 @@ defmodule Harbor.Repo.Migrations.CreateProducts do
       add :quantity_available, :integer, default: 0, null: false
       add :enabled, :boolean, null: false, default: false
       add :track_inventory, :boolean, null: false, default: true
+
+      add :tax_code_id, references(:tax_codes)
 
       timestamps()
     end

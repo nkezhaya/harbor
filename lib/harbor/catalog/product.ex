@@ -5,6 +5,7 @@ defmodule Harbor.Catalog.Product do
   use Harbor.Schema
 
   alias Harbor.Catalog.{Category, OptionType, ProductImage, Variant}
+  alias Harbor.Tax.TaxCode
 
   @type t() :: %__MODULE__{}
 
@@ -13,6 +14,8 @@ defmodule Harbor.Catalog.Product do
     field :slug, :string
     field :description, :string
     field :status, Ecto.Enum, values: [:draft, :active, :archived]
+
+    belongs_to :tax_code, TaxCode
 
     has_many :product_images, ProductImage, on_replace: :delete
     has_many :option_types, OptionType, on_replace: :delete
@@ -28,11 +31,12 @@ defmodule Harbor.Catalog.Product do
   @doc false
   def changeset(product, attrs) do
     product
-    |> cast(attrs, [:name, :slug, :description, :status])
+    |> cast(attrs, [:name, :slug, :description, :status, :tax_code_id])
     |> cast_assoc(:option_types)
     |> cast_assoc(:variants)
     |> cast_assoc(:product_images)
-    |> validate_required([:name, :slug, :status])
+    |> validate_required([:name, :slug, :status, :tax_code_id])
+    |> assoc_constraint(:tax_code)
     |> unique_constraint(:slug)
   end
 end
