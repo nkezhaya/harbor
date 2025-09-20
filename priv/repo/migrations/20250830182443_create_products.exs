@@ -5,6 +5,7 @@ defmodule Harbor.Repo.Migrations.CreateProducts do
     ## Products
 
     create table(:products) do
+      add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
       add :name, :string, null: false
       add :slug, :string, null: false
       add :description, :text
@@ -23,6 +24,7 @@ defmodule Harbor.Repo.Migrations.CreateProducts do
     ## Variants
 
     create table(:option_types) do
+      add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
       add :name, :string, null: false
       add :product_id, references(:products, on_delete: :delete_all), null: false
       add :position, :integer, null: false, default: 0
@@ -34,6 +36,7 @@ defmodule Harbor.Repo.Migrations.CreateProducts do
     create constraint(:option_types, :position_gte_zero, check: "position >= 0")
 
     create table(:option_values) do
+      add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
       add :name, :string, null: false
       add :option_type_id, references(:option_types, on_delete: :delete_all), null: false
       add :position, :integer, null: false, default: 0
@@ -45,6 +48,7 @@ defmodule Harbor.Repo.Migrations.CreateProducts do
     create constraint(:option_values, :position_gte_zero, check: "position >= 0")
 
     create table(:variants) do
+      add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
       add :product_id, references(:products, on_delete: :delete_all), null: false
       add :master, :boolean, null: false, default: false
 
@@ -72,13 +76,8 @@ defmodule Harbor.Repo.Migrations.CreateProducts do
     create constraint(:variants, :quantity_available_gte_zero, check: "quantity_available >= 0")
 
     create table(:variants_option_values, primary_key: false) do
-      add :variant_id, references(:variants, on_delete: :delete_all),
-        null: false,
-        primary_key: true
-
-      add :option_value_id, references(:option_values, on_delete: :delete_all),
-        null: false,
-        primary_key: true
+      add :variant_id, references(:variants, on_delete: :delete_all), primary_key: true
+      add :option_value_id, references(:option_values, on_delete: :delete_all), primary_key: true
     end
 
     create index(:variants_option_values, [:option_value_id])

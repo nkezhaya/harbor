@@ -5,6 +5,7 @@ defmodule Harbor.Repo.Migrations.CreateCheckoutSessions do
     ## Checkout sessions
 
     create table(:checkout_sessions) do
+      add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
       add :cart_id, references(:carts, on_delete: :delete_all), null: false
       add :order_id, references(:orders, on_delete: :delete_all), null: true
       add :status, :string, null: false, default: "active"
@@ -35,6 +36,7 @@ defmodule Harbor.Repo.Migrations.CreateCheckoutSessions do
     ## Tax Calculations
 
     create table(:tax_calculations) do
+      add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
       add :provider_ref, :string, null: false
 
       add :checkout_session_id, references(:checkout_sessions, on_delete: :delete_all),
@@ -52,6 +54,7 @@ defmodule Harbor.Repo.Migrations.CreateCheckoutSessions do
     ## Tax Calculation Line Items
 
     create table(:tax_calculation_line_items) do
+      add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
       add :provider_ref, :string, null: false
       add :cart_item_id, references(:cart_items, on_delete: :delete_all), null: false
       add :calculation_id, references(:tax_calculations, on_delete: :delete_all), null: false
@@ -63,6 +66,7 @@ defmodule Harbor.Repo.Migrations.CreateCheckoutSessions do
     # Tax transactions
 
     create table(:tax_transaction_line_items) do
+      add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
       add :provider_ref, :string, null: false
       add :order_item_id, references(:order_items, on_delete: :delete_all), null: false
     end

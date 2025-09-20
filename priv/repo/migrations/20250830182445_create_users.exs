@@ -5,6 +5,7 @@ defmodule Harbor.Repo.Migrations.CreateUsers do
     execute "CREATE EXTENSION IF NOT EXISTS citext", ""
 
     create table(:users) do
+      add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
       add :email, :citext, null: false
       add :hashed_password, :string
       add :confirmed_at, :timestamptz
@@ -17,6 +18,7 @@ defmodule Harbor.Repo.Migrations.CreateUsers do
     ## Tokens
 
     create table(:users_tokens) do
+      add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
       add :user_id, references(:users, on_delete: :delete_all), null: false
       add :token, :binary, null: false
       add :context, :string, null: false

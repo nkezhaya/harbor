@@ -5,6 +5,7 @@ defmodule Harbor.Repo.Migrations.CreateCarts do
     ## Carts
 
     create table(:carts) do
+      add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
       add :user_id, references(:users, on_delete: :delete_all)
       add :session_token, :string
 
@@ -21,6 +22,7 @@ defmodule Harbor.Repo.Migrations.CreateCarts do
     ## Cart items
 
     create table(:cart_items) do
+      add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
       add :cart_id, references(:carts, on_delete: :delete_all), null: false
       add :variant_id, references(:variants, on_delete: :delete_all), null: false
       add :quantity, :integer, null: false

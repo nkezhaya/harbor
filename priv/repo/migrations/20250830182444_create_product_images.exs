@@ -3,6 +3,7 @@ defmodule Harbor.Repo.Migrations.CreateProductImages do
 
   def change do
     create table(:product_images) do
+      add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
       add :image, :string, null: false
       add :product_id, references(:products, on_delete: :nilify_all)
       add :position, :integer, null: false, default: 0

@@ -5,6 +5,7 @@ defmodule Harbor.Repo.Migrations.CreateTax do
     ## Tax Codes
 
     create table(:tax_codes) do
+      add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
       add :name, :string, null: false
       add :description, :text, null: false
       add :provider, :string, null: false

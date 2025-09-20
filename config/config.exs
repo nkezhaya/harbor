@@ -26,7 +26,7 @@ config :harbor,
   generators: [timestamp_type: :utc_datetime_usec]
 
 config :harbor, Harbor.Repo,
-  migration_primary_key: [type: :binary_id],
+  migration_primary_key: false,
   migration_foreign_key: [type: :binary_id],
   migration_timestamps: [type: :timestamptz]
 

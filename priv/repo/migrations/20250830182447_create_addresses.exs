@@ -3,6 +3,7 @@ defmodule Harbor.Repo.Migrations.CreateAddresses do
 
   def change do
     create table(:addresses) do
+      add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
       add :user_id, references(:users, on_delete: :delete_all)
       add :default, :boolean, null: false, default: false
 

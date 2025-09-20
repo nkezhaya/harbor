@@ -35,7 +35,7 @@ defmodule Harbor.Tax do
     |> Calculation.changeset(attrs)
     |> Repo.insert(on_conflict: :nothing, conflict_target: [:checkout_session_id, :hash])
     |> case do
-      {:ok, calculation} ->
+      {:ok, %Calculation{id: nil} = calculation} ->
         calculation =
           Repo.get_by!(Calculation,
             checkout_session_id: calculation.checkout_session_id,
@@ -44,8 +44,8 @@ defmodule Harbor.Tax do
 
         {:ok, calculation}
 
-      error ->
-        error
+      result ->
+        result
     end
   end
 

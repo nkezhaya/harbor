@@ -5,6 +5,7 @@ defmodule Harbor.Repo.Migrations.CreateOrders do
     ## Orders
 
     create table(:orders) do
+      add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
       add :status, :string, null: false, default: "pending"
       add :number, :string, null: false
       add :user_id, references(:users)
@@ -46,6 +47,7 @@ defmodule Harbor.Repo.Migrations.CreateOrders do
     ## Order Items
 
     create table(:order_items) do
+      add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
       add :order_id, references(:orders, on_delete: :delete_all), null: false
       add :variant_id, references(:variants), null: false
       add :quantity, :integer, null: false

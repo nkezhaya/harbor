@@ -3,6 +3,7 @@ defmodule Harbor.Repo.Migrations.CreateCategories do
 
   def change do
     create table(:categories) do
+      add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
       add :name, :string, null: false
       add :slug, :string, null: false
       add :position, :integer, null: false, default: 0
