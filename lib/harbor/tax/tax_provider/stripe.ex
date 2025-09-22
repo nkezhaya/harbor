@@ -1,5 +1,9 @@
 defmodule Harbor.Tax.TaxProvider.Stripe do
-  @moduledoc false
+  @moduledoc """
+  Stripe-specific implementation of the `Harbor.Tax.TaxProvider` behaviour.
+  Handles fetching tax codes, creating tax calculations, recording transactions,
+  and issuing reversals through the Stripe Tax API.
+  """
 
   alias Harbor.Tax.{Request, TaxProvider}
 

@@ -1,4 +1,8 @@
 defmodule Harbor.Tax.CalculationLineItem do
+  @moduledoc """
+  Models a single entry in a tax calculation snapshot, pairing a cart item with
+  the amount returned by the external tax provider.
+  """
   use Harbor.Schema
 
   alias Harbor.Tax.Calculation

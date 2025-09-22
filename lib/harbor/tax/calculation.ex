@@ -1,4 +1,9 @@
 defmodule Harbor.Tax.Calculation do
+  @moduledoc """
+  Represents a tax calculation snapshot returned by a provider for a checkout
+  session. Stores the provider reference, derived totals, and the hash we use to
+  decide if a calculation needs to be refreshed.
+  """
   use Harbor.Schema
 
   alias Harbor.Tax.CalculationLineItem
