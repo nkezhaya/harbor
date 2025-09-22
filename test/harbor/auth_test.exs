@@ -4,14 +4,16 @@ defmodule Harbor.AuthTest do
   import Harbor.AccountsFixtures
 
   alias Harbor.Accounts.User
-  alias Harbor.Auth
+  alias Harbor.{Accounts, Auth}
   alias Harbor.Auth.UserToken
 
-  describe "deliver_user_update_email_instructions/3" do
-    setup do
-      %{user: user_fixture()}
-    end
+  setup do
+    user = user_fixture()
 
+    [user: user]
+  end
+
+  describe "deliver_user_update_email_instructions/3" do
     test "sends token through notification", %{user: user} do
       token =
         extract_user_token(fn url ->
@@ -31,10 +33,6 @@ defmodule Harbor.AuthTest do
   end
 
   describe "generate_user_session_token/1" do
-    setup do
-      %{user: user_fixture()}
-    end
-
     test "generates a token", %{user: user} do
       token = Auth.generate_user_session_token(user)
       assert user_token = Repo.get_by(UserToken, token: token)
@@ -61,10 +59,9 @@ defmodule Harbor.AuthTest do
   end
 
   describe "get_user_by_session_token/1" do
-    setup do
-      user = user_fixture()
+    setup %{user: user} do
       token = Auth.generate_user_session_token(user)
-      %{user: user, token: token}
+      %{token: token}
     end
 
     test "returns user by token", %{user: user, token: token} do
@@ -87,10 +84,9 @@ defmodule Harbor.AuthTest do
   end
 
   describe "get_user_by_magic_link_token/1" do
-    setup do
-      user = user_fixture()
+    setup %{user: user} do
       {encoded_token, _hashed_token} = generate_user_magic_link_token(user)
-      %{user: user, token: encoded_token}
+      %{token: encoded_token}
     end
 
     test "returns user by token", %{user: user, token: token} do
@@ -120,8 +116,7 @@ defmodule Harbor.AuthTest do
       assert user.confirmed_at
     end
 
-    test "returns user and (deleted) token for confirmed user" do
-      user = user_fixture()
+    test "returns user and (deleted) token for confirmed user", %{user: user} do
       assert user.confirmed_at
       {encoded_token, _hashed_token} = generate_user_magic_link_token(user)
       assert {:ok, {^user, []}} = Auth.login_user_by_magic_link(encoded_token)
@@ -131,7 +126,7 @@ defmodule Harbor.AuthTest do
 
     test "raises when unconfirmed user has password set" do
       user = unconfirmed_user_fixture()
-      {1, nil} = Repo.update_all(User, set: [hashed_password: "hashed"])
+      Repo.update_all(User, set: [hashed_password: "hashed"])
       {encoded_token, _hashed_token} = generate_user_magic_link_token(user)
 
       assert_raise RuntimeError, ~r/magic link log in is not allowed/, fn ->
@@ -141,8 +136,7 @@ defmodule Harbor.AuthTest do
   end
 
   describe "delete_user_session_token/1" do
-    test "deletes the token" do
-      user = user_fixture()
+    test "deletes the token", %{user: user} do
       token = Auth.generate_user_session_token(user)
       assert Auth.delete_user_session_token(token) == :ok
       refute Auth.get_user_by_session_token(token)
@@ -150,11 +144,9 @@ defmodule Harbor.AuthTest do
   end
 
   describe "deliver_login_instructions/2" do
-    setup do
-      %{user: unconfirmed_user_fixture()}
-    end
+    test "sends token through notification" do
+      user = unconfirmed_user_fixture()
 
-    test "sends token through notification", %{user: user} do
       token =
         extract_user_token(fn url ->
           Auth.deliver_login_instructions(user, url)
@@ -165,6 +157,144 @@ defmodule Harbor.AuthTest do
       assert user_token.user_id == user.id
       assert user_token.sent_to == user.email
       assert user_token.context == "login"
+    end
+  end
+
+  describe "update_user_password/2" do
+    test "validates password", %{user: user} do
+      {:error, changeset} =
+        Auth.update_user_password(user, %{password: "not valid", password_confirmation: "another"})
+
+      assert %{
+               password: ["should be at least 12 character(s)"],
+               password_confirmation: ["does not match password"]
+             } = errors_on(changeset)
+    end
+
+    test "validates maximum values for password for security", %{user: user} do
+      too_long = String.duplicate("db", 100)
+
+      {:error, changeset} =
+        Auth.update_user_password(user, %{password: too_long})
+
+      assert "should be at most 72 character(s)" in errors_on(changeset).password
+    end
+
+    test "updates the password", %{user: user} do
+      {:ok, {user, expired_tokens}} =
+        Auth.update_user_password(user, %{password: "new valid password"})
+
+      assert expired_tokens == []
+      assert is_nil(user.password)
+      assert Accounts.get_user_by_email_and_password(user.email, "new valid password")
+    end
+
+    test "deletes all tokens for the given user", %{user: user} do
+      Auth.generate_user_session_token(user)
+
+      {:ok, {_, _}} = Auth.update_user_password(user, %{password: "new valid password"})
+
+      refute Repo.get_by(UserToken, user_id: user.id)
+    end
+  end
+
+  describe "sudo_mode?/2" do
+    test "validates the authenticated_at time" do
+      now = DateTime.utc_now()
+
+      assert Auth.sudo_mode?(%User{authenticated_at: DateTime.utc_now()})
+      assert Auth.sudo_mode?(%User{authenticated_at: DateTime.add(now, -19, :minute)})
+      refute Auth.sudo_mode?(%User{authenticated_at: DateTime.add(now, -21, :minute)})
+
+      # minute override
+      refute Auth.sudo_mode?(
+               %User{authenticated_at: DateTime.add(now, -11, :minute)},
+               -10
+             )
+
+      # not authenticated
+      refute Auth.sudo_mode?(%User{})
+    end
+  end
+
+  describe "change_user_email/3" do
+    test "returns a user changeset" do
+      assert %Ecto.Changeset{} = changeset = Auth.change_user_email(%User{})
+      assert changeset.required == [:email]
+    end
+  end
+
+  describe "update_user_email/2" do
+    setup do
+      user = unconfirmed_user_fixture()
+      email = unique_user_email()
+
+      token =
+        extract_user_token(fn url ->
+          Harbor.Auth.deliver_user_update_email_instructions(
+            %{user | email: email},
+            user.email,
+            url
+          )
+        end)
+
+      %{user: user, token: token, email: email}
+    end
+
+    test "updates the email with a valid token", %{user: user, token: token, email: email} do
+      assert {:ok, %{email: ^email}} = Auth.update_user_email(user, token)
+      changed_user = Repo.get!(User, user.id)
+      assert changed_user.email != user.email
+      assert changed_user.email == email
+      refute Repo.get_by(UserToken, user_id: user.id)
+    end
+
+    test "does not update email with invalid token", %{user: user} do
+      assert Auth.update_user_email(user, "oops") ==
+               {:error, :transaction_aborted}
+
+      assert Repo.get!(User, user.id).email == user.email
+      assert Repo.get_by(UserToken, user_id: user.id)
+    end
+
+    test "does not update email if user email changed", %{user: user, token: token} do
+      assert Auth.update_user_email(%{user | email: "current@example.com"}, token) ==
+               {:error, :transaction_aborted}
+
+      assert Repo.get!(User, user.id).email == user.email
+      assert Repo.get_by(UserToken, user_id: user.id)
+    end
+
+    test "does not update email if token expired", %{user: user, token: token} do
+      {1, nil} = Repo.update_all(UserToken, set: [inserted_at: ~N[2020-01-01 00:00:00]])
+
+      assert Auth.update_user_email(user, token) ==
+               {:error, :transaction_aborted}
+
+      assert Repo.get!(User, user.id).email == user.email
+      assert Repo.get_by(UserToken, user_id: user.id)
+    end
+  end
+
+  describe "change_user_password/3" do
+    test "returns a user changeset" do
+      assert %Ecto.Changeset{} = changeset = Auth.change_user_password(%User{})
+      assert changeset.required == [:password]
+    end
+
+    test "allows fields to be set" do
+      changeset =
+        Auth.change_user_password(
+          %User{},
+          %{
+            "password" => "new valid password"
+          },
+          hash_password: false
+        )
+
+      assert changeset.valid?
+      assert get_change(changeset, :password) == "new valid password"
+      assert is_nil(get_change(changeset, :hashed_password))
     end
   end
 end

@@ -5,9 +5,8 @@ defmodule Harbor.AccountsFixtures do
   """
   import Ecto.Query
 
-  alias Harbor.Accounts
+  alias Harbor.{Accounts, Auth}
   alias Harbor.Accounts.Scope
-  alias Harbor.Auth
   alias Harbor.Auth.{UserRole, UserToken}
   alias Harbor.Repo
 
@@ -62,7 +61,7 @@ defmodule Harbor.AccountsFixtures do
 
   def set_password(user) do
     {:ok, {user, _expired_tokens}} =
-      Accounts.update_user_password(user, %{password: valid_user_password()})
+      Auth.update_user_password(user, %{password: valid_user_password()})
 
     user
   end

@@ -7,8 +7,8 @@ defmodule HarborWeb.UserAuth do
   import Plug.Conn
   import Phoenix.Controller
 
-  alias Harbor.{Accounts, Auth}
   alias Harbor.Accounts.{Scope, User}
+  alias Harbor.Auth
 
   # Make the remember me cookie valid for 14 days. This should match
   # the session validity setting in UserToken.
@@ -251,7 +251,7 @@ defmodule HarborWeb.UserAuth do
   def on_mount(:require_sudo_mode, _params, session, socket) do
     socket = mount_current_scope(socket, session)
 
-    if Accounts.sudo_mode?(socket.assigns.current_scope.user, -10) do
+    if Auth.sudo_mode?(socket.assigns.current_scope.user, -10) do
       {:cont, socket}
     else
       socket =
@@ -284,7 +284,7 @@ defmodule HarborWeb.UserAuth do
 
   @doc "Returns the path to redirect to after log in."
   # the user was already logged in, redirect to settings
-  def signed_in_path(%Plug.Conn{assigns: %{current_scope: %Scope{user: %Accounts.User{}}}}) do
+  def signed_in_path(%Plug.Conn{assigns: %{current_scope: %Scope{user: %User{}}}}) do
     ~p"/users/settings"
   end
 
