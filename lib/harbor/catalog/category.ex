@@ -12,7 +12,7 @@ defmodule Harbor.Catalog.Category do
     field :name, :string
     field :slug, :string
     field :position, :integer
-    field :parent_ids, {:array, :integer}
+    field :parent_ids, {:array, :binary_id}
 
     belongs_to :parent, __MODULE__
     belongs_to :tax_code, TaxCode
