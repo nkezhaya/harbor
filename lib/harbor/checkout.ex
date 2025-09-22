@@ -195,33 +195,29 @@ defmodule Harbor.Checkout do
       nil ->
         idempotency_key = "#{session.id},#{hash}"
 
-        case TaxProvider.calculate_taxes(request, idempotency_key) do
-          {:ok, response} ->
-            Repo.transact(fn ->
-              with {:ok, calculation} <-
-                     Tax.create_calculation(%{
-                       provider_ref: response.id,
-                       checkout_session_id: session.id,
-                       amount: response.amount,
-                       hash: hash
-                     }) do
-                line_items =
-                  for line_item <- response.line_items do
-                    %{
-                      provider_ref: line_item.id,
-                      amount: line_item.amount,
-                      cart_item_id: line_item.reference,
-                      calculation_id: calculation.id
-                    }
-                  end
+        with {:ok, response} <- TaxProvider.calculate_taxes(request, idempotency_key) do
+          Repo.transact(fn ->
+            with {:ok, calculation} <-
+                   Tax.create_calculation(%{
+                     provider_ref: response.id,
+                     checkout_session_id: session.id,
+                     amount: response.amount,
+                     hash: hash
+                   }) do
+              line_items =
+                for line_item <- response.line_items do
+                  %{
+                    provider_ref: line_item.id,
+                    amount: line_item.amount,
+                    cart_item_id: line_item.reference,
+                    calculation_id: calculation.id
+                  }
+                end
 
-                :ok = Tax.upsert_calculation_line_items(line_items)
-                {:ok, %{session | current_tax_calculation: calculation}}
-              end
-            end)
-
-          error ->
-            error
+              :ok = Tax.upsert_calculation_line_items(line_items)
+              {:ok, %{session | current_tax_calculation: calculation}}
+            end
+          end)
         end
 
       calculation ->
