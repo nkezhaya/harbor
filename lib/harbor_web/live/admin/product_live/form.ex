@@ -36,7 +36,7 @@ defmodule HarborWeb.Admin.ProductLive.Form do
           type="select"
           label="Status"
           prompt="Choose a value"
-          options={Ecto.Enum.values(Harbor.Catalog.Product, :status)}
+          options={Ecto.Enum.values(Product, :status)}
         />
         <.input
           field={@form[:tax_code_id]}
