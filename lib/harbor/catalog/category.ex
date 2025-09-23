@@ -3,7 +3,9 @@ defmodule Harbor.Catalog.Category do
   Ecto schema for product categories and hierarchy.
   """
   use Harbor.Schema
+
   alias Harbor.Catalog.Product
+  alias Harbor.Slug
   alias Harbor.Tax.TaxCode
 
   @type t() :: %__MODULE__{}
@@ -26,8 +28,8 @@ defmodule Harbor.Catalog.Category do
   def changeset(category, attrs) do
     category
     |> cast(attrs, [:name, :slug, :position, :parent_ids, :tax_code_id])
-    |> validate_required([:name, :slug, :position])
-    |> unique_constraint(:slug)
+    |> Slug.put_new_slug(__MODULE__)
+    |> validate_required([:name, :position])
     |> assoc_constraint(:tax_code)
   end
 end

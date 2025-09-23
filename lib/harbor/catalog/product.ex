@@ -5,6 +5,7 @@ defmodule Harbor.Catalog.Product do
   use Harbor.Schema
 
   alias Harbor.Catalog.{Category, OptionType, ProductImage, Variant}
+  alias Harbor.Slug
   alias Harbor.Tax.TaxCode
 
   @type t() :: %__MODULE__{}
@@ -35,8 +36,8 @@ defmodule Harbor.Catalog.Product do
     |> cast_assoc(:option_types)
     |> cast_assoc(:variants)
     |> cast_assoc(:product_images)
-    |> validate_required([:name, :slug, :status, :tax_code_id])
+    |> Slug.put_new_slug(__MODULE__)
+    |> validate_required([:name, :status, :tax_code_id])
     |> assoc_constraint(:tax_code)
-    |> unique_constraint(:slug)
   end
 end

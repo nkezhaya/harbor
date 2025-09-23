@@ -36,7 +36,7 @@ defmodule Harbor.CatalogTest do
       assert product.name == "some name"
       assert product.status == :draft
       assert product.description == "some description"
-      assert product.slug == "some slug"
+      assert product.slug == "some-slug"
       assert product.tax_code_id == tax_code.id
     end
 
@@ -61,7 +61,7 @@ defmodule Harbor.CatalogTest do
       assert product.name == "some updated name"
       assert product.status == :active
       assert product.description == "some updated description"
-      assert product.slug == "some updated slug"
+      assert product.slug == "some-updated-slug"
     end
 
     test "with invalid data returns error changeset" do
@@ -185,7 +185,7 @@ defmodule Harbor.CatalogTest do
       assert {:ok, %Category{} = category} = Catalog.create_category(valid_attrs)
       assert category.name == "some name"
       assert category.position == 42
-      assert category.slug == "some slug"
+      assert category.slug == "some-slug"
     end
 
     test "with invalid data returns error changeset" do
@@ -202,7 +202,7 @@ defmodule Harbor.CatalogTest do
       assert {:ok, %Category{} = category} = Catalog.update_category(category, update_attrs)
       assert category.name == "some updated name"
       assert category.position == 43
-      assert category.slug == "some updated slug"
+      assert category.slug == "some-updated-slug"
     end
 
     test "with invalid data returns error changeset" do

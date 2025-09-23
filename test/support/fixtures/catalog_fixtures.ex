@@ -13,13 +13,12 @@ defmodule Harbor.CatalogFixtures do
       |> Enum.into(%{
         description: "some description",
         name: "some name",
-        slug: unique_product_slug(),
-        status: :draft,
+        status: :active,
         tax_code_id: tax_code.id,
         variants: [
           %{
             master: true,
-            sku: unique_product_slug(),
+            sku: "sku-#{System.unique_integer()}",
             price: 4000
           }
         ]
@@ -47,14 +46,11 @@ defmodule Harbor.CatalogFixtures do
     image
   end
 
-  def unique_category_slug, do: "category-#{System.unique_integer([:positive])}"
-
   def category_fixture(attrs \\ %{}) do
     {:ok, category} =
       attrs
       |> Enum.into(%{
         name: "some name",
-        slug: unique_category_slug(),
         position: 0,
         parent_ids: []
       })
@@ -62,6 +58,4 @@ defmodule Harbor.CatalogFixtures do
 
     category
   end
-
-  defp unique_product_slug, do: "some-slug-#{System.unique_integer([:positive])}"
 end

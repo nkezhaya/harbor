@@ -19,7 +19,7 @@ defmodule Harbor.Repo.Migrations.CreateProducts do
              check: "status in ('draft', 'active', 'archived')"
            )
 
-    create unique_index(:products, [:slug])
+    create unique_index(:products, [:slug], where: "status = 'active'")
 
     ## Variants
 
