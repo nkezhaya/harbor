@@ -9,13 +9,19 @@ defmodule HarborWeb.Admin.ProductLive.Show do
   @impl true
   def render(assigns) do
     ~H"""
-    <AdminLayouts.app flash={@flash} current_scope={@current_scope}>
+    <AdminLayouts.app
+      flash={@flash}
+      current_scope={@current_scope}
+      page_title={@page_title}
+      live_action={@live_action}
+    >
       <.header>
         Product {@product.id}
         <:subtitle>This is a product record from your database.</:subtitle>
         <:actions>
           <.button navigate={~p"/admin/products"}>
             <.icon name="hero-arrow-left" />
+            <span class="sr-only">Back to products</span>
           </.button>
           <.button variant="primary" navigate={~p"/admin/products/#{@product}/edit?return_to=show"}>
             <.icon name="hero-pencil-square" /> Edit product

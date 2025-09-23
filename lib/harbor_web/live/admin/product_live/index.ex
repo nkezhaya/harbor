@@ -9,7 +9,12 @@ defmodule HarborWeb.Admin.ProductLive.Index do
   @impl true
   def render(assigns) do
     ~H"""
-    <AdminLayouts.app flash={@flash} current_scope={@current_scope}>
+    <AdminLayouts.app
+      flash={@flash}
+      current_scope={@current_scope}
+      page_title={@page_title}
+      live_action={@live_action}
+    >
       <.header>
         Listing Products
         <:actions>
@@ -32,12 +37,18 @@ defmodule HarborWeb.Admin.ProductLive.Index do
           <div class="sr-only">
             <.link navigate={~p"/admin/products/#{product}"}>Show</.link>
           </div>
-          <.link navigate={~p"/admin/products/#{product}/edit"}>Edit</.link>
+          <.link
+            navigate={~p"/admin/products/#{product}/edit"}
+            class="text-indigo-600 transition hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
+          >
+            Edit
+          </.link>
         </:action>
         <:action :let={{id, product}}>
           <.link
             phx-click={JS.push("delete", value: %{id: product.id}) |> hide("##{id}")}
             data-confirm="Are you sure?"
+            class="text-red-600 transition hover:text-red-500 dark:text-red-400 dark:hover:text-red-300"
           >
             Delete
           </.link>

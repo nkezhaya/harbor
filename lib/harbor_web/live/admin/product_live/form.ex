@@ -10,13 +10,24 @@ defmodule HarborWeb.Admin.ProductLive.Form do
   @impl true
   def render(assigns) do
     ~H"""
-    <AdminLayouts.app flash={@flash} current_scope={@current_scope}>
+    <AdminLayouts.app
+      flash={@flash}
+      current_scope={@current_scope}
+      page_title={@page_title}
+      live_action={@live_action}
+    >
       <.header>
         {@page_title}
         <:subtitle>Use this form to manage product records in your database.</:subtitle>
       </.header>
 
-      <.form for={@form} id="product-form" phx-change="validate" phx-submit="save">
+      <.form
+        for={@form}
+        id="product-form"
+        phx-change="validate"
+        phx-submit="save"
+        class="space-y-6"
+      >
         <.input field={@form[:name]} type="text" label="Name" />
         <.input field={@form[:slug]} type="text" label="Slug" />
         <.input field={@form[:description]} type="textarea" label="Description" />
@@ -34,7 +45,7 @@ defmodule HarborWeb.Admin.ProductLive.Form do
           prompt="Choose a value"
           options={@tax_code_options}
         />
-        <footer>
+        <footer class="flex flex-wrap items-center gap-3 pt-4">
           <.button phx-disable-with="Saving..." variant="primary">Save Product</.button>
           <.button navigate={return_path(@return_to, @product)}>Cancel</.button>
         </footer>

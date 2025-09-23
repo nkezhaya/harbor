@@ -11,13 +11,16 @@ defmodule HarborWeb.UserLive.Registration do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} current_scope={@current_scope}>
-      <div class="mx-auto max-w-sm">
-        <div class="text-center">
+      <div class="mx-auto max-w-sm space-y-8">
+        <div class="space-y-3 text-center">
           <.header>
             Register for an account
             <:subtitle>
               Already registered?
-              <.link navigate={~p"/users/log-in"} class="font-semibold text-brand hover:underline">
+              <.link
+                navigate={~p"/users/log-in"}
+                class="font-semibold text-indigo-600 underline-offset-4 hover:text-indigo-500 hover:underline dark:text-indigo-400 dark:hover:text-indigo-300"
+              >
                 Log in
               </.link>
               to your account now.
@@ -25,7 +28,13 @@ defmodule HarborWeb.UserLive.Registration do
           </.header>
         </div>
 
-        <.form for={@form} id="registration_form" phx-submit="save" phx-change="validate">
+        <.form
+          for={@form}
+          id="registration_form"
+          phx-submit="save"
+          phx-change="validate"
+          class="space-y-5"
+        >
           <.input
             field={@form[:email]}
             type="email"
@@ -35,7 +44,11 @@ defmodule HarborWeb.UserLive.Registration do
             phx-mounted={JS.focus()}
           />
 
-          <.button phx-disable-with="Creating account..." class="btn btn-primary w-full">
+          <.button
+            phx-disable-with="Creating account..."
+            class="w-full justify-center"
+            variant="primary"
+          >
             Create an account
           </.button>
         </.form>

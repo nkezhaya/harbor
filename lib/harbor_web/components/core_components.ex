@@ -1,30 +1,6 @@
 defmodule HarborWeb.CoreComponents do
   @moduledoc """
   Provides core UI components.
-
-  At first glance, this module may seem daunting, but its goal is to provide
-  core building blocks for your application, such as tables, forms, and
-  inputs. The components consist mostly of markup and are well-documented
-  with doc strings and declarative assigns. You may customize and style
-  them in any way you want, based on your application growth and needs.
-
-  The foundation for styling is Tailwind CSS, a utility-first CSS framework,
-  augmented with daisyUI, a Tailwind CSS plugin that provides UI components
-  and themes. Here are useful references:
-
-    * [daisyUI](https://daisyui.com/docs/intro/) - a good place to get
-      started and see the available components.
-
-    * [Tailwind CSS](https://tailwindcss.com) - the foundational framework
-      we build on. You will use it for layout, sizing, flexbox, grid, and
-      spacing.
-
-    * [Heroicons](https://heroicons.com) - see `icon/1` for usage.
-
-    * [Phoenix.Component](https://hexdocs.pm/phoenix_live_view/Phoenix.Component.html) -
-      the component system used by Phoenix. Some components, such as `<.link>`
-      and `<.form>`, are defined there.
-
   """
   use Phoenix.Component
   use Gettext, backend: HarborWeb.Gettext
@@ -54,29 +30,44 @@ defmodule HarborWeb.CoreComponents do
     <div
       :if={msg = render_slot(@inner_block) || Phoenix.Flash.get(@flash, @kind)}
       id={@id}
-      phx-click={JS.push("lv:clear-flash", value: %{key: @kind}) |> hide("##{@id}")}
       role="alert"
-      class="toast toast-top toast-end z-50"
+      class="pointer-events-auto w-full max-w-sm overflow-hidden rounded-lg bg-white shadow-lg ring-1 ring-gray-900/10 transition dark:bg-gray-900 dark:ring-white/10"
       {@rest}
     >
-      <div class={[
-        "alert w-80 sm:w-96 max-w-80 sm:max-w-96 text-wrap",
-        @kind == :info && "alert-info",
-        @kind == :error && "alert-error"
-      ]}>
-        <.icon :if={@kind == :info} name="hero-information-circle" class="size-5 shrink-0" />
-        <.icon :if={@kind == :error} name="hero-exclamation-circle" class="size-5 shrink-0" />
-        <div>
-          <p :if={@title} class="font-semibold">{@title}</p>
-          <p>{msg}</p>
+      <div class="p-4">
+        <div class="flex items-start gap-3">
+          <div class={[
+            "mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-200",
+            @kind == :error && "bg-red-50 text-red-600 dark:bg-red-500/15 dark:text-red-200"
+          ]}>
+            <.icon name={flash_icon_name(@kind)} class="size-4" />
+          </div>
+          <div class="flex-1 text-sm/6 text-gray-600 dark:text-gray-300">
+            <p :if={@title} class="mb-1 text-sm font-semibold text-gray-900 dark:text-white">
+              {@title}
+            </p>
+            <p class="text-sm/6">{msg}</p>
+          </div>
+          <button
+            type="button"
+            class="rounded-md p-1 text-gray-400 cursor-pointer transition hover:text-gray-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:text-gray-500 dark:hover:text-gray-300 dark:focus-visible:outline-indigo-400"
+            aria-label={gettext("close")}
+            phx-click={dismiss_flash(@id, @kind)}
+          >
+            <.icon name="hero-x-mark" class="size-4" />
+          </button>
         </div>
-        <div class="flex-1" />
-        <button type="button" class="group self-start cursor-pointer" aria-label={gettext("close")}>
-          <.icon name="hero-x-mark" class="size-5 opacity-40 group-hover:opacity-70" />
-        </button>
       </div>
     </div>
     """
+  end
+
+  defp flash_icon_name(:error), do: "hero-exclamation-triangle"
+  defp flash_icon_name(_), do: "hero-information-circle"
+
+  defp dismiss_flash(id, kind) do
+    JS.push("lv:clear-flash", value: %{key: kind})
+    |> hide("##{id}")
   end
 
   @doc """
@@ -94,12 +85,18 @@ defmodule HarborWeb.CoreComponents do
   slot :inner_block, required: true
 
   def button(%{rest: rest} = assigns) do
-    variants = %{"primary" => "btn-primary", nil => "btn-primary btn-soft"}
+    variants = %{
+      "primary" =>
+        "rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-xs transition hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:bg-indigo-500 dark:hover:bg-indigo-400 dark:focus-visible:outline-indigo-400",
+      nil =>
+        "rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-inset ring-gray-300 transition hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:bg-white/10 dark:text-white dark:ring-white/15 dark:hover:bg-white/20"
+    }
 
-    assigns =
-      assign_new(assigns, :class, fn ->
-        ["btn", Map.fetch!(variants, assigns[:variant])]
-      end)
+    shared_class = "inline-flex items-center gap-2 cursor-pointer"
+    base_class = Map.fetch!(variants, assigns[:variant])
+
+    class = [shared_class, base_class, assigns[:class]] |> Enum.filter(& &1)
+    assigns = assign(assigns, :class, class)
 
     if rest[:href] || rest[:navigate] || rest[:patch] do
       ~H"""
@@ -185,21 +182,29 @@ defmodule HarborWeb.CoreComponents do
       end)
 
     ~H"""
-    <div class="fieldset mb-2">
-      <label>
-        <input type="hidden" name={@name} value="false" disabled={@rest[:disabled]} />
-        <span class="label">
-          <input
-            type="checkbox"
-            id={@id}
-            name={@name}
-            value="true"
-            checked={@checked}
-            class={@class || "checkbox checkbox-sm"}
-            {@rest}
-          />{@label}
-        </span>
-      </label>
+    <div class="space-y-1.5">
+      <input type="hidden" name={@name} value="false" disabled={@rest[:disabled]} />
+      <div class="flex items-start gap-3">
+        <input
+          type="checkbox"
+          id={@id}
+          name={@name}
+          value="true"
+          checked={@checked}
+          class={
+            @class ||
+              "col-start-1 row-start-1 size-4 shrink-0 appearance-none rounded-sm border border-gray-300 bg-white checked:border-indigo-600 checked:bg-indigo-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:border-gray-300 disabled:bg-gray-100 dark:border-white/10 dark:bg-white/5 dark:checked:border-indigo-500 dark:checked:bg-indigo-500 dark:focus-visible:outline-indigo-500"
+          }
+          {@rest}
+        />
+        <label
+          :if={@label}
+          for={@id}
+          class="text-sm/6 font-medium text-gray-900 dark:text-white"
+        >
+          {@label}
+        </label>
+      </div>
       <.error :for={msg <- @errors}>{msg}</.error>
     </div>
     """
@@ -207,20 +212,29 @@ defmodule HarborWeb.CoreComponents do
 
   def input(%{type: "select"} = assigns) do
     ~H"""
-    <div class="fieldset mb-2">
-      <label>
-        <span :if={@label} class="label mb-1">{@label}</span>
+    <div class="space-y-1.5">
+      <label :if={@label} for={@id} class="block text-sm/6 font-medium text-gray-900 dark:text-white">
+        {@label}
+      </label>
+      <div class="grid grid-cols-1">
         <select
           id={@id}
           name={@name}
-          class={[@class || "w-full select", @errors != [] && (@error_class || "select-error")]}
+          class={[
+            @class || select_input_base_class(),
+            @errors != [] && (@error_class || select_input_error_class())
+          ]}
           multiple={@multiple}
           {@rest}
         >
           <option :if={@prompt} value="">{@prompt}</option>
           {Phoenix.HTML.Form.options_for_select(@options, @value)}
         </select>
-      </label>
+        <.icon
+          name="hero-chevron-down"
+          class="pointer-events-none col-start-1 row-start-1 mr-2 size-5 self-center justify-self-end text-gray-400 sm:size-4 dark:text-gray-500"
+        />
+      </div>
       <.error :for={msg <- @errors}>{msg}</.error>
     </div>
     """
@@ -228,19 +242,19 @@ defmodule HarborWeb.CoreComponents do
 
   def input(%{type: "textarea"} = assigns) do
     ~H"""
-    <div class="fieldset mb-2">
-      <label>
-        <span :if={@label} class="label mb-1">{@label}</span>
-        <textarea
-          id={@id}
-          name={@name}
-          class={[
-            @class || "w-full textarea",
-            @errors != [] && (@error_class || "textarea-error")
-          ]}
-          {@rest}
-        >{Phoenix.HTML.Form.normalize_value("textarea", @value)}</textarea>
+    <div class="space-y-1.5">
+      <label :if={@label} for={@id} class="block text-sm/6 font-medium text-gray-900 dark:text-white">
+        {@label}
       </label>
+      <textarea
+        id={@id}
+        name={@name}
+        class={[
+          @class || textarea_input_base_class(),
+          @errors != [] && (@error_class || textarea_input_error_class())
+        ]}
+        {@rest}
+      >{Phoenix.HTML.Form.normalize_value("textarea", @value)}</textarea>
       <.error :for={msg <- @errors}>{msg}</.error>
     </div>
     """
@@ -249,31 +263,55 @@ defmodule HarborWeb.CoreComponents do
   # All other inputs text, datetime-local, url, password, etc. are handled here...
   def input(assigns) do
     ~H"""
-    <div class="fieldset mb-2">
-      <label>
-        <span :if={@label} class="label mb-1">{@label}</span>
-        <input
-          type={@type}
-          name={@name}
-          id={@id}
-          value={Phoenix.HTML.Form.normalize_value(@type, @value)}
-          class={[
-            @class || "w-full input",
-            @errors != [] && (@error_class || "input-error")
-          ]}
-          {@rest}
-        />
+    <div class="space-y-1.5">
+      <label :if={@label} for={@id} class="block text-sm/6 font-medium text-gray-900 dark:text-white">
+        {@label}
       </label>
+      <input
+        type={@type}
+        name={@name}
+        id={@id}
+        value={Phoenix.HTML.Form.normalize_value(@type, @value)}
+        class={[
+          @class || text_input_base_class(),
+          @errors != [] && (@error_class || text_input_error_class())
+        ]}
+        {@rest}
+      />
       <.error :for={msg <- @errors}>{msg}</.error>
     </div>
     """
   end
 
   # Helper used by inputs to generate form errors
+  defp text_input_base_class do
+    "block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 shadow-xs outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-indigo-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:outline-white/10 dark:placeholder:text-gray-500 dark:focus-visible:outline-indigo-500"
+  end
+
+  defp text_input_error_class do
+    "text-red-900 outline-red-300 placeholder:text-red-300 focus-visible:outline-red-500 dark:text-red-300 dark:outline-red-500/50 dark:placeholder:text-red-400/70 dark:focus-visible:outline-red-400"
+  end
+
+  defp select_input_base_class do
+    "col-start-1 row-start-1 w-full appearance-none rounded-md bg-white py-1.5 pr-8 pl-3 text-base text-gray-900 shadow-xs outline-1 -outline-offset-1 outline-gray-300 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-indigo-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:outline-white/10 dark:focus-visible:outline-indigo-500"
+  end
+
+  defp select_input_error_class do
+    "text-red-900 outline-red-300 focus-visible:outline-red-500 dark:text-red-300 dark:outline-red-500/50 dark:focus-visible:outline-red-400"
+  end
+
+  defp textarea_input_base_class do
+    "block w-full min-h-[8rem] rounded-md bg-white px-3 py-2 text-base text-gray-900 shadow-xs outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-indigo-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:outline-white/10 dark:placeholder:text-gray-500 dark:focus-visible:outline-indigo-500"
+  end
+
+  defp textarea_input_error_class do
+    text_input_error_class()
+  end
+
   defp error(assigns) do
     ~H"""
-    <p class="mt-1.5 flex gap-2 items-center text-sm text-error">
-      <.icon name="hero-exclamation-circle" class="size-5" />
+    <p class="flex items-center gap-2 text-sm text-red-600 dark:text-red-400">
+      <.icon name="hero-exclamation-circle" class="size-4" />
       {render_slot(@inner_block)}
     </p>
     """
@@ -288,16 +326,20 @@ defmodule HarborWeb.CoreComponents do
 
   def header(assigns) do
     ~H"""
-    <header class={[@actions != [] && "flex items-center justify-between gap-6", "pb-4"]}>
-      <div>
-        <h1 class="text-lg font-semibold leading-8">
+    <header class="flex flex-col gap-4 pb-6 sm:flex-row sm:items-start sm:justify-between sm:gap-6 md:items-center">
+      <div class="min-w-0 flex-1">
+        <h1 class="text-2xl/7 font-semibold text-gray-900 sm:text-3xl sm:tracking-tight dark:text-white">
           {render_slot(@inner_block)}
         </h1>
-        <p :if={@subtitle != []} class="text-sm text-base-content/70">
+        <p :if={@subtitle != []} class="mt-2 text-sm/6 text-gray-600 dark:text-gray-300">
           {render_slot(@subtitle)}
         </p>
       </div>
-      <div class="flex-none">{render_slot(@actions)}</div>
+      <div :if={@actions != []} class="flex shrink-0 flex-wrap items-center gap-3 sm:flex-nowrap">
+        <%= for action <- @actions do %>
+          {render_slot(action)}
+        <% end %>
+      </div>
     </header>
     """
   end
@@ -334,34 +376,60 @@ defmodule HarborWeb.CoreComponents do
       end
 
     ~H"""
-    <table class="table table-zebra">
-      <thead>
-        <tr>
-          <th :for={col <- @col}>{col[:label]}</th>
-          <th :if={@action != []}>
-            <span class="sr-only">{gettext("Actions")}</span>
-          </th>
-        </tr>
-      </thead>
-      <tbody id={@id} phx-update={is_struct(@rows, Phoenix.LiveView.LiveStream) && "stream"}>
-        <tr :for={row <- @rows} id={@row_id && @row_id.(row)}>
-          <td
-            :for={col <- @col}
+    <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-gray-900">
+      <table class="min-w-full divide-y divide-gray-300 dark:divide-white/10">
+        <thead class="bg-gray-50 dark:bg-white/5">
+          <tr>
+            <th
+              :for={col <- @col}
+              scope="col"
+              class="px-4 py-3.5 text-left text-sm font-semibold text-gray-900 first:pl-6 dark:text-white"
+            >
+              {col[:label]}
+            </th>
+            <th
+              :if={@action != []}
+              scope="col"
+              class="px-4 py-3.5 text-right text-sm font-semibold text-gray-900 last:pr-6 dark:text-white"
+            >
+              <span class="sr-only">{gettext("Actions")}</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody
+          id={@id}
+          phx-update={is_struct(@rows, Phoenix.LiveView.LiveStream) && "stream"}
+          class="divide-y divide-gray-200 dark:divide-white/10"
+        >
+          <tr
+            :for={row <- @rows}
+            id={@row_id && @row_id.(row)}
             phx-click={@row_click && @row_click.(row)}
-            class={@row_click && "hover:cursor-pointer"}
+            class={[
+              "transition",
+              @row_click && "cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5"
+            ]}
           >
-            {render_slot(col, @row_item.(row))}
-          </td>
-          <td :if={@action != []} class="w-0 font-semibold">
-            <div class="flex gap-4">
-              <%= for action <- @action do %>
-                {render_slot(action, @row_item.(row))}
-              <% end %>
-            </div>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+            <td
+              :for={col <- @col}
+              class="whitespace-nowrap px-4 py-4 text-sm text-gray-600 first:pl-6 first:font-medium first:text-gray-900 dark:text-gray-300 dark:first:text-white"
+            >
+              {render_slot(col, @row_item.(row))}
+            </td>
+            <td
+              :if={@action != []}
+              class="whitespace-nowrap px-4 py-4 text-right text-sm font-semibold last:pr-6"
+            >
+              <div class="flex justify-end gap-3">
+                <%= for action <- @action do %>
+                  {render_slot(action, @row_item.(row))}
+                <% end %>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
     """
   end
 
@@ -381,14 +449,14 @@ defmodule HarborWeb.CoreComponents do
 
   def list(assigns) do
     ~H"""
-    <ul class="list">
-      <li :for={item <- @item} class="list-row">
-        <div class="list-col-grow">
-          <div class="font-bold">{item.title}</div>
-          <div>{render_slot(item)}</div>
+    <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-gray-900">
+      <dl class="divide-y divide-gray-200 dark:divide-white/10">
+        <div :for={item <- @item} class="grid gap-4 px-4 py-4 sm:grid-cols-3 sm:px-6 sm:py-5">
+          <dt class="text-sm font-medium text-gray-600 dark:text-gray-400">{item.title}</dt>
+          <dd class="text-sm text-gray-900 sm:col-span-2 dark:text-gray-100">{render_slot(item)}</dd>
         </div>
-      </li>
-    </ul>
+      </dl>
+    </div>
     """
   end
 

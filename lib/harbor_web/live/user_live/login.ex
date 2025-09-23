@@ -10,8 +10,8 @@ defmodule HarborWeb.UserLive.Login do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} current_scope={@current_scope}>
-      <div class="mx-auto max-w-sm space-y-4">
-        <div class="text-center">
+      <div class="mx-auto max-w-sm space-y-8">
+        <div class="space-y-3 text-center">
           <.header>
             <p>Log in</p>
             <:subtitle>
@@ -20,7 +20,7 @@ defmodule HarborWeb.UserLive.Login do
               <% else %>
                 Don't have an account? <.link
                   navigate={~p"/users/register"}
-                  class="font-semibold text-brand hover:underline"
+                  class="font-semibold text-indigo-600 underline-offset-4 hover:text-indigo-500 hover:underline dark:text-indigo-400 dark:hover:text-indigo-300"
                   phx-no-format
                 >Sign up</.link> for an account now.
               <% end %>
@@ -28,13 +28,23 @@ defmodule HarborWeb.UserLive.Login do
           </.header>
         </div>
 
-        <div :if={local_mail_adapter?()} class="alert alert-info">
-          <.icon name="hero-information-circle" class="size-6 shrink-0" />
-          <div>
-            <p>You are running the local mail adapter.</p>
-            <p>
-              To see sent emails, visit <.link href="/dev/mailbox" class="underline">the mailbox page</.link>.
-            </p>
+        <div
+          :if={local_mail_adapter?()}
+          class="rounded-lg border border-indigo-100 bg-indigo-50/80 p-4 text-sm text-indigo-700 shadow-sm dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-200"
+        >
+          <div class="flex items-start gap-3">
+            <.icon name="hero-information-circle" class="mt-0.5 size-5" />
+            <div class="space-y-1">
+              <p class="font-medium">You are running the local mail adapter.</p>
+              <p>
+                To see sent emails, visit <.link
+                  href="/dev/mailbox"
+                  class="font-semibold text-indigo-700 underline underline-offset-4 hover:text-indigo-500 dark:text-indigo-300 dark:hover:text-indigo-200"
+                >
+                  the mailbox page
+                </.link>.
+              </p>
+            </div>
           </div>
         </div>
 
@@ -44,6 +54,7 @@ defmodule HarborWeb.UserLive.Login do
           id="login_form_magic"
           action={~p"/users/log-in"}
           phx-submit="submit_magic"
+          class="space-y-5"
         >
           <.input
             readonly={!!@current_scope}
@@ -54,12 +65,16 @@ defmodule HarborWeb.UserLive.Login do
             required
             phx-mounted={JS.focus()}
           />
-          <.button class="btn btn-primary w-full">
+          <.button class="w-full justify-center" variant="primary">
             Log in with email <span aria-hidden="true">→</span>
           </.button>
         </.form>
 
-        <div class="divider">or</div>
+        <div class="flex items-center gap-4 text-sm font-medium text-gray-500 dark:text-gray-400">
+          <div class="flex-1 border-t border-gray-200 dark:border-white/10" />
+          <span>or</span>
+          <div class="flex-1 border-t border-gray-200 dark:border-white/10" />
+        </div>
 
         <.form
           :let={f}
@@ -68,6 +83,7 @@ defmodule HarborWeb.UserLive.Login do
           action={~p"/users/log-in"}
           phx-submit="submit_password"
           phx-trigger-action={@trigger_submit}
+          class="space-y-5"
         >
           <.input
             readonly={!!@current_scope}
@@ -83,10 +99,15 @@ defmodule HarborWeb.UserLive.Login do
             label="Password"
             autocomplete="current-password"
           />
-          <.button class="btn btn-primary w-full" name={@form[:remember_me].name} value="true">
+          <.button
+            class="w-full justify-center"
+            name={@form[:remember_me].name}
+            value="true"
+            variant="primary"
+          >
             Log in and stay logged in <span aria-hidden="true">→</span>
           </.button>
-          <.button class="btn btn-primary btn-soft w-full mt-2">
+          <.button class="w-full justify-center">
             Log in only this time
           </.button>
         </.form>

@@ -35,40 +35,51 @@ defmodule HarborWeb.Layouts do
 
   def app(assigns) do
     ~H"""
-    <header class="navbar px-4 sm:px-6 lg:px-8">
-      <div class="flex-1">
-        <a href="/" class="flex-1 flex w-fit items-center gap-2">
-          <img src={~p"/images/logo.svg"} width="36" />
-          <span class="text-sm font-semibold">v{Application.spec(:phoenix, :vsn)}</span>
-        </a>
-      </div>
-      <div class="flex-none">
-        <ul class="flex flex-column px-1 space-x-4 items-center">
-          <li>
-            <a href="https://phoenixframework.org/" class="btn btn-ghost">Website</a>
-          </li>
-          <li>
-            <a href="https://github.com/phoenixframework/phoenix" class="btn btn-ghost">GitHub</a>
-          </li>
-          <li>
-            <.theme_toggle />
-          </li>
-          <li>
-            <a href="https://hexdocs.pm/phoenix/overview.html" class="btn btn-primary">
-              Get Started <span aria-hidden="true">&rarr;</span>
+    <div class="min-h-screen bg-gray-50">
+      <header class="border-b border-gray-200 bg-white dark:border-white/10 dark:bg-gray-950">
+        <div class="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-4 px-4 py-6 sm:flex-nowrap sm:px-6 lg:px-8">
+          <a
+            href="/"
+            class="flex items-center gap-3 text-sm font-semibold text-gray-900 dark:text-white"
+          >
+            <img src={~p"/images/logo.svg"} width="36" alt="Harbor" class="h-9 w-9" />
+            <span class="hidden text-xs font-normal text-gray-500 sm:block dark:text-gray-400">
+              Phoenix v{Application.spec(:phoenix, :vsn)}
+            </span>
+          </a>
+          <nav class="flex flex-wrap items-center gap-3 text-sm font-medium text-gray-600 sm:gap-4 dark:text-gray-300">
+            <a
+              href="https://phoenixframework.org/"
+              class="transition hover:text-gray-900 dark:hover:text-white"
+            >
+              Website
             </a>
-          </li>
-        </ul>
-      </div>
-    </header>
+            <a
+              href="https://github.com/phoenixframework/phoenix"
+              class="transition hover:text-gray-900 dark:hover:text-white"
+            >
+              GitHub
+            </a>
+            <.theme_toggle />
+            <.button
+              href="https://hexdocs.pm/phoenix/overview.html"
+              variant="primary"
+              class="hidden sm:inline-flex"
+            >
+              Get Started <span aria-hidden="true" class="ml-1">→</span>
+            </.button>
+          </nav>
+        </div>
+      </header>
 
-    <main class="px-4 py-20 sm:px-6 lg:px-8">
-      <div class="mx-auto max-w-2xl space-y-4">
-        {render_slot(@inner_block)}
-      </div>
-    </main>
+      <main class="px-4 py-16 sm:px-6 lg:px-8">
+        <div class="mx-auto max-w-2xl space-y-8">
+          {render_slot(@inner_block)}
+        </div>
+      </main>
 
-    <.flash_group flash={@flash} />
+      <.flash_group flash={@flash} />
+    </div>
     """
   end
 
@@ -84,7 +95,11 @@ defmodule HarborWeb.Layouts do
 
   def flash_group(assigns) do
     ~H"""
-    <div id={@id} aria-live="polite">
+    <section
+      id={@id}
+      aria-live="polite"
+      class="pointer-events-none fixed inset-x-4 top-4 z-50 flex flex-col items-end gap-3 sm:inset-x-auto sm:right-4"
+    >
       <.flash kind={:info} flash={@flash} />
       <.flash kind={:error} flash={@flash} />
 
@@ -111,7 +126,7 @@ defmodule HarborWeb.Layouts do
         {gettext("Attempting to reconnect")}
         <.icon name="hero-arrow-path" class="ml-1 size-3 motion-safe:animate-spin" />
       </.flash>
-    </div>
+    </section>
     """
   end
 
@@ -122,31 +137,30 @@ defmodule HarborWeb.Layouts do
   """
   def theme_toggle(assigns) do
     ~H"""
-    <div class="card relative flex flex-row items-center border-2 border-base-300 bg-base-300 rounded-full">
-      <div class="absolute w-1/3 h-full rounded-full border-1 border-base-200 bg-base-100 brightness-200 left-0 [[data-theme=light]_&]:left-1/3 [[data-theme=dark]_&]:left-2/3 transition-[left]" />
-
+    <div class="flex items-center gap-2 rounded-full bg-gray-100 p-1 text-gray-500 shadow-inner dark:bg-white/5 dark:text-gray-400">
       <button
-        class="flex p-2 cursor-pointer w-1/3"
+        class="inline-flex size-8 items-center justify-center rounded-full transition hover:bg-white hover:text-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:hover:bg-white/10 dark:hover:text-white dark:focus-visible:outline-indigo-500"
         phx-click={JS.dispatch("phx:set-theme")}
         data-phx-theme="system"
+        aria-label="Use system theme"
       >
-        <.icon name="hero-computer-desktop-micro" class="size-4 opacity-75 hover:opacity-100" />
+        <.icon name="hero-computer-desktop-micro" class="size-4" />
       </button>
-
       <button
-        class="flex p-2 cursor-pointer w-1/3"
+        class="inline-flex size-8 items-center justify-center rounded-full transition hover:bg-white hover:text-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:hover:bg-white/10 dark:hover:text-white dark:focus-visible:outline-indigo-500"
         phx-click={JS.dispatch("phx:set-theme")}
         data-phx-theme="light"
+        aria-label="Use light theme"
       >
-        <.icon name="hero-sun-micro" class="size-4 opacity-75 hover:opacity-100" />
+        <.icon name="hero-sun-micro" class="size-4" />
       </button>
-
       <button
-        class="flex p-2 cursor-pointer w-1/3"
+        class="inline-flex size-8 items-center justify-center rounded-full transition hover:bg-white hover:text-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:hover:bg-white/10 dark:hover:text-white dark:focus-visible:outline-indigo-500"
         phx-click={JS.dispatch("phx:set-theme")}
         data-phx-theme="dark"
+        aria-label="Use dark theme"
       >
-        <.icon name="hero-moon-micro" class="size-4 opacity-75 hover:opacity-100" />
+        <.icon name="hero-moon-micro" class="size-4" />
       </button>
     </div>
     """
