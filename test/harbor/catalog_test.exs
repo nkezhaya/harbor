@@ -44,6 +44,27 @@ defmodule Harbor.CatalogTest do
       assert {:error, %Ecto.Changeset{}} =
                Catalog.create_product(%{name: nil, status: nil, description: nil, slug: nil})
     end
+
+    test "fails when default_variant_id does not belong to the product" do
+      other_product = product_fixture()
+      variant = List.first(other_product.variants)
+      tax_code = TaxFixtures.get_general_tax_code!()
+
+      attrs = %{
+        name: "other product",
+        status: :draft,
+        description: "desc",
+        tax_code_id: tax_code.id,
+        default_variant_id: variant.id
+      }
+
+      assert {:error, changeset} = Catalog.create_product(attrs)
+      assert "does not exist" in errors_on(changeset).default_variant
+
+      attrs = %{attrs | default_variant_id: Ecto.UUID.generate()}
+      assert {:error, changeset} = Catalog.create_product(attrs)
+      assert "does not exist" in errors_on(changeset).default_variant
+    end
   end
 
   describe "update_product/2" do
@@ -76,6 +97,16 @@ defmodule Harbor.CatalogTest do
                })
 
       assert product == Catalog.get_product!(product.id)
+    end
+
+    test "allows setting default_variant_id for a product variant" do
+      product = product_fixture()
+      variant = List.first(product.variants)
+
+      assert {:ok, %Product{} = updated} =
+               Catalog.update_product(product, %{default_variant_id: variant.id})
+
+      assert updated.default_variant_id == variant.id
     end
   end
 

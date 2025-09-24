@@ -50,7 +50,6 @@ defmodule Harbor.Repo.Migrations.CreateProducts do
     create table(:variants) do
       add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
       add :product_id, references(:products, on_delete: :delete_all), null: false
-      add :master, :boolean, null: false, default: false
 
       add :sku, :string, null: false
       add :price, :integer, null: false
@@ -67,11 +66,6 @@ defmodule Harbor.Repo.Migrations.CreateProducts do
     create index(:variants, [:product_id, :enabled])
     create unique_index(:variants, [:sku])
 
-    create unique_index(:variants, [:product_id],
-             name: "variants_product_id_master_index",
-             where: "master = true"
-           )
-
     create constraint(:variants, :price_gte_zero, check: "price >= 0")
     create constraint(:variants, :quantity_available_gte_zero, check: "quantity_available >= 0")
 
@@ -81,5 +75,29 @@ defmodule Harbor.Repo.Migrations.CreateProducts do
     end
 
     create index(:variants_option_values, [:option_value_id])
+
+    alter table(:products) do
+      add :default_variant_id, :binary_id
+    end
+
+    # This seems redundant, but is required so we can create a composite foreign
+    # key on the products table based on (variants.id, variants.product_id)
+    execute(
+      "ALTER TABLE variants ADD CONSTRAINT variants_primary UNIQUE (id, product_id)",
+      "ALTER TABLE variants DROP CONSTRAINT variants_primary"
+    )
+
+    # Ensure that the variant pointed to by "products" is actually a variant of
+    # the specific product
+    execute(
+      """
+      ALTER TABLE products ADD CONSTRAINT products_default_variant_id_fkey
+        FOREIGN KEY (default_variant_id, id) REFERENCES variants(id, product_id)
+        ON DELETE SET NULL DEFERRABLE INITIALLY IMMEDIATE
+      """,
+      "ALTER TABLE products DROP CONSTRAINT products_default_variant_id_fkey"
+    )
+
+    create index(:products, [:default_variant_id])
   end
 end

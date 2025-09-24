@@ -17,7 +17,7 @@ defmodule Harbor.TaxTest do
   describe "create_calculation/1" do
     setup do
       product = product_fixture()
-      variant = Enum.find(product.variants, & &1.master)
+      variant = List.first(product.variants)
       cart = cart_fixture()
       cart_item = cart_item_fixture(cart, %{variant_id: variant.id, quantity: 1})
 

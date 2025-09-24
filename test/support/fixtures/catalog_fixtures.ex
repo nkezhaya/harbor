@@ -17,7 +17,6 @@ defmodule Harbor.CatalogFixtures do
         tax_code_id: tax_code.id,
         variants: [
           %{
-            master: true,
             sku: "sku-#{System.unique_integer()}",
             price: 4000
           }
@@ -31,7 +30,8 @@ defmodule Harbor.CatalogFixtures do
   def variant_fixture do
     product = product_fixture()
 
-    Enum.find(product.variants, & &1.master)
+    product.variants
+    |> List.first()
   end
 
   def product_image_fixture(attrs \\ %{}) do

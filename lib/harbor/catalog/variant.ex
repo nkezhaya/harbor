@@ -10,7 +10,6 @@ defmodule Harbor.Catalog.Variant do
   @type t() :: %__MODULE__{}
 
   schema "variants" do
-    field :master, :boolean, default: false
     field :sku, :string
     field :price, :integer
     field :quantity_available, :integer, default: 0
@@ -31,7 +30,6 @@ defmodule Harbor.Catalog.Variant do
   def changeset(variant, attrs) do
     variant
     |> cast(attrs, [
-      :master,
       :sku,
       :price,
       :quantity_available,
@@ -55,10 +53,6 @@ defmodule Harbor.Catalog.Variant do
       message: "must be greater than or equal to 0"
     )
     |> unique_constraint(:sku)
-    |> unique_constraint(:product_id,
-      name: "variants_product_id_master_index",
-      message: "product already has a master variant"
-    )
     |> assoc_constraint(:tax_code)
   end
 end
