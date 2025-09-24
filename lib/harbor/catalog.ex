@@ -6,6 +6,9 @@ defmodule Harbor.Catalog do
 
   alias Harbor.Repo
   alias Harbor.Catalog.{Category, Product, ProductImage}
+  alias Harbor.Catalog.Forms.ProductForm
+
+  ## Products
 
   def list_products do
     Product
@@ -39,6 +42,20 @@ defmodule Harbor.Catalog do
     Product.changeset(product, attrs)
   end
 
+  ## Product Form
+
+  def build_product_form(attrs \\ %{}) do
+    %ProductForm{}
+    |> change_product_form(attrs)
+    |> Ecto.Changeset.apply_changes()
+  end
+
+  def change_product_form(product_form, attrs) do
+    ProductForm.changeset(product_form, attrs)
+  end
+
+  ## Images
+
   def list_product_images do
     Repo.all(ProductImage)
   end
@@ -66,6 +83,8 @@ defmodule Harbor.Catalog do
   def change_image(%ProductImage{} = image, attrs \\ %{}) do
     ProductImage.changeset(image, attrs)
   end
+
+  ## Categories
 
   def list_categories do
     Repo.all(Category)

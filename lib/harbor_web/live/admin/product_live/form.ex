@@ -60,7 +60,27 @@ defmodule HarborWeb.Admin.ProductLive.Form do
      socket
      |> assign(:return_to, return_to(params["return_to"]))
      |> assign(:tax_code_options, tax_code_options())
+     |> assign(:uploaded_assets, [])
+     |> allow_upload(:asset,
+       accept: ~w(.jpg .jpeg .png .mp4),
+       auto_upload: true,
+       external: &Harbor.Uploader.presign_upload/2,
+       progress: &handle_progress/3
+     )
      |> apply_action(socket.assigns.live_action, params)}
+  end
+
+  defp handle_progress(:asset, entry, socket) do
+    if entry.done? do
+      uploaded_file =
+        consume_uploaded_entry(socket, entry, fn %{} = _meta ->
+          {:ok, nil}
+        end)
+
+      {:noreply, put_flash(socket, :info, "file #{uploaded_file.name} uploaded")}
+    else
+      {:noreply, socket}
+    end
   end
 
   defp tax_code_options do
