@@ -85,8 +85,6 @@ defmodule Harbor.Orders.Order do
   defp put_new_order_number(changeset) do
     case get_field(changeset, :number) do
       nil ->
-        # TODO: Just trusting for now that collisions won't occur, but this will
-        # need to be reworked to ensure uniqueness.
         digits = 9
 
         n =
