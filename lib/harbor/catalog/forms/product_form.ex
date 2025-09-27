@@ -6,7 +6,7 @@ defmodule Harbor.Catalog.Forms.ProductForm do
   import Ecto.Changeset
 
   alias Ecto.Changeset
-  alias Harbor.Catalog.Forms.MediaUpload
+  alias Harbor.Catalog.Forms.{MediaUpload, MediaUploadPromotionWorker}
   alias Harbor.Catalog.{Product, ProductImage}
   alias Harbor.Repo
 
@@ -92,16 +92,17 @@ defmodule Harbor.Catalog.Forms.ProductForm do
     media_uploads
     |> Enum.with_index(length(product.images))
     |> Enum.reduce_while({:ok, []}, fn {media_upload, position}, {:ok, acc} ->
-      %ProductImage{}
-      |> ProductImage.changeset(%{
+      attrs = %{
         product_id: product.id,
         temp_upload_path: media_upload.key,
         image_path: image_path(product, media_upload),
         position: position
-      })
-      |> Repo.insert()
-      |> case do
-        {:ok, product_image} -> {:cont, {:ok, [product_image | acc]}}
+      }
+
+      with {:ok, product_image} <- insert_product_image(attrs),
+           {:ok, _} <- insert_promotion_job(product_image) do
+        {:cont, {:ok, [product_image | acc]}}
+      else
         {:error, changeset} -> {:halt, {:error, changeset}}
       end
     end)
@@ -109,6 +110,18 @@ defmodule Harbor.Catalog.Forms.ProductForm do
       {:ok, product_images} -> {:ok, Enum.reverse(product_images)}
       error -> error
     end
+  end
+
+  defp insert_product_image(attrs) do
+    %ProductImage{}
+    |> ProductImage.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  defp insert_promotion_job(product_image) do
+    %{product_image_id: product_image.id}
+    |> MediaUploadPromotionWorker.new()
+    |> Oban.insert()
   end
 
   defp image_path(%Product{} = product, %MediaUpload{} = media_upload) do

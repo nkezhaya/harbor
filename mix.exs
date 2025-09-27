@@ -65,8 +65,6 @@ defmodule Harbor.MixProject do
       {:gettext, "~> 0.26"},
       {:dns_cluster, "~> 0.2.0"},
       {:bandit, "~> 1.5"},
-      {:waffle, "~> 1.1"},
-      {:waffle_ecto, "~> 0.0"},
       {:ex_aws, "~> 2.5"},
       {:ex_aws_s3, "~> 2.5"},
       {:stripity_stripe, "~> 3.2"},

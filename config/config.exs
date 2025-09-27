@@ -56,8 +56,6 @@ config :harbor, HarborWeb.Endpoint,
 # at the `config/runtime.exs`.
 config :harbor, Harbor.Mailer, adapter: Swoosh.Adapters.Local
 
-config :waffle, storage: Waffle.Storage.S3
-
 # Configure esbuild (the version is required)
 config :esbuild,
   version: "0.25.4",
@@ -85,6 +83,11 @@ config :logger, :default_formatter,
   metadata: [:request_id]
 
 config :phoenix, :json_library, JSON
+
+config :harbor, Oban,
+  engine: Oban.Engines.Basic,
+  queues: [media_uploads: 10],
+  repo: Harbor.Repo
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
