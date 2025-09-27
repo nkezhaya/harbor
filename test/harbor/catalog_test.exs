@@ -125,16 +125,10 @@ defmodule Harbor.CatalogTest do
     end
   end
 
-  describe "list_product_images/0" do
-    test "returns all product_images" do
-      image = product_image_fixture()
-      assert Catalog.list_product_images() == [image]
-    end
-  end
-
   describe "get_image!/1" do
     test "returns the image with given id" do
-      image = product_image_fixture()
+      product = product_fixture()
+      image = product_image_fixture(%{product_id: product.id})
       assert Catalog.get_image!(image.id) == image
     end
   end
@@ -144,15 +138,20 @@ defmodule Harbor.CatalogTest do
       [product: product_fixture()]
     end
 
-    test "with valid data creates a image" do
-      valid_attrs = %{image: "some image", position: 0}
+    test "with valid data creates a image", %{product: product} do
+      valid_attrs = %{
+        product_id: product.id,
+        image_path: "some/path",
+        temp_upload_path: "tmp/path",
+        position: 0
+      }
 
       assert {:ok, %ProductImage{} = image} = Catalog.create_image(valid_attrs)
-      assert image.image == "some image"
+      assert image.image_path == "some/path"
     end
 
     test "with invalid data returns error changeset" do
-      assert {:error, %Ecto.Changeset{}} = Catalog.create_image(%{image: nil})
+      assert {:error, %Ecto.Changeset{}} = Catalog.create_image(%{})
     end
   end
 
@@ -163,25 +162,22 @@ defmodule Harbor.CatalogTest do
 
     test "with valid data updates the image", %{product: product} do
       image = product_image_fixture(%{product_id: product.id})
-      update_attrs = %{image: "some updated image", position: 1}
+      update_attrs = %{image_path: "updated/path", position: 1}
 
       assert {:ok, %ProductImage{} = image} = Catalog.update_image(image, update_attrs)
-      assert image.image == "some updated image"
+      assert image.image_path == "updated/path"
     end
 
     test "with invalid data returns error changeset", %{product: product} do
       image = product_image_fixture(%{product_id: product.id})
-      assert {:error, %Ecto.Changeset{}} = Catalog.update_image(image, %{image: nil})
+      assert {:error, %Ecto.Changeset{}} = Catalog.update_image(image, %{image_path: nil})
       assert image == Catalog.get_image!(image.id)
     end
   end
 
   describe "delete_image/1" do
-    setup do
-      [product: product_fixture()]
-    end
-
-    test "deletes the image", %{product: product} do
+    test "deletes the image" do
+      product = product_fixture()
       image = product_image_fixture(%{product_id: product.id})
       assert {:ok, %ProductImage{}} = Catalog.delete_image(image)
       assert_raise Ecto.NoResultsError, fn -> Catalog.get_image!(image.id) end
@@ -190,7 +186,8 @@ defmodule Harbor.CatalogTest do
 
   describe "change_image/1" do
     test "returns a image changeset" do
-      image = product_image_fixture()
+      product = product_fixture()
+      image = product_image_fixture(%{product_id: product.id})
       assert %Ecto.Changeset{} = Catalog.change_image(image)
     end
   end

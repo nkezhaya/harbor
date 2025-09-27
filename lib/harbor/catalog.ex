@@ -56,10 +56,6 @@ defmodule Harbor.Catalog do
 
   ## Images
 
-  def list_product_images do
-    Repo.all(ProductImage)
-  end
-
   def get_image!(id) do
     Repo.get!(ProductImage, id)
   end

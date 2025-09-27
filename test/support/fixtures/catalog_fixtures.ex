@@ -38,7 +38,8 @@ defmodule Harbor.CatalogFixtures do
     {:ok, image} =
       attrs
       |> Enum.into(%{
-        image: "some image",
+        image_path: "files/id/original.jpg",
+        temp_upload_path: "media_uploads/id/original.jpg",
         position: 0
       })
       |> Catalog.create_image()

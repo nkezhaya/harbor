@@ -10,4 +10,13 @@ defmodule Harbor.Config do
     {provider, _} = Application.get_env(:harbor, :tax_provider)
     provider
   end
+
+  def s3_bucket do
+    Application.get_env(:harbor, :s3_bucket) ||
+      raise """
+      Expected an S3 bucket to be configured. Configure one with:
+
+          config :harbor, :s3_bucket, "my-bucket"
+      """
+  end
 end
