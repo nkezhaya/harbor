@@ -9,7 +9,21 @@ defmodule Harbor.Tax do
   import Harbor.QueryMacros
 
   alias Harbor.{Config, Repo}
-  alias Harbor.Tax.{Calculation, CalculationLineItem, TaxCode}
+  alias Harbor.Tax.{Calculation, CalculationLineItem, Request, TaxCode, TaxProvider}
+
+  @doc """
+  Fetches a tax calculation from the configured provider using the supplied
+  idempotency key to avoid duplicate requests.
+  """
+  @spec calculate_taxes(Request.t(), String.t()) ::
+          TaxProvider.result(%{
+            id: String.t(),
+            amount: non_neg_integer(),
+            line_items: [TaxProvider.line_item()]
+          })
+  def calculate_taxes(%Request{} = request, idempotency_key) do
+    TaxProvider.calculate_taxes(request, idempotency_key)
+  end
 
   ## Tax Codes
 
@@ -49,6 +63,7 @@ defmodule Harbor.Tax do
     end
   end
 
+  @doc false
   def upsert_calculation_line_items(line_items) do
     Repo.insert_all(CalculationLineItem, line_items,
       on_conflict: :nothing,

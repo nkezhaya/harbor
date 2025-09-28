@@ -9,7 +9,7 @@ defmodule Harbor.Checkout do
   alias Harbor.Checkout.{Cart, CartItem, Pricing, Session}
   alias Harbor.Orders.Order
   alias Harbor.Shipping.DeliveryMethod
-  alias Harbor.Tax.{Calculation, Request, TaxProvider}
+  alias Harbor.Tax.{Calculation, Request}
 
   ## Carts
 
@@ -195,7 +195,7 @@ defmodule Harbor.Checkout do
       nil ->
         idempotency_key = "#{session.id},#{hash}"
 
-        with {:ok, response} <- TaxProvider.calculate_taxes(request, idempotency_key) do
+        with {:ok, response} <- Tax.calculate_taxes(request, idempotency_key) do
           Repo.transact(fn ->
             with {:ok, calculation} <-
                    Tax.create_calculation(%{
