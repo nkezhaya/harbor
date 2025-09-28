@@ -4,8 +4,8 @@ defmodule Mix.Tasks.Harbor.ImportTaxCodes do
 
   use Mix.Task
 
-  alias Harbor.Config
-  alias Harbor.Tax.TaxProvider
+  alias Harbor.{Config, Repo}
+  alias Harbor.Tax.{TaxProvider, TaxCode}
 
   @shortdoc "Import tax codes from the configured tax provider"
   def run(_) do
@@ -13,7 +13,7 @@ defmodule Mix.Tasks.Harbor.ImportTaxCodes do
     {:ok, tax_codes} = TaxProvider.list_tax_codes()
 
     for tc <- tax_codes do
-      Harbor.Repo.insert!(Ecto.Changeset.change(%Harbor.Tax.TaxCode{provider: provider}, tc))
+      Repo.insert!(Ecto.Changeset.change(%TaxCode{provider: provider}, tc))
     end
   end
 end
