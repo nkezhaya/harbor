@@ -14,7 +14,7 @@ defmodule Harbor.Tax do
   ## Tax Codes
 
   def list_tax_codes do
-    provider = Atom.to_string(Config.tax_provider())
+    provider = Config.tax_provider()
 
     TaxCode
     |> order_by(:position)

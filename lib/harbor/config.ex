@@ -8,7 +8,7 @@ defmodule Harbor.Config do
 
   def tax_provider do
     {provider, _} = Application.get_env(:harbor, :tax_provider)
-    provider
+    to_string(provider)
   end
 
   def s3_bucket do

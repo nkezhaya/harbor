@@ -34,7 +34,7 @@ defmodule Harbor.Seeds do
     entries =
       for {provider_ref, description, name} <- tax_codes do
         %{
-          provider: Atom.to_string(Config.tax_provider()),
+          provider: Config.tax_provider(),
           provider_ref: provider_ref,
           description: description,
           name: name,

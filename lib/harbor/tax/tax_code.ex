@@ -32,6 +32,6 @@ defmodule Harbor.Tax.TaxCode do
   end
 
   defp put_provider(changeset) do
-    put_change(changeset, :provider, Atom.to_string(Config.tax_provider()))
+    put_change(changeset, :provider, Config.tax_provider())
   end
 end
