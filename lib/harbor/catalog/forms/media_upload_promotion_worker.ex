@@ -1,4 +1,9 @@
 defmodule Harbor.Catalog.Forms.MediaUploadPromotionWorker do
+  @moduledoc """
+  Oban worker that promotes temporary product form uploads to their permanent
+  [ProductImage](`Harbor.Catalog.ProductImage`) records by copying the file from
+  the staging key to the final S3 path.
+  """
   use Oban.Worker, queue: :media_uploads
 
   alias Harbor.{Catalog, Config}
@@ -10,9 +15,9 @@ defmodule Harbor.Catalog.Forms.MediaUploadPromotionWorker do
 
     ExAws.S3.put_object_copy(
       bucket,
-      product_image.temp_upload_path,
+      product_image.image_path,
       bucket,
-      product_image.image_path
+      product_image.temp_upload_path
     )
     |> ExAws.request!()
 

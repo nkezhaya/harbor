@@ -5,7 +5,7 @@ defmodule HarborWeb.Admin.ProductLive.Form do
   use HarborWeb, :live_view
 
   alias Ecto.Changeset
-  alias Harbor.{Catalog, Config, Tax}
+  alias Harbor.{Catalog, Config, Tax, Util}
   alias Harbor.Catalog.Forms.ProductForm
   alias Harbor.Catalog.Product
 
@@ -32,7 +32,6 @@ defmodule HarborWeb.Admin.ProductLive.Form do
       >
         <.inputs_for :let={product_form} field={@form[:product]}>
           <.input field={product_form[:name]} type="text" label="Name" />
-          <.input field={product_form[:slug]} type="text" label="Slug" />
           <.input field={product_form[:description]} type="textarea" label="Description" />
           <.input
             field={product_form[:status]}
@@ -77,28 +76,43 @@ defmodule HarborWeb.Admin.ProductLive.Form do
             </div>
           </div>
 
-          <ul role="list" class="divide-y divide-gray-100 dark:divide-white/5">
+          <ul role="list" class="divide-y divide-gray-100 dark:divide-white/5 space-y-4">
             <li
-              :for={media_upload <- @product_form.media_uploads ++ [1]}
-              class="flex justify-between gap-x-6 py-4 px-4 border border-dashed border-gray-900/25 dark:border-white/25 rounded-lg"
+              :for={media_upload <- @product_form.media_uploads}
+              :key={media_upload.id}
+              class="flex justify-between items-center gap-x-6 py-4 px-4 border border-dashed border-gray-900/25 dark:border-white/25 rounded-lg"
             >
               <div class="flex items-center gap-3 overflow-hidden">
-                <div class="bg-accent aspect-square shrink-0 rounded">
-                  <img
-                    src="https://picsum.photos/1000/800?grayscale&amp;random=1"
-                    alt="image-01.jpg"
-                    class="size-10 rounded-[inherit] object-cover"
-                  />
-                </div>
+                <%= case media_upload.status do %>
+                  <% :pending -> %>
+                    <div class="aspect-square shrink-0 rounded flex">
+                      <span class="inline-block size-8 border-[3px] border-gray-200 border-b-indigo-600 rounded-full box-border animate-spin">
+                        <span class="sr-only">Loading...</span>
+                      </span>
+                    </div>
+                  <% :complete -> %>
+                    <div class="aspect-square shrink-0 rounded">
+                      <img
+                        src={ImageHelpers.media_upload_url(media_upload)}
+                        alt=""
+                        class="size-10 rounded-[inherit] object-cover"
+                      />
+                    </div>
+                <% end %>
                 <div class="flex min-w-0 flex-col gap-0.5">
-                  <p class="truncate text-sm font-medium">image-01.jpg</p>
-                  <p class="text-muted-foreground text-xs">1.46MB</p>
+                  <p class="truncate text-sm font-medium">{media_upload.file_name}</p>
+                  <p class="text-muted-foreground text-xs">
+                    {Util.format_bytes(media_upload.file_size)}
+                  </p>
                 </div>
               </div>
 
               <button
+                type="button"
+                phx-click="remove_media_upload"
+                phx-value-id={media_upload.id}
                 data-slot="button"
-                class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-[color,box-shadow] disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] text-muted-foreground/80 hover:text-foreground -me-2 size-8 hover:bg-transparent"
+                class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-[color,box-shadow] disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] text-muted-foreground/80 hover:text-foreground -me-2 size-8 hover:bg-transparent cursor-pointer"
                 aria-label="Remove file"
               >
                 <.icon
@@ -129,6 +143,7 @@ defmodule HarborWeb.Admin.ProductLive.Form do
        accept: ~w(.jpg .jpeg .png .mp4),
        auto_upload: true,
        external: &prepare_upload/2,
+       max_entries: 8,
        progress: &handle_progress/3
      )
      |> apply_action(socket.assigns.live_action, params)}
@@ -137,7 +152,14 @@ defmodule HarborWeb.Admin.ProductLive.Form do
   defp prepare_upload(entry, socket) do
     product_form = socket.assigns.product_form
 
-    case ProductForm.insert_new_media_upload(product_form, entry.client_name, entry.client_type) do
+    attrs = %{
+      id: entry.uuid,
+      file_name: entry.client_name,
+      file_size: entry.client_size,
+      file_type: entry.client_type
+    }
+
+    case ProductForm.insert_new_media_upload(product_form, attrs) do
       {:ok, product_form, media_upload} ->
         url = presigned_url(media_upload)
         meta = %{uploader: "S3", key: media_upload.key, url: url}
@@ -163,7 +185,18 @@ defmodule HarborWeb.Admin.ProductLive.Form do
 
   defp handle_progress(:media_asset, entry, socket) do
     if entry.done? do
-      {:noreply, put_flash(socket, :info, "file uploaded")}
+      product_form = socket.assigns.product_form
+      id = entry.uuid
+
+      media_uploads =
+        Enum.map(product_form.media_uploads, fn
+          %{id: ^id} = media_upload -> %{media_upload | status: :complete}
+          media_upload -> media_upload
+        end)
+
+      product_form = %{product_form | media_uploads: media_uploads}
+
+      {:noreply, assign(socket, product_form: product_form)}
     else
       {:noreply, socket}
     end
@@ -180,7 +213,7 @@ defmodule HarborWeb.Admin.ProductLive.Form do
 
   defp apply_action(socket, :edit, %{"id" => id}) do
     product = Catalog.get_product!(id)
-    product_form = ProductForm.build(product)
+    product_form = ProductForm.new(product)
 
     socket
     |> assign(:page_title, "Edit Product")
@@ -189,7 +222,7 @@ defmodule HarborWeb.Admin.ProductLive.Form do
   end
 
   defp apply_action(socket, :new, _params) do
-    product_form = ProductForm.build(%Product{})
+    product_form = ProductForm.new()
 
     socket
     |> assign(:page_title, "New Product")
@@ -198,6 +231,14 @@ defmodule HarborWeb.Admin.ProductLive.Form do
   end
 
   @impl true
+  def handle_event("remove_media_upload", %{"id" => id}, socket) do
+    product_form = socket.assigns.product_form
+    media_uploads = Enum.reject(product_form.media_uploads, &(&1.id == id))
+    product_form = %{product_form | media_uploads: media_uploads}
+
+    {:noreply, assign(socket, product_form: product_form)}
+  end
+
   def handle_event("validate", %{"product_form" => product_params}, socket) do
     changeset =
       socket.assigns.product_form
@@ -238,9 +279,7 @@ defmodule HarborWeb.Admin.ProductLive.Form do
   end
 
   defp assign_form(socket, %Ecto.Changeset{} = changeset) do
-    socket
-    |> assign(:product_form, Changeset.apply_changes(changeset))
-    |> assign(:form, to_form(changeset, as: :product_form))
+    assign(socket, :form, to_form(changeset, as: :product_form))
   end
 
   defp return_path("index", _product), do: ~p"/admin/products"

@@ -21,8 +21,13 @@ defmodule Harbor.Catalog.Forms.ProductForm do
   @doc """
   Returns a product form with the data associated with the given product.
   """
-  @spec build(Product.t()) :: t()
-  def build(%Product{} = product) do
+  @spec new() :: t()
+  def new do
+    %__MODULE__{}
+  end
+
+  @spec new(Product.t()) :: t()
+  def new(%Product{} = product) do
     %__MODULE__{product: product}
   end
 
@@ -37,10 +42,10 @@ defmodule Harbor.Catalog.Forms.ProductForm do
     |> cast_embed(:media_uploads)
   end
 
-  def insert_new_media_upload(product_form, file_name, file_type) do
+  def insert_new_media_upload(product_form, attrs) do
     result =
       %MediaUpload{}
-      |> MediaUpload.changeset(%{file_name: file_name, file_type: file_type})
+      |> MediaUpload.changeset(attrs)
       |> Changeset.apply_action(:insert)
 
     with {:ok, media_upload} <- result do
@@ -55,30 +60,22 @@ defmodule Harbor.Catalog.Forms.ProductForm do
   """
   @spec create_product(t(), map()) :: {:ok, Product.t()} | {:error, Changeset.t()}
   def create_product(%__MODULE__{} = product_form, params) do
-    result =
-      product_form
-      |> changeset(params)
-      |> apply_action(:insert)
-
-    with {:ok, product_form} <- result do
-      Repo.transact(fn ->
-        with {:ok, product} <- Repo.insert(product_form.product),
-             {:ok, product_images} <- promote_media_uploads(product, product_form.media_uploads) do
-          {:ok, %{product | images: product_images}}
-        end
-      end)
-    end
+    persist_product(product_form, params, :insert)
   end
 
   @spec update_product(t(), map()) :: {:ok, Product.t()} | {:error, Changeset.t()}
   def update_product(%__MODULE__{} = product_form, params) do
+    persist_product(product_form, params, :update)
+  end
+
+  defp persist_product(product_form, params, action) do
     form_changeset = changeset(product_form, params)
 
-    with {:ok, product_form} <- apply_action(form_changeset, :update) do
+    with {:ok, product_form} <- apply_action(form_changeset, action) do
       Repo.transact(fn ->
         product_changeset = get_embed(form_changeset, :product)
 
-        with {:ok, product} <- Repo.update(product_changeset),
+        with {:ok, product} <- Repo.insert_or_update(product_changeset),
              {:ok, product_images} <- promote_media_uploads(product, product_form.media_uploads) do
           {:ok, %{product | images: product_images}}
         end

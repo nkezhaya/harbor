@@ -88,6 +88,7 @@ defmodule HarborWeb do
 
       # Common modules used in templates
       alias HarborWeb.AdminLayouts
+      alias HarborWeb.ImageHelpers
       alias HarborWeb.Layouts
       alias Phoenix.LiveView.JS
 

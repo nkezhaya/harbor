@@ -19,4 +19,13 @@ defmodule Harbor.Config do
           config :harbor, :s3_bucket, "my-bucket"
       """
   end
+
+  def cdn_url do
+    Application.get_env(:harbor, :cdn_url) ||
+      raise """
+      Expected a CDN URL to be configured. Configure one with:
+
+          config :harbor, :cdn_url, "https://my-distribution.cloudfront.net"
+      """
+  end
 end

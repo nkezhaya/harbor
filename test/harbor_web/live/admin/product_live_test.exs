@@ -125,7 +125,6 @@ defmodule HarborWeb.Admin.ProductLiveTest do
       name: "some name",
       status: :draft,
       description: "some description",
-      slug: "some slug",
       tax_code_id: tax_code.id
     }
   end
@@ -134,12 +133,11 @@ defmodule HarborWeb.Admin.ProductLiveTest do
     %{
       name: "some updated name",
       status: :active,
-      description: "some updated description",
-      slug: "some updated slug"
+      description: "some updated description"
     }
   end
 
   defp invalid_attrs do
-    %{name: nil, status: nil, description: nil, slug: nil}
+    %{name: nil, status: nil, description: nil}
   end
 end
