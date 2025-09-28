@@ -21,6 +21,8 @@ defmodule Harbor.Catalog.Forms.MediaUploadPromotionWorker do
     )
     |> ExAws.request!()
 
+    {:ok, _} = Catalog.update_image(product_image, %{status: :ready})
+
     :ok
   end
 end
