@@ -36,3 +36,4 @@ npm-debug.log
 /assets/node_modules/
 
 /config/dev.local.exs
+/lib/mix/tasks/harbor/dev/
