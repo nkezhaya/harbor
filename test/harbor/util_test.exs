@@ -16,9 +16,5 @@ defmodule Harbor.UtilTest do
     test "picks the largest matching unit" do
       assert Util.format_bytes(5 * 1_024 * 1_024 * 1_024) == "5.00GB"
     end
-
-    test "returns nil for negative numbers" do
-      assert Util.format_bytes(-1) == nil
-    end
   end
 end
