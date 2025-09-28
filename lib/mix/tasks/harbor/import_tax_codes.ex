@@ -5,7 +5,7 @@ defmodule Mix.Tasks.Harbor.ImportTaxCodes do
   use Mix.Task
 
   alias Harbor.{Config, Repo}
-  alias Harbor.Tax.{TaxProvider, TaxCode}
+  alias Harbor.Tax.{TaxCode, TaxProvider}
 
   @shortdoc "Import tax codes from the configured tax provider"
   def run(_) do
