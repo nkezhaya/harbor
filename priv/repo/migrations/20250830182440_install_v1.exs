@@ -462,7 +462,7 @@ defmodule Harbor.Repo.Migrations.InstallV1 do
 
     create unique_index(:tax_calculation_line_items, [:provider_ref])
 
-    # Tax transactions
+    ## Tax transactions
 
     create table(:tax_transaction_line_items) do
       add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
@@ -472,6 +472,51 @@ defmodule Harbor.Repo.Migrations.InstallV1 do
 
     create unique_index(:tax_transaction_line_items, [:order_item_id])
     create unique_index(:tax_transaction_line_items, [:provider_ref])
+
+    ## Payment Profiles
+
+    create table(:payment_profiles) do
+      add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
+      add :provider, :string, null: false
+      add :provider_ref, :string, null: false
+
+      add :user_id, references(:users, on_delete: :delete_all)
+      add :session_token, :string
+
+      timestamps()
+    end
+
+    create unique_index(:payment_profiles, [:provider, :provider_ref])
+
+    create unique_index(:payment_profiles, [:provider, :user_id], where: "user_id IS NOT NULL")
+
+    create unique_index(:payment_profiles, [:provider, :session_token],
+             where: "session_token IS NOT NULL"
+           )
+
+    create constraint(:payment_profiles, :user_or_session_token,
+             check: "user_id IS NOT NULL OR session_token IS NOT NULL"
+           )
+
+    ## Payment Methods
+
+    create table(:payment_methods) do
+      add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
+      add :payment_profile_id, references(:payment_profiles, on_delete: :delete_all), null: false
+      add :provider_ref, :string, null: false
+      add :type, :string, null: false
+      add :default, :boolean, null: false, default: false
+      add :details, :map, null: false, default: %{}
+      add :deleted_at, :timestamptz
+
+      timestamps()
+    end
+
+    create unique_index(:payment_methods, [:provider_ref])
+
+    create unique_index(:payment_methods, [:payment_profile_id, :default],
+             where: "\"default\" = true"
+           )
 
     ## Oban
 
