@@ -4,7 +4,7 @@ defmodule Harbor.Orders.Order do
   """
   use Harbor.Schema
 
-  alias Harbor.Accounts.User
+  alias Harbor.Customers.Customer
   alias Harbor.Orders.OrderItem
 
   @type t() :: %__MODULE__{}
@@ -34,7 +34,7 @@ defmodule Harbor.Orders.Order do
     field :shipping_price, :integer, default: 0
     field :total_price, :integer, read_after_writes: true
 
-    belongs_to :user, User
+    belongs_to :customer, Customer
     has_many :items, OrderItem
 
     timestamps()

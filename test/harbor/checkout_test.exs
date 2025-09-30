@@ -3,7 +3,7 @@ defmodule Harbor.CheckoutTest do
 
   import Mox
   import Harbor.CatalogFixtures
-  import Harbor.{AccountsFixtures, CheckoutFixtures, ShippingFixtures}
+  import Harbor.{AccountsFixtures, CheckoutFixtures, CustomersFixtures, ShippingFixtures}
 
   alias Harbor.Checkout
   alias Harbor.Checkout.{Cart, CartItem, Session}
@@ -122,6 +122,8 @@ defmodule Harbor.CheckoutTest do
       # Addresses (tied to a user scope)
       user = user_fixture()
       scope = user_scope_fixture(user)
+      customer = customer_fixture(scope)
+      scope = %{scope | customer: customer}
 
       billing =
         address_fixture(scope, %{
@@ -187,15 +189,13 @@ defmodule Harbor.CheckoutTest do
     end
 
     test "is idempotent when called multiple times for the same session" do
+      scope = guest_scope_fixture()
       variant = variant_fixture()
       cart = cart_fixture()
-      _cart_item = cart_item_fixture(cart, %{variant_id: variant.id, quantity: 1})
+      cart_item_fixture(cart, %{variant_id: variant.id, quantity: 1})
       delivery_method = delivery_method_fixture(%{price: 100})
 
-      user = user_fixture()
-      scope = user_scope_fixture(user)
-
-      addr =
+      address =
         address_fixture(scope, %{
           name: "Jessie",
           line1: "Main St",
@@ -211,8 +211,8 @@ defmodule Harbor.CheckoutTest do
           status: :active,
           email: "idempotent@example.com",
           expires_at: DateTime.add(DateTime.utc_now(), 3600, :second),
-          billing_address_id: addr.id,
-          shipping_address_id: addr.id,
+          billing_address_id: address.id,
+          shipping_address_id: address.id,
           delivery_method_id: delivery_method.id
         })
         |> Repo.insert()

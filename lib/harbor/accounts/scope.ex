@@ -16,9 +16,17 @@ defmodule Harbor.Accounts.Scope do
   growing application requirements.
   """
   alias Harbor.Accounts.User
+  alias Harbor.Customers.Customer
   alias Harbor.Repo
 
-  defstruct user: nil
+  defstruct user: nil, customer: nil, superadmin: false, session_token: nil
+
+  @doc """
+  Creates a scope for guest visitors.
+  """
+  def for_guest(session_token \\ nil) do
+    %__MODULE__{session_token: session_token}
+  end
 
   @doc """
   Creates a scope for the given user.
@@ -27,10 +35,38 @@ defmodule Harbor.Accounts.Scope do
   """
   def for_user(%User{} = user) do
     user = Repo.preload(user, [:roles])
-    %__MODULE__{user: user}
+    superadmin = Enum.any?(user.roles, &(&1.role == :superadmin))
+    %__MODULE__{user: user, superadmin: superadmin}
   end
 
   def for_user(nil) do
     nil
+  end
+
+  @doc """
+  Creates a scope for the given customer.
+
+  Returns nil if no customer is given.
+  """
+  def for_customer(%Customer{} = customer) do
+    %__MODULE__{customer: customer}
+  end
+
+  def for_customer(nil) do
+    nil
+  end
+
+  @doc """
+  Attaches the customer to the given scope.
+  """
+  def attach_customer(%__MODULE__{} = scope, %Customer{} = customer) do
+    %{scope | customer: customer}
+  end
+
+  @doc """
+  Attaches the session token to the given scope.
+  """
+  def attach_session_token(%__MODULE__{} = scope, session_token) do
+    %{scope | session_token: session_token}
   end
 end

@@ -4,7 +4,7 @@ defmodule Harbor.AccountsTest do
   import Harbor.AccountsFixtures
 
   alias Harbor.Accounts
-  alias Harbor.Accounts.{Address, User}
+  alias Harbor.Accounts.User
 
   setup do
     user = user_fixture()
@@ -111,91 +111,6 @@ defmodule Harbor.AccountsTest do
   describe "inspect/2" do
     test "does not include password" do
       refute inspect(%User{password: "123456"}) =~ "password: \"123456\""
-    end
-  end
-
-  test "list_addresses/0 returns all addresses", %{scope: scope} do
-    address = address_fixture(scope)
-    assert Accounts.list_addresses(scope) == [address]
-  end
-
-  test "get_address!/1 returns the address with given id", %{scope: scope} do
-    address = address_fixture(scope)
-    assert Accounts.get_address!(scope, address.id) == address
-  end
-
-  describe "create_address/1" do
-    test "with valid data creates an address", %{scope: scope} do
-      valid_attrs = %{
-        name: "some name",
-        line1: "some line1",
-        city: "some city",
-        country: "some country",
-        phone: "some phone"
-      }
-
-      assert {:ok, %Address{} = address} = Accounts.create_address(scope, valid_attrs)
-      assert address.name == "some name"
-      assert address.line1 == "some line1"
-      assert address.city == "some city"
-      assert address.country == "some country"
-      assert address.phone == "some phone"
-    end
-
-    test "with invalid data returns error changeset", %{scope: scope} do
-      assert {:error, %Ecto.Changeset{}} = Accounts.create_address(scope, %{name: nil})
-    end
-  end
-
-  describe "update_address/2" do
-    test "with valid data updates the address", %{scope: scope} do
-      address = address_fixture(scope)
-
-      update_attrs = %{
-        name: "some updated name",
-        line1: "some updated line1",
-        city: "some updated city",
-        country: "some updated country",
-        phone: "some updated phone"
-      }
-
-      assert {:ok, %Address{} = address} = Accounts.update_address(scope, address, update_attrs)
-      assert address.name == "some updated name"
-      assert address.line1 == "some updated line1"
-      assert address.city == "some updated city"
-      assert address.country == "some updated country"
-      assert address.phone == "some updated phone"
-    end
-
-    test "with invalid data returns error changeset", %{scope: scope} do
-      address = address_fixture(scope)
-
-      assert {:error, %Ecto.Changeset{}} =
-               Accounts.update_address(scope, address, %{
-                 first_name: nil,
-                 last_name: nil,
-                 email: nil,
-                 phone: nil
-               })
-
-      assert address == Accounts.get_address!(scope, address.id)
-    end
-  end
-
-  describe "delete_address/1" do
-    test "deletes the address", %{scope: scope} do
-      address = address_fixture(scope)
-
-      assert {:ok, %Address{}} = Accounts.delete_address(scope, address)
-      assert_raise Ecto.NoResultsError, fn -> Accounts.get_address!(scope, address.id) end
-    end
-  end
-
-  describe "change_address/1" do
-    test "returns an address changeset", %{scope: scope} do
-      address = address_fixture(scope)
-
-      assert %Ecto.Changeset{} = Accounts.change_address(scope, address)
     end
   end
 end

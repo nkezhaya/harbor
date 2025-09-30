@@ -4,8 +4,8 @@ defmodule Harbor.Checkout.Cart do
   """
   use Harbor.Schema
 
-  alias Harbor.Accounts.User
   alias Harbor.Checkout.CartItem
+  alias Harbor.Customers.Customer
 
   @type t() :: %__MODULE__{}
 
@@ -13,7 +13,7 @@ defmodule Harbor.Checkout.Cart do
     field :session_token, :string
 
     has_many :items, CartItem
-    belongs_to :user, User
+    belongs_to :customer, Customer
 
     timestamps()
   end
@@ -23,8 +23,8 @@ defmodule Harbor.Checkout.Cart do
     cart
     |> cast(attrs, [:session_token])
     |> check_constraint(:base,
-      name: :user_or_session_token,
-      message: "User ID or session token must be set."
+      name: :customer_or_session_token,
+      message: "Customer ID or session token must be set."
     )
   end
 end

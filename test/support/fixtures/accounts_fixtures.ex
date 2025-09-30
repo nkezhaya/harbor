@@ -55,6 +55,10 @@ defmodule Harbor.AccountsFixtures do
     user_scope_fixture(user)
   end
 
+  def admin_scope_fixture do
+    admin_fixture() |> user_scope_fixture()
+  end
+
   def user_scope_fixture(user) do
     Scope.for_user(user)
   end
@@ -90,20 +94,5 @@ defmodule Harbor.AccountsFixtures do
     UserToken
     |> where([ut], ut.token == ^token)
     |> Repo.update_all(set: [inserted_at: dt, authenticated_at: dt])
-  end
-
-  # Address fixtures
-  def address_fixture(scope, attrs \\ %{}) do
-    attrs =
-      Enum.into(attrs, %{
-        name: "some name",
-        line1: "some line1",
-        city: "some city",
-        country: "some country",
-        phone: "some phone"
-      })
-
-    {:ok, address} = Accounts.create_address(scope, attrs)
-    address
   end
 end

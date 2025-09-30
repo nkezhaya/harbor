@@ -188,6 +188,27 @@ defmodule Harbor.Repo.Migrations.InstallV1 do
 
     create constraint(:users_roles, :check_role, check: "role in ('superadmin', 'admin')")
 
+    ## Customers
+
+    create table(:customers) do
+      add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
+      add :first_name, :string
+      add :last_name, :string
+      add :company_name, :string
+      add :email, :citext, null: false
+      add :phone, :citext
+      add :status, :string, default: "active"
+      add :default_shipping_address_id, :binary_id
+      add :default_billing_address_id, :binary_id
+      add :user_id, references(:users, type: :binary_id, on_delete: :nilify_all)
+      add :deleted_at, :timestamptz
+
+      timestamps()
+    end
+
+    create constraint(:customers, :check_status, check: "status in ('active', 'blocked')")
+    create unique_index(:customers, [:user_id], where: "user_id IS NOT NULL")
+
     ## Categories
 
     create table(:categories) do
@@ -224,8 +245,7 @@ defmodule Harbor.Repo.Migrations.InstallV1 do
 
     create table(:addresses) do
       add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
-      add :user_id, references(:users, on_delete: :delete_all)
-      add :default, :boolean, null: false, default: false
+      add :customer_id, references(:customers, on_delete: :delete_all), null: false
 
       add :name, :string, null: false
       add :line1, :string, null: false
@@ -239,12 +259,12 @@ defmodule Harbor.Repo.Migrations.InstallV1 do
       timestamps()
     end
 
-    create index(:addresses, [:user_id])
+    create index(:addresses, [:customer_id])
 
-    create unique_index(:addresses, [:user_id],
-             name: "addresses_user_id_default_index",
-             where: "\"default\" = true"
-           )
+    alter table(:customers) do
+      modify :default_shipping_address_id, references(:addresses, on_delete: :nilify_all)
+      modify :default_billing_address_id, references(:addresses, on_delete: :nilify_all)
+    end
 
     ## Delivery methods
 
@@ -270,7 +290,7 @@ defmodule Harbor.Repo.Migrations.InstallV1 do
       add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
       add :status, :string, null: false, default: "pending"
       add :number, :string, null: false
-      add :user_id, references(:users)
+      add :customer_id, references(:customers)
       add :email, :string, null: false
 
       add :address_name, :string
@@ -295,7 +315,7 @@ defmodule Harbor.Repo.Migrations.InstallV1 do
       timestamps()
     end
 
-    create index(:orders, [:user_id])
+    create index(:orders, [:customer_id])
     create unique_index(:orders, [:number])
 
     create constraint(:orders, :check_status,
@@ -328,17 +348,17 @@ defmodule Harbor.Repo.Migrations.InstallV1 do
 
     create table(:carts) do
       add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
-      add :user_id, references(:users, on_delete: :delete_all)
+      add :customer_id, references(:customers, on_delete: :delete_all)
       add :session_token, :string
 
       timestamps()
     end
 
-    create unique_index(:carts, [:user_id], where: "user_id IS NOT NULL")
+    create unique_index(:carts, [:customer_id], where: "customer_id IS NOT NULL")
     create unique_index(:carts, [:session_token], where: "session_token IS NOT NULL")
 
-    create constraint(:carts, :user_or_session_token,
-             check: "user_id IS NOT NULL OR session_token IS NOT NULL"
+    create constraint(:carts, :customer_or_session_token,
+             check: "customer_id IS NOT NULL OR session_token IS NOT NULL"
            )
 
     ## Cart items

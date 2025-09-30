@@ -4,8 +4,8 @@ defmodule Harbor.Checkout.Session do
   """
   use Harbor.Schema
 
-  alias Harbor.Accounts.Address
   alias Harbor.Checkout.Cart
+  alias Harbor.Customers.Address
   alias Harbor.Orders.Order
   alias Harbor.Shipping.DeliveryMethod
   alias Harbor.Tax.Calculation

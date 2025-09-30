@@ -2,9 +2,7 @@ defmodule Harbor.Accounts do
   @moduledoc """
   The Accounts context.
   """
-  import Ecto.Query, warn: false
-
-  alias Harbor.Accounts.{Scope, User}
+  alias Harbor.Accounts.User
   alias Harbor.Repo
 
   ## Users
@@ -25,48 +23,6 @@ defmodule Harbor.Accounts do
 
   def delete_user(%User{} = user) do
     Repo.delete(user)
-  end
-
-  ## Addresses
-
-  alias Harbor.Accounts.Address
-
-  def list_addresses(%Scope{} = scope) do
-    Address
-    |> where([a], a.user_id == ^scope.user.id)
-    |> Repo.all()
-  end
-
-  def get_address!(%Scope{} = scope, id) do
-    Address
-    |> where([a], a.user_id == ^scope.user.id)
-    |> Repo.get!(id)
-  end
-
-  def create_address(%Scope{} = scope, attrs) do
-    %Address{user_id: scope.user.id}
-    |> Address.changeset(attrs)
-    |> Repo.insert()
-  end
-
-  def update_address(%Scope{} = scope, %Address{} = address, attrs) do
-    true = address.user_id == scope.user.id
-
-    address
-    |> Address.changeset(attrs)
-    |> Repo.update()
-  end
-
-  def delete_address(%Scope{} = scope, %Address{} = address) do
-    true = address.user_id == scope.user.id
-
-    Repo.delete(address)
-  end
-
-  def change_address(%Scope{} = scope, %Address{} = address, attrs \\ %{}) do
-    true = address.user_id == scope.user.id
-
-    Address.changeset(address, attrs)
   end
 
   ## Database getters

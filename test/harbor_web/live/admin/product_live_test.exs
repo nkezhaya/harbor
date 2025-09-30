@@ -6,8 +6,10 @@ defmodule HarborWeb.Admin.ProductLiveTest do
 
   alias Harbor.TaxFixtures
 
+  setup :register_and_log_in_admin
+
   describe "Index" do
-    setup [:register_and_log_in_admin, :create_product]
+    setup :create_product
 
     test "lists all products", %{conn: conn, product: product} do
       {:ok, _index_live, html} = live(conn, ~p"/admin/products")
@@ -77,7 +79,7 @@ defmodule HarborWeb.Admin.ProductLiveTest do
   end
 
   describe "Show" do
-    setup [:register_and_log_in_admin, :create_product]
+    setup :create_product
 
     test "displays product", %{conn: conn, product: product} do
       {:ok, _show_live, html} = live(conn, ~p"/admin/products/#{product}")

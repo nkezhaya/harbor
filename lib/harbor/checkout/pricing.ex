@@ -15,8 +15,8 @@ defmodule Harbor.Checkout.Pricing do
   the UI or passing to follow‑up workflows.
   """
 
-  alias Harbor.Accounts.Address
   alias Harbor.Checkout.{CartItem, Session}
+  alias Harbor.Customers.Address
   alias Harbor.Shipping.DeliveryMethod
 
   defstruct [

@@ -7,6 +7,8 @@ defmodule Harbor.Schema do
       use Ecto.Schema
       import Ecto.Changeset
 
+      alias Harbor.Accounts.Scope
+
       Module.put_attribute(
         __MODULE__,
         :primary_key,

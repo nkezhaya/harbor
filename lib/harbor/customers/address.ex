@@ -1,9 +1,9 @@
-defmodule Harbor.Accounts.Address do
+defmodule Harbor.Customers.Address do
   @moduledoc """
   Ecto schema for user addresses and related validations.
   """
   use Harbor.Schema
-  alias Harbor.Accounts.User
+  alias Harbor.Customers.Customer
 
   @type t() :: %__MODULE__{}
 
@@ -16,9 +16,8 @@ defmodule Harbor.Accounts.Address do
     field :postal_code, :string
     field :country, :string
     field :phone, :string
-    field :default, :boolean, default: false
 
-    belongs_to :user, User
+    belongs_to :customer, Customer
 
     timestamps()
   end
@@ -26,17 +25,7 @@ defmodule Harbor.Accounts.Address do
   @doc false
   def changeset(address, attrs) do
     address
-    |> cast(attrs, [
-      :name,
-      :line1,
-      :line2,
-      :city,
-      :region,
-      :postal_code,
-      :country,
-      :phone,
-      :default
-    ])
+    |> cast(attrs, [:name, :line1, :line2, :city, :region, :postal_code, :country, :phone])
     |> validate_required([:name, :line1, :city, :country, :phone])
   end
 end

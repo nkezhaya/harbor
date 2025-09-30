@@ -4,9 +4,9 @@ defmodule Harbor.Checkout do
   """
   import Ecto.Query, warn: false
 
-  alias Harbor.Accounts.Address
   alias Harbor.{Orders, Repo, Tax}
   alias Harbor.Checkout.{Cart, CartItem, Pricing, Session}
+  alias Harbor.Customers.Address
   alias Harbor.Orders.Order
   alias Harbor.Shipping.DeliveryMethod
   alias Harbor.Tax.{Calculation, Request}
@@ -72,7 +72,7 @@ defmodule Harbor.Checkout do
       :billing_address,
       :shipping_address,
       :delivery_method,
-      cart: [items: [variant: [:tax_code, product: [:tax_code]]], user: []]
+      cart: [items: [variant: [:tax_code, product: [:tax_code]]], customer: []]
     ])
   end
 
@@ -102,7 +102,7 @@ defmodule Harbor.Checkout do
 
       order_attrs = %{
         email: email,
-        user_id: session.cart.user && session.cart.user.id,
+        customer_id: session.cart.customer && session.cart.customer.id,
         items: order_item_attrs,
         address_name: address.name,
         address_line1: address.line1,
