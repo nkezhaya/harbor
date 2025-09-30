@@ -16,7 +16,7 @@ defmodule HarborWeb.Admin.ProductLive.Form do
       flash={@flash}
       current_scope={@current_scope}
       page_title={@page_title}
-      live_action={@live_action}
+      current_path={@current_path}
     >
       <.header>
         {@page_title}

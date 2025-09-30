@@ -13,10 +13,10 @@ defmodule HarborWeb.Admin.ProductLive.Show do
       flash={@flash}
       current_scope={@current_scope}
       page_title={@page_title}
-      live_action={@live_action}
+      current_path={@current_path}
     >
       <.header>
-        Product {@product.id}
+        Product {@product.name}
         <:subtitle>This is a product record from your database.</:subtitle>
         <:actions>
           <.button navigate={~p"/admin/products"}>
@@ -41,9 +41,11 @@ defmodule HarborWeb.Admin.ProductLive.Show do
 
   @impl true
   def mount(%{"id" => id}, _session, socket) do
+    product = Catalog.get_product!(id)
+
     {:ok,
      socket
-     |> assign(:page_title, "Show Product")
-     |> assign(:product, Catalog.get_product!(id))}
+     |> assign(:page_title, product.name)
+     |> assign(:product, product)}
   end
 end

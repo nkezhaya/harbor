@@ -7,7 +7,12 @@ defmodule HarborWeb.Admin.CustomerLive.Form do
   @impl true
   def render(assigns) do
     ~H"""
-    <AdminLayouts.app flash={@flash} current_scope={@current_scope}>
+    <AdminLayouts.app
+      flash={@flash}
+      current_scope={@current_scope}
+      page_title={@page_title}
+      current_path={@current_path}
+    >
       <.header>
         {@page_title}
         <:subtitle>Use this form to manage customer records in your database.</:subtitle>

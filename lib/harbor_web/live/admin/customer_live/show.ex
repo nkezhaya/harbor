@@ -6,7 +6,12 @@ defmodule HarborWeb.Admin.CustomerLive.Show do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash} current_scope={@current_scope}>
+    <AdminLayouts.app
+      flash={@flash}
+      current_scope={@current_scope}
+      page_title={@page_title}
+      current_path={@current_path}
+    >
       <.header>
         Customer {@customer.id}
         <:subtitle>This is a customer record from your database.</:subtitle>
@@ -29,7 +34,7 @@ defmodule HarborWeb.Admin.CustomerLive.Show do
         <:item title="Status">{@customer.status}</:item>
         <:item title="Deleted at">{@customer.deleted_at}</:item>
       </.list>
-    </Layouts.app>
+    </AdminLayouts.app>
     """
   end
 

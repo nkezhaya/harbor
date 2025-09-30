@@ -6,7 +6,12 @@ defmodule HarborWeb.Admin.CustomerLive.Index do
   @impl true
   def render(assigns) do
     ~H"""
-    <AdminLayouts.app flash={@flash} current_scope={@current_scope}>
+    <AdminLayouts.app
+      flash={@flash}
+      current_scope={@current_scope}
+      page_title={@page_title}
+      current_path={@current_path}
+    >
       <.header>
         Listing Customers
         <:actions>

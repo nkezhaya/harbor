@@ -63,6 +63,7 @@ defmodule HarborWeb.Router do
 
       live_session :require_authenticated_admin,
         on_mount: [
+          {HarborWeb.LiveHooks, :global},
           {HarborWeb.UserAuth, :require_admin}
         ] do
         live "/", ProductLive.Index, :index

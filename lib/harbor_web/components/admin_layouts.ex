@@ -12,17 +12,29 @@ defmodule HarborWeb.AdminLayouts do
   attr :flash, :map, required: true
   attr :current_scope, Harbor.Accounts.Scope, required: true
   attr :page_title, :string, default: nil
-  attr :live_action, :atom, default: nil
-  attr :nav_items, :list, default: nil
+  attr :current_path, :string, required: true
   slot :inner_block, required: true
 
   def app(assigns) do
-    assigns = assign(assigns, :nav_items, assigns[:nav_items] || nav_items(assigns))
+    nav_items =
+      [
+        %{
+          label: "Products",
+          href: ~p"/admin/products",
+          icon: "hero-tag-solid"
+        },
+        %{
+          label: "Customers",
+          href: ~p"/admin/customers",
+          icon: "hero-user"
+        }
+      ]
+      |> Enum.map(&Map.put(&1, :active?, String.starts_with?(assigns.current_path, &1.href)))
 
     assigns =
-      assign_new(assigns, :current_user, fn %{current_scope: current_scope} ->
-        current_scope.user
-      end)
+      assigns
+      |> assign(:nav_items, nav_items)
+      |> assign(:current_user, assigns.current_scope.user)
 
     ~H"""
     <div class="min-h-svh bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100">
@@ -167,25 +179,6 @@ defmodule HarborWeb.AdminLayouts do
       {user_initials(@current_user)}
     </div>
     """
-  end
-
-  defp nav_items(assigns) do
-    live_action = assigns[:live_action]
-
-    [
-      %{
-        label: "Products",
-        href: ~p"/admin/products",
-        icon: "hero-tag-solid",
-        active?: live_action in [nil, :index, :show, :new, :edit]
-      },
-      %{
-        label: "Customers",
-        href: ~p"/admin/customers",
-        icon: "hero-user",
-        active?: live_action in [nil, :index, :show, :new, :edit]
-      }
-    ]
   end
 
   defp nav_link_classes(%{active?: true}) do
