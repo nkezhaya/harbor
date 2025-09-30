@@ -6,7 +6,7 @@ defmodule HarborWeb.Admin.CustomerLive.Index do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash} current_scope={@current_scope}>
+    <AdminLayouts.app flash={@flash} current_scope={@current_scope}>
       <.header>
         Listing Customers
         <:actions>
@@ -31,18 +31,24 @@ defmodule HarborWeb.Admin.CustomerLive.Index do
           <div class="sr-only">
             <.link navigate={~p"/admin/customers/#{customer}"}>Show</.link>
           </div>
-          <.link navigate={~p"/admin/customers/#{customer}/edit"}>Edit</.link>
+          <.link
+            navigate={~p"/admin/customers/#{customer}/edit"}
+            class="text-indigo-600 transition hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
+          >
+            Edit
+          </.link>
         </:action>
         <:action :let={{id, customer}}>
           <.link
             phx-click={JS.push("delete", value: %{id: customer.id}) |> hide("##{id}")}
             data-confirm="Are you sure?"
+            class="text-red-600 transition hover:text-red-500 dark:text-red-400 dark:hover:text-red-300"
           >
             Delete
           </.link>
         </:action>
       </.table>
-    </Layouts.app>
+    </AdminLayouts.app>
     """
   end
 

@@ -176,7 +176,13 @@ defmodule HarborWeb.AdminLayouts do
       %{
         label: "Products",
         href: ~p"/admin/products",
-        icon: "hero-rectangle-stack",
+        icon: "hero-tag-solid",
+        active?: live_action in [nil, :index, :show, :new, :edit]
+      },
+      %{
+        label: "Customers",
+        href: ~p"/admin/customers",
+        icon: "hero-user",
         active?: live_action in [nil, :index, :show, :new, :edit]
       }
     ]

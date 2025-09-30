@@ -30,7 +30,6 @@ defmodule HarborWeb.Admin.ProductLive.Index do
         row_click={fn {_id, product} -> JS.navigate(~p"/admin/products/#{product}") end}
       >
         <:col :let={{_id, product}} label="Name">{product.name}</:col>
-        <:col :let={{_id, product}} label="Slug">{product.slug}</:col>
         <:col :let={{_id, product}} label="Description">{product.description}</:col>
         <:col :let={{_id, product}} label="Status">{product.status}</:col>
         <:action :let={{_id, product}}>

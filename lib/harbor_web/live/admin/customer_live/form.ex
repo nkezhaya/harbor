@@ -7,13 +7,13 @@ defmodule HarborWeb.Admin.CustomerLive.Form do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash} current_scope={@current_scope}>
+    <AdminLayouts.app flash={@flash} current_scope={@current_scope}>
       <.header>
         {@page_title}
         <:subtitle>Use this form to manage customer records in your database.</:subtitle>
       </.header>
 
-      <.form for={@form} id="customer-form" phx-change="validate" phx-submit="save">
+      <.form for={@form} id="customer-form" phx-change="validate" phx-submit="save" class="space-y-6">
         <input type="hidden" name={@form[:user_id].name} value={@form[:user_id].value} />
         <.input field={@form[:first_name]} type="text" label="First name" />
         <.input field={@form[:last_name]} type="text" label="Last name" />
@@ -33,7 +33,7 @@ defmodule HarborWeb.Admin.CustomerLive.Form do
           <.button navigate={return_path(@return_to, @customer)}>Cancel</.button>
         </footer>
       </.form>
-    </Layouts.app>
+    </AdminLayouts.app>
     """
   end
 
