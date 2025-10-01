@@ -15,14 +15,15 @@ defmodule Harbor.Catalog.Forms.MediaUpload do
     field :file_size, :integer
     field :file_type, :string
     field :key, :string
+    field :position, :integer, default: 0
     field :status, Ecto.Enum, values: [:pending, :complete], default: :pending
   end
 
   @doc false
   def changeset(media_upload, attrs) do
     media_upload
-    |> cast(attrs, [:id, :product_image_id, :file_name, :file_size, :file_type, :key])
-    |> validate_required([:id, :file_type])
+    |> cast(attrs, [:id, :product_image_id, :file_name, :file_size, :file_type, :key, :position])
+    |> validate_required([:id, :file_name, :file_size, :file_type])
     |> put_new_key()
   end
 

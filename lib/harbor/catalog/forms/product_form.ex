@@ -28,7 +28,23 @@ defmodule Harbor.Catalog.Forms.ProductForm do
 
   @spec new(Product.t()) :: t()
   def new(%Product{} = product) do
-    %__MODULE__{product: product}
+    product = Repo.preload(product, :images)
+    form = %__MODULE__{product: product}
+    media_uploads = Enum.map(product.images, &image_to_media_upload/1)
+
+    %{form | media_uploads: media_uploads}
+  end
+
+  defp image_to_media_upload(%ProductImage{} = image) do
+    %MediaUpload{
+      product_image_id: image.id,
+      file_name: image.file_name,
+      file_size: image.file_size,
+      file_type: image.file_type,
+      key: image.image_path,
+      position: image.position,
+      status: :complete
+    }
   end
 
   @doc """
@@ -93,6 +109,9 @@ defmodule Harbor.Catalog.Forms.ProductForm do
         product_id: product.id,
         temp_upload_path: media_upload.key,
         image_path: image_path(product, media_upload),
+        file_name: media_upload.file_name,
+        file_size: media_upload.file_size,
+        file_type: media_upload.file_type,
         position: position
       }
 

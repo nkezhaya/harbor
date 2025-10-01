@@ -127,6 +127,9 @@ defmodule Harbor.Repo.Migrations.InstallV1 do
     create table(:product_images) do
       add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
       add :status, :string, null: false, default: "pending"
+      add :file_name, :string, null: false
+      add :file_size, :integer, null: false
+      add :file_type, :string, null: false
       add :image_path, :string, null: false
       add :temp_upload_path, :string
       add :product_id, references(:products, on_delete: :nilify_all), null: false
@@ -135,7 +138,7 @@ defmodule Harbor.Repo.Migrations.InstallV1 do
       timestamps()
     end
 
-    create constraint(:product_images, :check_status, check: "status in ('pending', 'ready')")
+    create constraint(:product_images, :check_status, check: "status IN ('pending', 'ready')")
 
     create constraint(:product_images, :check_temp_upload_path,
              check: "temp_upload_path IS NOT NULL OR status = 'ready'"

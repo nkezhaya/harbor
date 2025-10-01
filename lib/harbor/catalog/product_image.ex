@@ -10,6 +10,9 @@ defmodule Harbor.Catalog.ProductImage do
 
   schema "product_images" do
     field :status, Ecto.Enum, values: [:pending, :ready], default: :pending
+    field :file_name, :string
+    field :file_size, :integer
+    field :file_type, :string
     field :image_path, :string
     field :temp_upload_path, :string
     field :position, :integer, default: 0
@@ -22,8 +25,17 @@ defmodule Harbor.Catalog.ProductImage do
   @doc false
   def changeset(image, attrs) do
     image
-    |> cast(attrs, [:product_id, :status, :image_path, :temp_upload_path, :position])
-    |> validate_required([:product_id, :image_path])
+    |> cast(attrs, [
+      :product_id,
+      :status,
+      :file_name,
+      :file_size,
+      :file_type,
+      :image_path,
+      :temp_upload_path,
+      :position
+    ])
+    |> validate_required([:product_id, :file_name, :file_size, :file_type, :image_path])
     |> check_constraint(:temp_upload_path,
       name: :check_temp_upload_path,
       message: "is required for pending images"

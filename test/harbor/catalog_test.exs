@@ -141,13 +141,16 @@ defmodule Harbor.CatalogTest do
     test "with valid data creates a image", %{product: product} do
       valid_attrs = %{
         product_id: product.id,
-        image_path: "some/path",
-        temp_upload_path: "tmp/path",
-        position: 0
+        image_path: "files/id/original.jpg",
+        temp_upload_path: "media_uploads/id/original.jpg",
+        position: 0,
+        file_name: "original.jpg",
+        file_type: "image/jpeg",
+        file_size: 100_000
       }
 
       assert {:ok, %ProductImage{} = image} = Catalog.create_image(valid_attrs)
-      assert image.image_path == "some/path"
+      assert image.image_path == "files/id/original.jpg"
     end
 
     test "with invalid data returns error changeset" do
