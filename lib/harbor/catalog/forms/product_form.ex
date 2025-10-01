@@ -8,7 +8,7 @@ defmodule Harbor.Catalog.Forms.ProductForm do
   alias Ecto.Changeset
   alias Harbor.Catalog.Forms.{MediaUpload, MediaUploadPromotionWorker}
   alias Harbor.Catalog.{Product, ProductImage}
-  alias Harbor.Repo
+  alias Harbor.{Catalog, Repo}
 
   @type t() :: %__MODULE__{}
 
@@ -37,6 +37,7 @@ defmodule Harbor.Catalog.Forms.ProductForm do
 
   defp image_to_media_upload(%ProductImage{} = image) do
     %MediaUpload{
+      id: image.id,
       product_image_id: image.id,
       file_name: image.file_name,
       file_size: image.file_size,
@@ -103,35 +104,46 @@ defmodule Harbor.Catalog.Forms.ProductForm do
     product = Repo.preload(product, :images)
 
     media_uploads
-    |> Enum.with_index(length(product.images))
-    |> Enum.reduce_while({:ok, []}, fn {media_upload, position}, {:ok, acc} ->
-      attrs = %{
-        product_id: product.id,
-        temp_upload_path: media_upload.key,
-        image_path: image_path(product, media_upload),
-        file_name: media_upload.file_name,
-        file_size: media_upload.file_size,
-        file_type: media_upload.file_type,
-        position: position
-      }
+    |> Enum.with_index()
+    |> Enum.reduce_while({:ok, []}, fn
+      {%{delete: true, product_image_id: nil}, _position}, {:ok, acc} ->
+        {:cont, {:ok, acc}}
 
-      with {:ok, product_image} <- insert_product_image(attrs),
-           {:ok, _} <- insert_promotion_job(product_image) do
-        {:cont, {:ok, [product_image | acc]}}
-      else
-        {:error, changeset} -> {:halt, {:error, changeset}}
-      end
+      {%{product_image_id: nil} = media_upload, position}, {:ok, acc} ->
+        attrs = %{
+          product_id: product.id,
+          temp_upload_path: media_upload.key,
+          image_path: image_path(product, media_upload),
+          file_name: media_upload.file_name,
+          file_size: media_upload.file_size,
+          file_type: media_upload.file_type,
+          position: position
+        }
+
+        with {:ok, product_image} <- Catalog.create_image(attrs),
+             {:ok, _} <- insert_promotion_job(product_image) do
+          {:cont, {:ok, [product_image | acc]}}
+        else
+          {:error, changeset} -> {:halt, {:error, changeset}}
+        end
+
+      {media_upload, position}, {:ok, acc} ->
+        image = Enum.find(product.images, &(&1.id == media_upload.product_image_id))
+
+        if media_upload.delete do
+          Catalog.delete_image(image)
+        else
+          Catalog.update_image(image, %{position: position})
+        end
+        |> case do
+          {:ok, product_image} -> {:cont, {:ok, [product_image | acc]}}
+          {:error, changeset} -> {:halt, {:error, changeset}}
+        end
     end)
     |> case do
       {:ok, product_images} -> {:ok, Enum.reverse(product_images)}
       error -> error
     end
-  end
-
-  defp insert_product_image(attrs) do
-    %ProductImage{}
-    |> ProductImage.changeset(attrs)
-    |> Repo.insert()
   end
 
   defp insert_promotion_job(product_image) do

@@ -77,50 +77,11 @@ defmodule HarborWeb.Admin.ProductLive.Form do
           </div>
 
           <ul role="list" class="divide-y divide-gray-100 dark:divide-white/5 space-y-4">
-            <li
+            <.media_upload_item
               :for={media_upload <- @product_form.media_uploads}
               :key={media_upload.id}
-              class="flex justify-between items-center gap-x-6 py-4 px-4 border border-dashed border-gray-900/25 dark:border-white/25 rounded-lg"
-            >
-              <div class="flex items-center gap-3 overflow-hidden">
-                <%= case media_upload.status do %>
-                  <% :pending -> %>
-                    <div class="aspect-square shrink-0 rounded flex">
-                      <span class="inline-block size-8 border-[3px] border-gray-200 border-b-indigo-600 rounded-full box-border animate-spin">
-                        <span class="sr-only">Loading...</span>
-                      </span>
-                    </div>
-                  <% :complete -> %>
-                    <div class="aspect-square shrink-0 rounded">
-                      <img
-                        src={ImageHelpers.media_upload_url(media_upload)}
-                        alt=""
-                        class="size-10 rounded-[inherit] object-cover"
-                      />
-                    </div>
-                <% end %>
-                <div class="flex min-w-0 flex-col gap-0.5">
-                  <p class="truncate text-sm font-medium">{media_upload.file_name}</p>
-                  <p class="text-muted-foreground text-xs">
-                    {Util.format_bytes(media_upload.file_size)}
-                  </p>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                phx-click="remove_media_upload"
-                phx-value-id={media_upload.id}
-                data-slot="button"
-                class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-[color,box-shadow] disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] text-muted-foreground/80 hover:text-foreground -me-2 size-8 hover:bg-transparent cursor-pointer"
-                aria-label="Remove file"
-              >
-                <.icon
-                  name="hero-x-mark"
-                  class="mx-auto size-6 text-gray-950 dark:text-gray-500"
-                />
-              </button>
-            </li>
+              media_upload={media_upload}
+            />
           </ul>
         </.inputs_for>
         <footer class="flex flex-wrap items-center gap-3 pt-4">
@@ -129,6 +90,63 @@ defmodule HarborWeb.Admin.ProductLive.Form do
         </footer>
       </.form>
     </AdminLayouts.app>
+    """
+  end
+
+  defp media_upload_item(assigns) do
+    class =
+      "flex justify-between items-center gap-x-6 py-4 px-4 border border-dashed border-gray-900/25 dark:border-white/25 rounded-lg"
+
+    class =
+      if assigns.media_upload.delete do
+        [class, "hidden"]
+      else
+        class
+      end
+
+    assigns = assign(assigns, :class, class)
+
+    ~H"""
+    <li class={@class}>
+      <div class="flex items-center gap-3 overflow-hidden">
+        <%= case @media_upload.status do %>
+          <% :pending -> %>
+            <div class="aspect-square shrink-0 rounded flex">
+              <span class="inline-block size-8 border-[3px] border-gray-200 border-b-indigo-600 rounded-full box-border animate-spin">
+                <span class="sr-only">Loading...</span>
+              </span>
+            </div>
+          <% :complete -> %>
+            <div class="aspect-square shrink-0 rounded">
+              <img
+                src={ImageHelpers.media_upload_url(@media_upload)}
+                alt=""
+                class="size-10 rounded-[inherit] object-cover"
+              />
+            </div>
+        <% end %>
+        <div class="flex min-w-0 flex-col gap-0.5">
+          <p class="truncate text-sm font-medium">{@media_upload.file_name}</p>
+          <p class="text-muted-foreground text-xs">
+            {Util.format_bytes(@media_upload.file_size)}
+          </p>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        phx-click="remove_media_upload"
+        phx-value-id={@media_upload.id}
+        data-slot="button"
+        class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-[color,box-shadow] disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] text-muted-foreground/80 hover:text-foreground -me-2 size-8 hover:bg-transparent cursor-pointer"
+        aria-label="Remove file"
+      >
+        <.icon
+          name="hero-x-mark"
+          class="mx-auto size-6 text-gray-950 dark:text-gray-500"
+        />
+      </button>
+    </li>
     """
   end
 
@@ -233,7 +251,13 @@ defmodule HarborWeb.Admin.ProductLive.Form do
   @impl true
   def handle_event("remove_media_upload", %{"id" => id}, socket) do
     product_form = socket.assigns.product_form
-    media_uploads = Enum.reject(product_form.media_uploads, &(&1.id == id))
+
+    media_uploads =
+      Enum.map(product_form.media_uploads, fn
+        %{id: ^id} = media_upload -> %{media_upload | delete: true}
+        media_upload -> media_upload
+      end)
+
     product_form = %{product_form | media_uploads: media_uploads}
 
     {:noreply, assign(socket, product_form: product_form)}
