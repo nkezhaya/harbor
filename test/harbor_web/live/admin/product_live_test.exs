@@ -4,6 +4,8 @@ defmodule HarborWeb.Admin.ProductLiveTest do
   import Phoenix.LiveViewTest
   import Harbor.CatalogFixtures
 
+  alias Harbor.Catalog.ProductImage
+  alias Harbor.Repo
   alias Harbor.TaxFixtures
 
   setup :register_and_log_in_admin
@@ -114,9 +116,80 @@ defmodule HarborWeb.Admin.ProductLiveTest do
     end
   end
 
+  describe "Form" do
+    setup :create_product
+
+    test "sortable:reposition persists order on save", %{conn: conn, product: product} do
+      i0 = product_image_fixture(%{product_id: product.id, position: 0})
+      i1 = product_image_fixture(%{product_id: product.id, position: 1})
+      i2 = product_image_fixture(%{product_id: product.id, position: 2})
+
+      ids = [i0.id, i1.id, i2.id]
+      reordered_ids = [i0.id, i2.id, i1.id]
+
+      persisted_ids = image_ids_by_position(product)
+      assert persisted_ids == ids
+
+      {:ok, view, _html} = live(conn, ~p"/admin/products/#{product}/edit")
+      view |> render_hook("sortable:reposition", %{"ids" => reordered_ids})
+
+      attrs = %{
+        name: product.name,
+        description: product.description,
+        status: product.status,
+        tax_code_id: product.tax_code_id
+      }
+
+      assert {:ok, _index_live, _html} =
+               view
+               |> form("#product-form", product_form: %{product: attrs})
+               |> render_submit()
+               |> follow_redirect(conn, ~p"/admin/products")
+
+      persisted_ids = image_ids_by_position(product)
+
+      assert persisted_ids == reordered_ids
+    end
+
+    test "remove_media_upload removes a product image", %{conn: conn, product: product} do
+      i0 = product_image_fixture(%{product_id: product.id, position: 0})
+      i1 = product_image_fixture(%{product_id: product.id, position: 1})
+
+      persisted_ids = image_ids_by_position(product)
+      assert persisted_ids == [i0.id, i1.id]
+
+      {:ok, view, _html} = live(conn, ~p"/admin/products/#{product}/edit")
+      view |> render_hook("remove_media_upload", %{"id" => i0.id})
+
+      attrs = %{
+        name: product.name,
+        description: product.description,
+        status: product.status,
+        tax_code_id: product.tax_code_id
+      }
+
+      assert {:ok, _index_live, _html} =
+               view
+               |> form("#product-form", product_form: %{product: attrs})
+               |> render_submit()
+               |> follow_redirect(conn, ~p"/admin/products")
+
+      persisted_ids = image_ids_by_position(product)
+      assert persisted_ids == [i1.id]
+    end
+  end
+
   defp create_product(_) do
     product = product_fixture()
     %{product: product}
+  end
+
+  defp image_ids_by_position(product) do
+    ProductImage
+    |> where([image], image.product_id == ^product.id)
+    |> order_by([image], image.position)
+    |> select([image], image.id)
+    |> Repo.all()
   end
 
   defp create_attrs do

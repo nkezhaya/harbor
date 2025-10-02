@@ -76,10 +76,15 @@ defmodule HarborWeb.Admin.ProductLive.Form do
             </div>
           </div>
 
-          <ul role="list" class="divide-y divide-gray-100 dark:divide-white/5 space-y-4">
+          <ul
+            id="media-uploads"
+            role="list"
+            class="divide-y divide-gray-100 dark:divide-white/5 space-y-4"
+            phx-hook="Sortable"
+            data-list_id="MediaUploads"
+          >
             <.media_upload_item
               :for={media_upload <- @product_form.media_uploads}
-              :key={media_upload.id}
               media_upload={media_upload}
             />
           </ul>
@@ -94,12 +99,15 @@ defmodule HarborWeb.Admin.ProductLive.Form do
   end
 
   defp media_upload_item(assigns) do
-    class =
-      "flex justify-between items-center gap-x-6 py-4 px-4 border border-dashed border-gray-900/25 dark:border-white/25 rounded-lg"
+    class = [
+      "flex justify-between items-center gap-x-6 py-4 px-4 border border-dashed border-gray-900/25 dark:border-white/25 rounded-lg",
+      "drag-item:focus-within:ring-0 drag-item:focus-within:ring-offset-0",
+      "drag-ghost:bg-zinc-300 drag-ghost:border-0 drag-ghost:ring-0"
+    ]
 
     class =
       if assigns.media_upload.delete do
-        [class, "hidden"]
+        class ++ ["hidden"]
       else
         class
       end
@@ -107,8 +115,12 @@ defmodule HarborWeb.Admin.ProductLive.Form do
     assigns = assign(assigns, :class, class)
 
     ~H"""
-    <li class={@class}>
+    <li class={@class} data-sortable_id={@media_upload.id}>
       <div class="flex items-center gap-3 overflow-hidden">
+        <div class="cursor-grab drag-handle">
+          <.icon name="hero-bars-3" class="size-5 text-gray-400 dark:gray-200" />
+        </div>
+
         <%= case @media_upload.status do %>
           <% :pending -> %>
             <div class="aspect-square shrink-0 rounded flex">
@@ -249,6 +261,19 @@ defmodule HarborWeb.Admin.ProductLive.Form do
   end
 
   @impl true
+  def handle_event("sortable:reposition", %{"ids" => ids}, socket) do
+    product_form = socket.assigns.product_form
+
+    media_uploads =
+      Enum.sort_by(product_form.media_uploads, fn media_upload ->
+        Enum.find_index(ids, &(&1 == media_upload.id))
+      end)
+
+    product_form = %{product_form | media_uploads: media_uploads}
+
+    {:noreply, assign(socket, product_form: product_form)}
+  end
+
   def handle_event("remove_media_upload", %{"id" => id}, socket) do
     product_form = socket.assigns.product_form
 

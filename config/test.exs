@@ -40,3 +40,6 @@ config :phoenix_live_view,
   enable_expensive_runtime_checks: true
 
 config :harbor, Oban, testing: :manual
+
+config :harbor, :s3_bucket, "test"
+config :harbor, :cdn_url, "https://test.cloudfront.net"

@@ -22,3 +22,5 @@
 [data-phx-session], [data-phx-teleported-src] { display: contents }
 
 /* This file is for your main application CSS */
+@custom-variant drag-item (.drag-item&, .drag-item &)
+@custom-variant drag-ghost (.drag-ghost&, .drag-ghost &)

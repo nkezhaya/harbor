@@ -44,6 +44,9 @@ defmodule Harbor.Catalog.ProductImage do
       name: :position_gte_zero,
       message: "must be greater than or equal to 0"
     )
-    |> unique_constraint([:product_id, :position])
+    |> unique_constraint([:product_id, :position],
+      error_key: :position,
+      name: :product_images_product_id_position_unique
+    )
   end
 end

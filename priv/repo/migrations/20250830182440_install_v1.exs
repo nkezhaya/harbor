@@ -145,9 +145,15 @@ defmodule Harbor.Repo.Migrations.InstallV1 do
            )
 
     create index(:product_images, [:product_id])
-    create unique_index(:product_images, [:product_id, :position])
+    create index(:product_images, [:product_id, :position])
 
     create constraint(:product_images, :position_gte_zero, check: "position >= 0")
+
+    execute """
+            ALTER TABLE product_images
+                ADD CONSTRAINT product_images_product_id_position_unique UNIQUE (product_id, position) DEFERRABLE INITIALLY DEFERRED
+            """,
+            ""
 
     ## Users
 

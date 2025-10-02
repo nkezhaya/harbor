@@ -27,6 +27,7 @@ defmodule HarborWeb.ConnCase do
       use HarborWeb, :verified_routes
 
       # Import conveniences for testing with connections
+      import Ecto.Query
       import Plug.Conn
       import Phoenix.ConnTest
       import HarborWeb.ConnCase
