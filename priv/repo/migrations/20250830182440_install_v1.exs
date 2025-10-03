@@ -35,6 +35,7 @@ defmodule Harbor.Repo.Migrations.InstallV1 do
       add :description, :text
       add :status, :string, null: false, default: "draft"
       add :tax_code_id, references(:tax_codes), null: false
+      add :default_variant_id, :binary_id
 
       timestamps()
     end
@@ -99,10 +100,6 @@ defmodule Harbor.Repo.Migrations.InstallV1 do
     end
 
     create index(:variants_option_values, [:option_value_id])
-
-    alter table(:products) do
-      add :default_variant_id, :binary_id
-    end
 
     # This seems redundant, but is required so we can create a composite foreign
     # key on the products table based on (variants.id, variants.product_id)
