@@ -76,7 +76,7 @@ defmodule Harbor.Repo.Migrations.InstallV1 do
       add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
       add :product_id, references(:products, on_delete: :delete_all), null: false
 
-      add :sku, :string, null: false
+      add :sku, :string
       add :price, :integer, null: false
       add :quantity_available, :integer, default: 0, null: false
       add :enabled, :boolean, null: false, default: false
@@ -89,7 +89,7 @@ defmodule Harbor.Repo.Migrations.InstallV1 do
 
     create index(:variants, [:product_id])
     create index(:variants, [:product_id, :enabled])
-    create unique_index(:variants, [:sku])
+    create unique_index(:variants, [:sku], where: "sku IS NOT NULL")
 
     create constraint(:variants, :price_gte_zero, check: "price >= 0")
     create constraint(:variants, :quantity_available_gte_zero, check: "quantity_available >= 0")

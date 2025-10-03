@@ -38,7 +38,6 @@ defmodule Harbor.Catalog.Variant do
       :tax_code_id
     ])
     |> validate_required([
-      :sku,
       :price,
       :quantity_available,
       :enabled,
