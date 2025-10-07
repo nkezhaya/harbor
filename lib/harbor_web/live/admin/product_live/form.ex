@@ -6,8 +6,9 @@ defmodule HarborWeb.Admin.ProductLive.Form do
 
   alias Ecto.Changeset
   alias Harbor.{Catalog, Config, Tax, Util}
-  alias Harbor.Catalog.Forms.ProductForm
+  alias Harbor.Catalog.Forms.MediaUpload
   alias Harbor.Catalog.{OptionType, Product}
+  alias Harbor.Repo
 
   @impl true
   def render(assigns) do
@@ -30,70 +31,65 @@ defmodule HarborWeb.Admin.ProductLive.Form do
         phx-submit="save"
         class="space-y-6"
       >
-        <.inputs_for :let={product_form} field={@form[:product]}>
-          <.input field={product_form[:name]} type="text" label="Name" />
-          <.input field={product_form[:description]} type="textarea" label="Description" />
-          <.input
-            field={product_form[:status]}
-            type="select"
-            label="Status"
-            prompt="Choose a value"
-            options={Ecto.Enum.values(Product, :status)}
-          />
-          <.input
-            field={product_form[:tax_code_id]}
-            type="select"
-            label="Tax Code"
-            prompt="Choose a value"
-            options={@tax_code_options}
-          />
+        <.input field={@form[:name]} type="text" label="Name" />
+        <.input field={@form[:description]} type="textarea" label="Description" />
+        <.input
+          field={@form[:status]}
+          type="select"
+          label="Status"
+          prompt="Choose a value"
+          options={Ecto.Enum.values(Product, :status)}
+        />
+        <.input
+          field={@form[:tax_code_id]}
+          type="select"
+          label="Tax Code"
+          prompt="Choose a value"
+          options={@tax_code_options}
+        />
 
-          <div class="col-span-full">
-            <label class="block text-sm/6 font-medium text-gray-900 dark:text-white">
-              Media
-            </label>
-            <div
-              class="mt-2 flex justify-center rounded-lg border border-dashed border-gray-900/25 px-6 py-10 dark:border-white/25"
-              phx-drop-target={@uploads.media_asset.ref}
-            >
-              <div class="text-center">
-                <.icon
-                  name="hero-photo-solid"
-                  class="mx-auto size-12 text-gray-300 dark:text-gray-500"
-                />
-                <div class="mt-4 flex text-sm/6 text-gray-600 dark:text-gray-400">
-                  <label
-                    for={@uploads.media_asset.ref}
-                    class="relative cursor-pointer rounded-md bg-white font-semibold text-indigo-600 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-indigo-600 hover:text-indigo-500 dark:bg-transparent dark:text-indigo-400 dark:focus-within:outline-indigo-500 dark:hover:text-indigo-400"
-                  >
-                    <span>Upload a file</span>
-                    <.live_file_input upload={@uploads.media_asset} class="sr-only" />
-                  </label>
-                  <p class="pl-1">or drag and drop</p>
-                </div>
-                <p class="text-xs/5 text-gray-600 dark:text-gray-400">PNG or JPG up to 10MB</p>
+        <div class="col-span-full">
+          <label class="block text-sm/6 font-medium text-gray-900 dark:text-white">
+            Media
+          </label>
+          <div
+            class="mt-2 flex justify-center rounded-lg border border-dashed border-gray-900/25 px-6 py-10 dark:border-white/25"
+            phx-drop-target={@uploads.media_asset.ref}
+          >
+            <div class="text-center">
+              <.icon
+                name="hero-photo-solid"
+                class="mx-auto size-12 text-gray-300 dark:text-gray-500"
+              />
+              <div class="mt-4 flex text-sm/6 text-gray-600 dark:text-gray-400">
+                <label
+                  for={@uploads.media_asset.ref}
+                  class="relative cursor-pointer rounded-md bg-white font-semibold text-indigo-600 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-indigo-600 hover:text-indigo-500 dark:bg-transparent dark:text-indigo-400 dark:focus-within:outline-indigo-500 dark:hover:text-indigo-400"
+                >
+                  <span>Upload a file</span>
+                  <.live_file_input upload={@uploads.media_asset} class="sr-only" />
+                </label>
+                <p class="pl-1">or drag and drop</p>
               </div>
+              <p class="text-xs/5 text-gray-600 dark:text-gray-400">PNG or JPG up to 10MB</p>
             </div>
           </div>
+        </div>
 
-          <ul
-            id="media-uploads"
-            role="list"
-            class="divide-y divide-gray-100 dark:divide-white/5 space-y-4"
-            phx-hook="Sortable"
-            data-list_id="MediaUploads"
-          >
-            <.media_upload_item
-              :for={media_upload <- @product_form.media_uploads}
-              media_upload={media_upload}
-            />
-          </ul>
+        <ul
+          id="media-uploads"
+          role="list"
+          class="divide-y divide-gray-100 dark:divide-white/5 space-y-4"
+          phx-hook="Sortable"
+          data-list_id="MediaUploads"
+        >
+          <.media_upload_item :for={media_upload <- @media_uploads} media_upload={media_upload} />
+        </ul>
 
-          <.variants_card form={@form} />
-        </.inputs_for>
+        <.variants_card form={@form} />
         <footer class="flex flex-wrap items-center gap-3 pt-4">
           <.button phx-disable-with="Saving..." variant="primary">Save Product</.button>
-          <.button navigate={return_path(@return_to, @product_form.product)}>Cancel</.button>
+          <.button navigate={return_path(@return_to, @product)}>Cancel</.button>
         </footer>
       </.form>
     </AdminLayouts.app>
@@ -232,7 +228,6 @@ defmodule HarborWeb.Admin.ProductLive.Form do
      socket
      |> assign(:return_to, return_to(params["return_to"]))
      |> assign(:tax_code_options, tax_code_options())
-     |> assign(:uploaded_assets, [])
      |> allow_upload(:media_asset,
        accept: ~w(.jpg .jpeg .png .mp4),
        auto_upload: true,
@@ -244,8 +239,6 @@ defmodule HarborWeb.Admin.ProductLive.Form do
   end
 
   defp prepare_upload(entry, socket) do
-    product_form = socket.assigns.product_form
-
     attrs = %{
       id: entry.uuid,
       file_name: entry.client_name,
@@ -253,11 +246,15 @@ defmodule HarborWeb.Admin.ProductLive.Form do
       file_type: entry.client_type
     }
 
-    case ProductForm.insert_new_media_upload(product_form, attrs) do
-      {:ok, product_form, media_upload} ->
+    %MediaUpload{}
+    |> MediaUpload.changeset(attrs)
+    |> Changeset.apply_action(:insert)
+    |> case do
+      {:ok, media_upload} ->
+        media_uploads = socket.assigns.media_uploads ++ [media_upload]
         url = presigned_url(media_upload)
         meta = %{uploader: "S3", key: media_upload.key, url: url}
-        {:ok, meta, assign(socket, product_form: product_form)}
+        {:ok, meta, assign(socket, media_uploads: media_uploads)}
 
       {:error, _changeset} ->
         {:error, %{}, socket}
@@ -279,18 +276,15 @@ defmodule HarborWeb.Admin.ProductLive.Form do
 
   defp handle_progress(:media_asset, entry, socket) do
     if entry.done? do
-      product_form = socket.assigns.product_form
       id = entry.uuid
 
       media_uploads =
-        Enum.map(product_form.media_uploads, fn
+        Enum.map(socket.assigns.media_uploads, fn
           %{id: ^id} = media_upload -> %{media_upload | status: :complete}
           media_upload -> media_upload
         end)
 
-      product_form = %{product_form | media_uploads: media_uploads}
-
-      {:noreply, assign(socket, product_form: product_form)}
+      {:noreply, assign(socket, media_uploads: media_uploads)}
     else
       {:noreply, socket}
     end
@@ -306,83 +300,89 @@ defmodule HarborWeb.Admin.ProductLive.Form do
   defp return_to(_), do: "index"
 
   defp apply_action(socket, :edit, %{"id" => id}) do
-    product = Catalog.get_product!(id)
-    product_form = ProductForm.new(product)
+    product =
+      id
+      |> Catalog.get_product!()
+      |> Repo.preload([:images, option_types: [:values]])
+
+    media_uploads = Enum.map(product.images, &MediaUpload.from_product_image/1)
 
     socket
     |> assign(:page_title, "Edit Product")
-    |> assign(:product_form, product_form)
-    |> assign_form(ProductForm.changeset(product_form))
+    |> assign(:product, product)
+    |> assign(:media_uploads, media_uploads)
+    |> assign_form(Catalog.change_product(product))
   end
 
   defp apply_action(socket, :new, _params) do
-    product_form = ProductForm.new()
+    product = %Product{option_types: [], images: []}
 
     socket
     |> assign(:page_title, "New Product")
-    |> assign(:product_form, product_form)
-    |> assign_form(ProductForm.changeset(product_form))
+    |> assign(:product, product)
+    |> assign(:media_uploads, [])
+    |> assign_form(Catalog.change_product(product))
   end
 
   @impl true
   def handle_event("sortable:reposition", %{"ids" => ids}, socket) do
-    product_form = socket.assigns.product_form
-
     media_uploads =
-      Enum.sort_by(product_form.media_uploads, fn media_upload ->
+      Enum.sort_by(socket.assigns.media_uploads, fn media_upload ->
         Enum.find_index(ids, &(&1 == media_upload.id))
       end)
 
-    product_form = %{product_form | media_uploads: media_uploads}
-
-    {:noreply, assign(socket, product_form: product_form)}
+    {:noreply, assign(socket, media_uploads: media_uploads)}
   end
 
   def handle_event("remove_media_upload", %{"id" => id}, socket) do
-    product_form = socket.assigns.product_form
-
     media_uploads =
-      Enum.map(product_form.media_uploads, fn
+      Enum.map(socket.assigns.media_uploads, fn
         %{id: ^id} = media_upload -> %{media_upload | delete: true}
         media_upload -> media_upload
       end)
 
-    product_form = %{product_form | media_uploads: media_uploads}
-
-    {:noreply, assign(socket, product_form: product_form)}
+    {:noreply, assign(socket, media_uploads: media_uploads)}
   end
 
   def handle_event("add_option_type", _params, socket) do
     socket =
       update(socket, :form, fn %{source: changeset} ->
-        option_types = Ecto.Changeset.get_embed(changeset, :option_types)
-        changeset = Ecto.Changeset.put_embed(changeset, :option_types, option_types ++ [%{}])
+        option_types = Changeset.get_assoc(changeset, :option_types)
 
-        to_form(changeset)
+        new_option_type = %OptionType{
+          position: length(option_types),
+          values: []
+        }
+
+        changeset
+        |> Changeset.put_assoc(:option_types, option_types ++ [new_option_type])
+        |> to_form()
       end)
 
     {:noreply, socket}
   end
 
-  def handle_event("validate", %{"product_form" => product_params}, socket) do
+  def handle_event("validate", %{"product" => product_params}, socket) do
     changeset =
-      socket.assigns.product_form
-      |> ProductForm.changeset(product_params)
-      |> then(&%{&1 | action: :validate})
+      socket.assigns.product
+      |> Catalog.change_product(product_params)
+      |> Map.put(:action, :validate)
 
     {:noreply, assign_form(socket, changeset)}
   end
 
-  def handle_event("save", %{"product_form" => product_params}, socket) do
+  def handle_event("save", %{"product" => product_params}, socket) do
     save_product(socket, socket.assigns.live_action, product_params)
   end
 
-  defp save_product(socket, :edit, product_params) do
-    case ProductForm.update_product(socket.assigns.product_form, product_params) do
+  defp save_product(socket, live_action, product_params) do
+    %{product: product, media_uploads: media_uploads} = socket.assigns
+
+    case Catalog.save_product_with_media(product, product_params, media_uploads) do
       {:ok, product} ->
         {:noreply,
          socket
-         |> put_flash(:info, "Product updated successfully")
+         |> put_success_flash(live_action)
          |> push_navigate(to: return_path(socket.assigns.return_to, product))}
 
       {:error, %Changeset{} = changeset} ->
@@ -390,21 +390,28 @@ defmodule HarborWeb.Admin.ProductLive.Form do
     end
   end
 
-  defp save_product(socket, :new, product_params) do
-    case ProductForm.create_product(socket.assigns.product_form, product_params) do
-      {:ok, product} ->
-        {:noreply,
-         socket
-         |> put_flash(:info, "Product created successfully")
-         |> push_navigate(to: return_path(socket.assigns.return_to, product))}
+  defp put_success_flash(socket, :new),
+    do: put_flash(socket, :info, "Product created successfully")
 
-      {:error, %Changeset{} = changeset} ->
-        {:noreply, assign_form(socket, changeset)}
-    end
-  end
+  defp put_success_flash(socket, :edit),
+    do: put_flash(socket, :info, "Product updated successfully")
 
   defp assign_form(socket, %Ecto.Changeset{} = changeset) do
-    assign(socket, :form, to_form(changeset, as: :product_form))
+    option_types =
+      changeset
+      |> Changeset.get_assoc(:option_types)
+      |> Enum.map(fn option_type_changeset ->
+        values = Changeset.get_assoc(option_type_changeset, :values)
+
+        case List.last(values) do
+          %{changes: changes} when changes == %{} -> option_type_changeset
+          _ -> Changeset.put_assoc(option_type_changeset, :values, values ++ [%{}])
+        end
+      end)
+
+    changeset = Changeset.put_assoc(changeset, :option_types, option_types)
+
+    assign(socket, :form, to_form(changeset, as: :product))
   end
 
   defp return_path("index", _product), do: ~p"/admin/products"

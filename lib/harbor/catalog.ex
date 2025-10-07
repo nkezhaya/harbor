@@ -6,7 +6,7 @@ defmodule Harbor.Catalog do
 
   alias Harbor.Repo
   alias Harbor.Catalog.{Category, Product, ProductImage}
-  alias Harbor.Catalog.Forms.ProductForm
+  alias Harbor.Catalog.Forms.{MediaUpload, MediaUploadPromotionWorker}
 
   ## Products
 
@@ -34,24 +34,76 @@ defmodule Harbor.Catalog do
     |> Repo.update()
   end
 
+  def save_product_with_media(%Product{} = product, params, media_uploads) do
+    changeset = change_product(product, params)
+
+    Repo.transact(fn ->
+      with {:ok, product} <- Repo.insert_or_update(changeset),
+           {:ok, product_images} <- promote_media_uploads(product, media_uploads) do
+        {:ok, %{product | images: product_images}}
+      end
+    end)
+  end
+
+  defp promote_media_uploads(%Product{} = product, media_uploads) do
+    product = Repo.preload(product, :images)
+
+    media_uploads
+    |> Enum.with_index()
+    |> Enum.reduce_while({:ok, []}, fn
+      {%{delete: true, product_image_id: nil}, _position}, {:ok, acc} ->
+        {:cont, {:ok, acc}}
+
+      {%{product_image_id: nil} = media_upload, position}, {:ok, acc} ->
+        attrs = %{
+          product_id: product.id,
+          temp_upload_path: media_upload.key,
+          image_path: image_path(product, media_upload),
+          file_name: media_upload.file_name,
+          file_size: media_upload.file_size,
+          file_type: media_upload.file_type,
+          position: position
+        }
+
+        with {:ok, product_image} <- create_image(attrs),
+             {:ok, _} <- MediaUploadPromotionWorker.enqueue(product_image) do
+          {:cont, {:ok, [product_image | acc]}}
+        else
+          {:error, changeset} -> {:halt, {:error, changeset}}
+        end
+
+      {media_upload, position}, {:ok, acc} ->
+        image = Enum.find(product.images, &(&1.id == media_upload.product_image_id))
+
+        result =
+          if media_upload.delete do
+            delete_image(image)
+          else
+            update_image(image, %{position: position})
+          end
+
+        case result do
+          {:ok, product_image} -> {:cont, {:ok, [product_image | acc]}}
+          {:error, changeset} -> {:halt, {:error, changeset}}
+        end
+    end)
+    |> case do
+      {:ok, product_images} -> {:ok, Enum.reverse(product_images)}
+      error -> error
+    end
+  end
+
+  defp image_path(%Product{} = product, %MediaUpload{} = media_upload) do
+    [_ | tail] = Path.split(media_upload.key)
+    Path.join(["products", product.id, "images"] ++ tail)
+  end
+
   def delete_product(%Product{} = product) do
     Repo.delete(product)
   end
 
   def change_product(%Product{} = product, attrs \\ %{}) do
     Product.changeset(product, attrs)
-  end
-
-  ## Product Form
-
-  def build_product_form(attrs \\ %{}) do
-    %ProductForm{}
-    |> change_product_form(attrs)
-    |> Ecto.Changeset.apply_changes()
-  end
-
-  def change_product_form(product_form, attrs) do
-    ProductForm.changeset(product_form, attrs)
   end
 
   ## Images

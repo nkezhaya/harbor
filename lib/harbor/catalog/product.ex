@@ -20,7 +20,7 @@ defmodule Harbor.Catalog.Product do
     belongs_to :default_variant, Variant
 
     has_many :images, ProductImage, on_replace: :delete
-    has_many :option_types, OptionType, on_replace: :delete
+    has_many :option_types, OptionType, preload_order: [:position], on_replace: :delete
     has_many :variants, Variant, on_replace: :delete
 
     many_to_many :categories, Category,

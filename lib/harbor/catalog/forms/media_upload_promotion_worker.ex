@@ -7,6 +7,7 @@ defmodule Harbor.Catalog.Forms.MediaUploadPromotionWorker do
   use Oban.Worker, queue: :media_uploads
 
   alias Harbor.{Catalog, Config}
+  alias Harbor.Catalog.ProductImage
 
   @impl Oban.Worker
   def perform(%Oban.Job{args: %{"product_image_id" => product_image_id}}) do
@@ -24,5 +25,15 @@ defmodule Harbor.Catalog.Forms.MediaUploadPromotionWorker do
     {:ok, _} = Catalog.update_image(product_image, %{status: :ready})
 
     :ok
+  end
+
+  @doc """
+  Inserts a job to move the remote file of the given
+  [ProductImage](`Harbor.Catalog.ProductImage`).
+  """
+  def enqueue(%ProductImage{} = product_image) do
+    %{product_image_id: product_image.id}
+    |> new()
+    |> Oban.insert()
   end
 end

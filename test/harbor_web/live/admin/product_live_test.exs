@@ -32,12 +32,12 @@ defmodule HarborWeb.Admin.ProductLiveTest do
       assert render(form_live) =~ "New Product"
 
       assert form_live
-             |> form("#product-form", product_form: %{product: invalid_attrs()})
+             |> form("#product-form", product: invalid_attrs())
              |> render_change() =~ "can&#39;t be blank"
 
       assert {:ok, index_live, _html} =
                form_live
-               |> form("#product-form", product_form: %{product: create_attrs()})
+               |> form("#product-form", product: create_attrs())
                |> render_submit()
                |> follow_redirect(conn, ~p"/admin/products")
 
@@ -58,12 +58,12 @@ defmodule HarborWeb.Admin.ProductLiveTest do
       assert render(form_live) =~ "Edit Product"
 
       assert form_live
-             |> form("#product-form", product_form: %{product: invalid_attrs()})
+             |> form("#product-form", product: invalid_attrs())
              |> render_change() =~ "can&#39;t be blank"
 
       assert {:ok, index_live, _html} =
                form_live
-               |> form("#product-form", product_form: %{product: update_attrs()})
+               |> form("#product-form", product: update_attrs())
                |> render_submit()
                |> follow_redirect(conn, ~p"/admin/products")
 
@@ -101,12 +101,12 @@ defmodule HarborWeb.Admin.ProductLiveTest do
       assert render(form_live) =~ "Edit Product"
 
       assert form_live
-             |> form("#product-form", product_form: %{product: invalid_attrs()})
+             |> form("#product-form", product: invalid_attrs())
              |> render_change() =~ "can&#39;t be blank"
 
       assert {:ok, show_live, _html} =
                form_live
-               |> form("#product-form", product_form: %{product: update_attrs()})
+               |> form("#product-form", product: update_attrs())
                |> render_submit()
                |> follow_redirect(conn, ~p"/admin/products/#{product}")
 
@@ -142,7 +142,7 @@ defmodule HarborWeb.Admin.ProductLiveTest do
 
       assert {:ok, _index_live, _html} =
                view
-               |> form("#product-form", product_form: %{product: attrs})
+               |> form("#product-form", product: attrs)
                |> render_submit()
                |> follow_redirect(conn, ~p"/admin/products")
 
@@ -170,7 +170,7 @@ defmodule HarborWeb.Admin.ProductLiveTest do
 
       assert {:ok, _index_live, _html} =
                view
-               |> form("#product-form", product_form: %{product: attrs})
+               |> form("#product-form", product: attrs)
                |> render_submit()
                |> follow_redirect(conn, ~p"/admin/products")
 

@@ -1,12 +1,13 @@
 defmodule Harbor.Catalog.Forms.MediaUpload do
   @moduledoc """
-  Embedded struct for the [ProductForm](`Harbor.Catalog.Forms.ProductForm`) that
-  stores temporary file uploads before the [Product](`Harbor.Catalog.Product`)
-  is persisted. On save, this gets promoted to a
-  [ProductImage](`Harbor.Catalog.ProductImage`).
+  Embedded struct for the product form that stores temporary file uploads before
+  the [Product](`Harbor.Catalog.Product`) is persisted. On save, this gets
+  promoted to a [ProductImage](`Harbor.Catalog.ProductImage`).
   """
   use Ecto.Schema
   import Ecto.Changeset
+
+  alias Harbor.Catalog.ProductImage
 
   @primary_key {:id, :binary_id, autogenerate: false}
   embedded_schema do
@@ -18,6 +19,19 @@ defmodule Harbor.Catalog.Forms.MediaUpload do
     field :position, :integer, default: 0
     field :status, Ecto.Enum, values: [:pending, :complete], default: :pending
     field :delete, :boolean, default: false
+  end
+
+  def from_product_image(%ProductImage{} = image) do
+    %__MODULE__{
+      id: image.id,
+      product_image_id: image.id,
+      file_name: image.file_name,
+      file_size: image.file_size,
+      file_type: image.file_type,
+      key: image.image_path,
+      position: image.position,
+      status: :complete
+    }
   end
 
   @doc false

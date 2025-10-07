@@ -14,7 +14,7 @@ defmodule Harbor.Catalog.OptionType do
     field :delete, :boolean, default: false, virtual: true
 
     belongs_to :product, Product
-    has_many :values, OptionValue, on_replace: :delete
+    has_many :values, OptionValue, preload_order: [:position], on_replace: :delete
 
     timestamps()
   end
