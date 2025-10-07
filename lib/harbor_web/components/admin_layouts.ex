@@ -37,7 +37,7 @@ defmodule HarborWeb.AdminLayouts do
       |> assign(:current_user, assigns.current_scope.user)
 
     ~H"""
-    <div class="min-h-svh bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100">
+    <div class="min-h-svh bg-neutral-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
       <div
         id="admin-mobile-sidebar"
         class="relative z-50 hidden lg:hidden"

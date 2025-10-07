@@ -7,7 +7,7 @@ defmodule HarborWeb.Admin.ProductLive.Form do
   alias Ecto.Changeset
   alias Harbor.{Catalog, Config, Tax, Util}
   alias Harbor.Catalog.Forms.ProductForm
-  alias Harbor.Catalog.Product
+  alias Harbor.Catalog.{OptionType, Product}
 
   @impl true
   def render(assigns) do
@@ -88,6 +88,8 @@ defmodule HarborWeb.Admin.ProductLive.Form do
               media_upload={media_upload}
             />
           </ul>
+
+          <.variants_card form={@form} />
         </.inputs_for>
         <footer class="flex flex-wrap items-center gap-3 pt-4">
           <.button phx-disable-with="Saving..." variant="primary">Save Product</.button>
@@ -145,21 +147,83 @@ defmodule HarborWeb.Admin.ProductLive.Form do
         </div>
       </div>
 
-      <button
+      <.button
         type="button"
+        variant="link"
         phx-click="remove_media_upload"
         phx-value-id={@media_upload.id}
         data-slot="button"
-        class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-[color,box-shadow] disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] text-muted-foreground/80 hover:text-foreground -me-2 size-8 hover:bg-transparent cursor-pointer"
+        class="justify-center whitespace-nowrap outline-none -me-2 size-8"
         aria-label="Remove file"
       >
         <.icon
           name="hero-x-mark"
           class="mx-auto size-6 text-gray-950 dark:text-gray-500"
         />
-      </button>
+      </.button>
     </li>
     """
+  end
+
+  defp variants_card(assigns) do
+    ~H"""
+    <.card hide_body={@form[:option_types].value == []}>
+      <:title>Variants</:title>
+      <:action>
+        <.button type="button" variant="primary" phx-click="add_option_type">
+          <.icon name="hero-plus-circle" class="size-5" /> Add Option Type
+        </.button>
+      </:action>
+      <:body>
+        <.inputs_for :let={option_types_form} field={@form[:option_types]}>
+          <div class="pt-2 pb-4">
+            <.input
+              field={option_types_form[:name]}
+              type="text"
+              label="Option Name"
+              placeholder="Size"
+            />
+
+            <h6 class="block text-sm/6 font-medium text-gray-900 dark:text-white pt-2">
+              Option Types
+            </h6>
+            <.inputs_for
+              :let={values_form}
+              field={option_types_form[:values]}
+              append={[%OptionType{}]}
+            >
+              <div :if={not deleted?(values_form[:delete])} class="flex">
+                <div class="grow">
+                  <.input field={values_form[:name]} type="text" placeholder="Small" />
+                </div>
+
+                <label>
+                  <div
+                    class="justify-center whitespace-nowrap outline-none -me-2 size-8"
+                    aria-label="Remove option type"
+                  >
+                    <.icon
+                      name="hero-x-mark"
+                      class="mx-auto size-6 text-gray-950 dark:text-gray-500"
+                    />
+                  </div>
+                  <.input
+                    field={values_form[:delete]}
+                    type="checkbox"
+                    class="hidden"
+                  />
+                </label>
+              </div>
+            </.inputs_for>
+          </div>
+        </.inputs_for>
+      </:body>
+    </.card>
+    """
+  end
+
+  defp deleted?(field) do
+    Phoenix.HTML.Form.normalize_value("checkbox", field.value)
   end
 
   @impl true
@@ -286,6 +350,18 @@ defmodule HarborWeb.Admin.ProductLive.Form do
     product_form = %{product_form | media_uploads: media_uploads}
 
     {:noreply, assign(socket, product_form: product_form)}
+  end
+
+  def handle_event("add_option_type", _params, socket) do
+    socket =
+      update(socket, :form, fn %{source: changeset} ->
+        option_types = Ecto.Changeset.get_embed(changeset, :option_types)
+        changeset = Ecto.Changeset.put_embed(changeset, :option_types, option_types ++ [%{}])
+
+        to_form(changeset)
+      end)
+
+    {:noreply, socket}
   end
 
   def handle_event("validate", %{"product_form" => product_params}, socket) do

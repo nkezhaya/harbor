@@ -6,6 +6,7 @@ defmodule Harbor.Schema do
     quote do
       use Ecto.Schema
       import Ecto.Changeset
+      import unquote(__MODULE__)
 
       alias Harbor.Accounts.Scope
 
@@ -18,6 +19,22 @@ defmodule Harbor.Schema do
       Module.put_attribute(__MODULE__, :foreign_key_type, :binary_id)
       Module.put_attribute(__MODULE__, :timestamps_opts, type: :utc_datetime_usec)
       Module.put_attribute(__MODULE__, :schema_prefix, "public")
+    end
+  end
+
+  def put_ignore_unless_changed(%{valid?: false, changes: changes} = changeset)
+      when changes == %{} do
+    %{changeset | action: :ignore}
+  end
+
+  def put_ignore_unless_changed(changeset) do
+    changeset
+  end
+
+  def put_delete_if_set(changeset) do
+    case Ecto.Changeset.get_change(changeset, :delete) do
+      true -> %{changeset | action: :delete}
+      _ -> changeset
     end
   end
 end

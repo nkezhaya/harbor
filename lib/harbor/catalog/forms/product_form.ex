@@ -7,7 +7,7 @@ defmodule Harbor.Catalog.Forms.ProductForm do
 
   alias Ecto.Changeset
   alias Harbor.Catalog.Forms.{MediaUpload, MediaUploadPromotionWorker}
-  alias Harbor.Catalog.{Product, ProductImage}
+  alias Harbor.Catalog.{OptionType, Product, ProductImage}
   alias Harbor.{Catalog, Repo}
 
   @type t() :: %__MODULE__{}
@@ -15,6 +15,7 @@ defmodule Harbor.Catalog.Forms.ProductForm do
   @primary_key false
   embedded_schema do
     embeds_one :product, Product, on_replace: :update
+    embeds_many :option_types, OptionType, on_replace: :delete
     embeds_many :media_uploads, MediaUpload
   end
 
@@ -28,8 +29,8 @@ defmodule Harbor.Catalog.Forms.ProductForm do
 
   @spec new(Product.t()) :: t()
   def new(%Product{} = product) do
-    product = Repo.preload(product, :images)
-    form = %__MODULE__{product: product}
+    product = Repo.preload(product, [:images, option_types: [:option_values]])
+    form = %__MODULE__{product: product, option_types: product.option_types}
     media_uploads = Enum.map(product.images, &image_to_media_upload/1)
 
     %{form | media_uploads: media_uploads}
@@ -57,6 +58,7 @@ defmodule Harbor.Catalog.Forms.ProductForm do
     |> cast(attrs, [])
     |> cast_embed(:product, required: true)
     |> cast_embed(:media_uploads)
+    |> cast_embed(:option_types)
   end
 
   def insert_new_media_upload(product_form, attrs) do

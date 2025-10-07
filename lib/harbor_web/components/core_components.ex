@@ -81,13 +81,14 @@ defmodule HarborWeb.CoreComponents do
   """
   attr :rest, :global, include: ~w(href navigate patch method download name value disabled)
   attr :class, :string
-  attr :variant, :string, values: ~w(primary)
+  attr :variant, :string, values: ~w(primary link)
   slot :inner_block, required: true
 
   def button(%{rest: rest} = assigns) do
     variants = %{
       "primary" =>
         "rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-xs transition hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:bg-indigo-500 dark:hover:bg-indigo-400 dark:focus-visible:outline-indigo-400",
+      "link" => nil,
       nil =>
         "rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-inset ring-gray-300 transition hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:bg-white/10 dark:text-white dark:ring-white/15 dark:hover:bg-white/20"
     }
@@ -111,6 +112,54 @@ defmodule HarborWeb.CoreComponents do
       </button>
       """
     end
+  end
+
+  @doc """
+  Renders a card, with optional header and actions.
+
+  ## Examples
+
+      <.card title="My Card">
+        <:title>Card Title</:title>
+
+        <:action>
+          <.button>Action</.button>
+        </:action>
+
+        <:body>Card body</:body>
+      </.card>
+  """
+  slot :title
+  slot :action
+  slot :body
+  attr :hide_body, :boolean, default: false
+
+  def card(assigns) do
+    ~H"""
+    <div class="overflow-hidden bg-white shadow-sm sm:rounded-lg dark:bg-gray-800/50 dark:shadow-none dark:outline dark:-outline-offset-1 dark:outline-white/10">
+      <div
+        :if={@title != [] || @actions != []}
+        class="border-b border-gray-200 px-4 py-5 sm:px-6 dark:border-white/10"
+      >
+        <div class="-mt-2 -ml-4 flex flex-wrap items-center justify-between sm:flex-nowrap">
+          <div class="mt-2 ml-4">
+            <h3 class="text-base font-semibold text-gray-900 dark:text-white">
+              {render_slot(@title)}
+            </h3>
+          </div>
+          <div class="mt-2 ml-4 shrink-0">
+            <%= for action <- @action do %>
+              {render_slot(action)}
+            <% end %>
+          </div>
+        </div>
+      </div>
+
+      <div :if={not @hide_body} class="px-4 py-5 sm:p-6 divide-y divide-gray-200">
+        {render_slot(@body)}
+      </div>
+    </div>
+    """
   end
 
   @doc """
