@@ -30,15 +30,6 @@ defmodule Harbor.Catalog.OptionType do
       message: "must be greater than or equal to 0"
     )
     |> unique_constraint([:product_id, :name])
-    |> put_new_option_value()
-  end
-
-  defp put_new_option_value(changeset) do
-    with values when is_list(values) <- get_assoc(changeset, :values),
-         value when value != %{} <- List.last(values) do
-      put_assoc(changeset, :values, values ++ [%{}])
-    else
-      _ -> changeset
-    end
+    |> put_ignore_unless_changed()
   end
 end
