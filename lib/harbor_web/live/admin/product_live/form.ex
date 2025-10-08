@@ -3,6 +3,7 @@ defmodule HarborWeb.Admin.ProductLive.Form do
   Admin LiveView for creating and editing products.
   """
   use HarborWeb, :live_view
+  import Phoenix.HTML.Form, only: [input_name: 2, normalize_value: 2]
 
   alias Ecto.Changeset
   alias Harbor.{Catalog, Config, Tax, Util}
@@ -81,7 +82,8 @@ defmodule HarborWeb.Admin.ProductLive.Form do
           role="list"
           class="divide-y divide-gray-100 dark:divide-white/5 space-y-4"
           phx-hook="Sortable"
-          data-list_id="MediaUploads"
+          data-list_id="media-uploads"
+          data-push_event="sortable:reposition"
         >
           <.media_upload_item :for={media_upload <- @media_uploads} media_upload={media_upload} />
         </ul>
@@ -171,55 +173,59 @@ defmodule HarborWeb.Admin.ProductLive.Form do
         </.button>
       </:action>
       <:body>
-        <.inputs_for :let={option_types_form} field={@form[:option_types]}>
-          <div class="pt-2 pb-4">
-            <.input
-              field={option_types_form[:name]}
-              type="text"
-              label="Option Name"
-              placeholder="Size"
-            />
-
-            <h6 class="block text-sm/6 font-medium text-gray-900 dark:text-white pt-2">
-              Option Types
-            </h6>
-            <.inputs_for
-              :let={values_form}
-              field={option_types_form[:values]}
-              append={[%OptionType{}]}
-            >
-              <div :if={not deleted?(values_form[:delete])} class="flex">
-                <div class="grow">
-                  <.input field={values_form[:name]} type="text" placeholder="Small" />
-                </div>
-
-                <label>
-                  <div
-                    class="justify-center whitespace-nowrap outline-none -me-2 size-8"
-                    aria-label="Remove option type"
-                  >
-                    <.icon
-                      name="hero-x-mark"
-                      class="mx-auto size-6 text-gray-950 dark:text-gray-500"
-                    />
-                  </div>
-                  <.input
-                    field={values_form[:delete]}
-                    type="checkbox"
-                    class="hidden"
-                  />
-                </label>
+        <div id="variants-card" phx-hook="Sortable" data-list_id="option_types">
+          <.inputs_for :let={option_types_form} field={@form[:option_types]}>
+            <div class="pt-2 pb-4 drag-item" data-sortable_id={option_types_form.id}>
+              <div class="cursor-grab drag-handle">
+                <.icon name="hero-bars-3" class="size-5 text-gray-400 dark:gray-200" />
               </div>
-            </.inputs_for>
-          </div>
-        </.inputs_for>
+
+              <input
+                type="hidden"
+                name={input_name(@form, :option_types_sort) <> "[]"}
+                value={option_types_form.index}
+              />
+
+              <.input
+                field={option_types_form[:name]}
+                type="text"
+                label="Option Name"
+                placeholder="Size"
+              />
+
+              <h6 class="block text-sm/6 font-medium text-gray-900 dark:text-white pt-2">
+                Option Types
+              </h6>
+              <.inputs_for :let={values_form} field={option_types_form[:values]}>
+                <div :if={not normalize_value("checkbox", values_form[:delete].value)} class="flex">
+                  <div class="grow">
+                    <.input field={values_form[:name]} type="text" placeholder="Small" />
+                  </div>
+
+                  <label>
+                    <div
+                      class="justify-center whitespace-nowrap outline-none -me-2 size-8"
+                      aria-label="Remove option type"
+                    >
+                      <.icon
+                        name="hero-x-mark"
+                        class="mx-auto size-6 text-gray-950 dark:text-gray-500"
+                      />
+                    </div>
+                    <.input
+                      field={values_form[:delete]}
+                      type="checkbox"
+                      class="hidden"
+                    />
+                  </label>
+                </div>
+              </.inputs_for>
+            </div>
+          </.inputs_for>
+        </div>
       </:body>
     </.card>
     """
-  end
-
-  defp deleted?(field) do
-    Phoenix.HTML.Form.normalize_value("checkbox", field.value)
   end
 
   @impl true
@@ -397,20 +403,6 @@ defmodule HarborWeb.Admin.ProductLive.Form do
     do: put_flash(socket, :info, "Product updated successfully")
 
   defp assign_form(socket, %Ecto.Changeset{} = changeset) do
-    option_types =
-      changeset
-      |> Changeset.get_assoc(:option_types)
-      |> Enum.map(fn option_type_changeset ->
-        values = Changeset.get_assoc(option_type_changeset, :values)
-
-        case List.last(values) do
-          %{changes: changes} when changes == %{} -> option_type_changeset
-          _ -> Changeset.put_assoc(option_type_changeset, :values, values ++ [%{}])
-        end
-      end)
-
-    changeset = Changeset.put_assoc(changeset, :option_types, option_types)
-
     assign(socket, :form, to_form(changeset, as: :product))
   end
 

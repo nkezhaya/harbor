@@ -34,4 +34,10 @@ defmodule Harbor.Catalog.OptionValue do
     |> unique_constraint([:option_type_id, :name])
     |> put_ignore_unless_changed()
   end
+
+  def changeset(option_value, attrs, position) do
+    option_value
+    |> change(position: position)
+    |> changeset(attrs)
+  end
 end

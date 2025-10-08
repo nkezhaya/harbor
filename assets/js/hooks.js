@@ -10,14 +10,20 @@ hooks.Sortable = {
       dragClass: "drag-item",
       ghostClass: "drag-ghost",
       forceFallback: true,
-      onEnd: _ => {
-        const nodes = this.el.querySelectorAll('[data-sortable_id]')
-        const elements = [...nodes]
-        const ids = elements.map(el => el.dataset.sortable_id)
-
-        this.pushEventTo(this.el, "sortable:reposition", { ids })
-      }
+      onEnd: _ => this.onEnd()
     })
+  },
+
+  onEnd() {
+    const nodes = this.el.querySelectorAll("[data-sortable_id]")
+    const listId = this.el.dataset.list_id
+    const eventName = this.el.dataset.push_event
+    const elements = [...nodes]
+    const ids = elements.map(el => el.dataset.sortable_id)
+
+    if (eventName) {
+      this.pushEventTo(this.el, eventName, { list_id: listId, ids })
+    }
   }
 }
 

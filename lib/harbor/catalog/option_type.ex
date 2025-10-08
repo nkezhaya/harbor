@@ -23,7 +23,11 @@ defmodule Harbor.Catalog.OptionType do
   def changeset(option_type, attrs) do
     option_type
     |> cast(attrs, [:name, :position])
-    |> cast_assoc(:values)
+    |> cast_assoc(:values,
+      sort_param: :values_sort,
+      drop_param: :values_drop,
+      with: &OptionValue.changeset/3
+    )
     |> validate_required([:name, :position])
     |> check_constraint(:position,
       name: :position_gte_zero,
@@ -31,5 +35,11 @@ defmodule Harbor.Catalog.OptionType do
     )
     |> unique_constraint([:product_id, :name])
     |> put_ignore_unless_changed()
+  end
+
+  def changeset(option_type, attrs, position) do
+    option_type
+    |> change(position: position)
+    |> changeset(attrs)
   end
 end

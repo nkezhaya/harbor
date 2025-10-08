@@ -35,7 +35,11 @@ defmodule Harbor.Catalog.Product do
     product
     |> cast(attrs, [:name, :slug, :description, :status, :tax_code_id, :default_variant_id])
     |> cast_assoc(:images)
-    |> cast_assoc(:option_types)
+    |> cast_assoc(:option_types,
+      sort_param: :option_types_sort,
+      drop_param: :option_types_drop,
+      with: &OptionType.changeset/3
+    )
     |> cast_assoc(:variants)
     |> Slug.put_new_slug(__MODULE__)
     |> validate_required([:name, :status, :tax_code_id])
