@@ -99,18 +99,20 @@ defmodule HarborWeb.CoreComponents do
     class = [shared_class, base_class, assigns[:class]] |> Enum.filter(& &1)
     assigns = assign(assigns, :class, class)
 
-    if rest[:href] || rest[:navigate] || rest[:patch] do
-      ~H"""
-      <.link class={@class} {@rest}>
-        {render_slot(@inner_block)}
-      </.link>
-      """
-    else
-      ~H"""
-      <button class={@class} {@rest}>
-        {render_slot(@inner_block)}
-      </button>
-      """
+    cond do
+      rest[:href] || rest[:navigate] || rest[:patch] ->
+        ~H"""
+        <.link class={@class} {@rest}>
+          {render_slot(@inner_block)}
+        </.link>
+        """
+
+      true ->
+        ~H"""
+        <button class={@class} {@rest}>
+          {render_slot(@inner_block)}
+        </button>
+        """
     end
   end
 

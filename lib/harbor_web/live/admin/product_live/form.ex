@@ -8,7 +8,7 @@ defmodule HarborWeb.Admin.ProductLive.Form do
   alias Ecto.Changeset
   alias Harbor.{Catalog, Config, Tax, Util}
   alias Harbor.Catalog.Forms.MediaUpload
-  alias Harbor.Catalog.{OptionType, Product}
+  alias Harbor.Catalog.{OptionType, OptionValue, Product}
   alias Harbor.Repo
 
   @impl true
@@ -168,8 +168,9 @@ defmodule HarborWeb.Admin.ProductLive.Form do
     <.card hide_body={@form[:option_types].value == []}>
       <:title>Variants</:title>
       <:action>
-        <.button type="button" variant="primary" phx-click="add_option_type">
+        <.button type="button" variant="primary">
           <.icon name="hero-plus-circle" class="size-5" /> Add Option Type
+          <input type="checkbox" name={input_name(@form, :option_types_sort) <> "[]"} />
         </.button>
       </:action>
       <:body>
@@ -196,7 +197,11 @@ defmodule HarborWeb.Admin.ProductLive.Form do
               <h6 class="block text-sm/6 font-medium text-gray-900 dark:text-white pt-2">
                 Option Types
               </h6>
-              <.inputs_for :let={values_form} field={option_types_form[:values]}>
+              <.inputs_for
+                :let={values_form}
+                field={option_types_form[:values]}
+                append={[%OptionValue{}]}
+              >
                 <div :if={not normalize_value("checkbox", values_form[:delete].value)} class="flex">
                   <div class="grow">
                     <.input field={values_form[:name]} type="text" placeholder="Small" />

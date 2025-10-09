@@ -32,7 +32,6 @@ defmodule Harbor.Catalog.OptionValue do
       message: "must be greater than or equal to 0"
     )
     |> unique_constraint([:option_type_id, :name])
-    |> put_ignore_unless_changed()
   end
 
   def changeset(option_value, attrs, position) do

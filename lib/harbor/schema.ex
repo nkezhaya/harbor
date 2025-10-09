@@ -22,15 +22,6 @@ defmodule Harbor.Schema do
     end
   end
 
-  def put_ignore_unless_changed(%{valid?: false, changes: changes} = changeset)
-      when changes == %{} do
-    %{changeset | action: :ignore}
-  end
-
-  def put_ignore_unless_changed(changeset) do
-    changeset
-  end
-
   def put_delete_if_set(changeset) do
     case Ecto.Changeset.get_change(changeset, :delete) do
       true -> %{changeset | action: :delete}
