@@ -65,7 +65,7 @@ defmodule HarborWeb.Admin.ProductLive.Form do
               <div class="mt-4 flex text-sm/6 text-gray-600 dark:text-gray-400">
                 <label
                   for={@uploads.media_asset.ref}
-                  class="relative cursor-pointer rounded-md bg-white font-semibold text-indigo-600 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-indigo-600 hover:text-indigo-500 dark:bg-transparent dark:text-indigo-400 dark:focus-within:outline-indigo-500 dark:hover:text-indigo-400"
+                  class="relative cursor-pointer rounded-md font-semibold text-indigo-600 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-indigo-600 hover:text-indigo-500 dark:bg-transparent dark:text-indigo-400 dark:focus-within:outline-indigo-500 dark:hover:text-indigo-400"
                 >
                   <span>Upload a file</span>
                   <.live_file_input upload={@uploads.media_asset} class="sr-only" />
@@ -118,7 +118,7 @@ defmodule HarborWeb.Admin.ProductLive.Form do
     <li class={@class} data-sortable_id={@media_upload.id}>
       <div class="flex items-center gap-3 overflow-hidden">
         <div class="cursor-grab drag-handle">
-          <.icon name="hero-bars-3" class="size-5 text-gray-400 dark:gray-200" />
+          <.icon name="grip-vertical" class="size-5 text-gray-950 dark:gray-200" />
         </div>
 
         <%= case @media_upload.status do %>
@@ -168,9 +168,9 @@ defmodule HarborWeb.Admin.ProductLive.Form do
     <.card hide_body={@form[:option_types].value == []}>
       <:title>Variants</:title>
       <:action>
-        <.button type="button" variant="primary">
+        <.button variant="primary" label>
           <.icon name="hero-plus-circle" class="size-5" /> Add Option Type
-          <input type="checkbox" name={input_name(@form, :option_types_sort) <> "[]"} />
+          <input type="checkbox" name={input_name(@form, :option_types_sort) <> "[]"} class="hidden" />
         </.button>
       </:action>
       <:body>
@@ -178,7 +178,7 @@ defmodule HarborWeb.Admin.ProductLive.Form do
           <.inputs_for :let={option_types_form} field={@form[:option_types]}>
             <div class="pt-2 pb-4 drag-item" data-sortable_id={option_types_form.id}>
               <div class="cursor-grab drag-handle">
-                <.icon name="hero-bars-3" class="size-5 text-gray-400 dark:gray-200" />
+                <.icon name="grip-vertical" class="size-5 text-gray-950 dark:gray-200" />
               </div>
 
               <input

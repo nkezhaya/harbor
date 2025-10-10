@@ -82,6 +82,7 @@ defmodule HarborWeb.CoreComponents do
   attr :rest, :global, include: ~w(href navigate patch method download name value disabled)
   attr :class, :string
   attr :variant, :string, values: ~w(primary link)
+  attr :label, :boolean, doc: "Set to true to render the button as an HTML label"
   slot :inner_block, required: true
 
   def button(%{rest: rest} = assigns) do
@@ -105,6 +106,13 @@ defmodule HarborWeb.CoreComponents do
         <.link class={@class} {@rest}>
           {render_slot(@inner_block)}
         </.link>
+        """
+
+      assigns[:label] ->
+        ~H"""
+        <label class={@class} {@rest}>
+          {render_slot(@inner_block)}
+        </label>
         """
 
       true ->
@@ -531,6 +539,28 @@ defmodule HarborWeb.CoreComponents do
   """
   attr :name, :string, required: true
   attr :class, :string, default: "size-4"
+
+  def icon(%{name: "grip-vertical"} = assigns) do
+    ~H"""
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      stroke-width="1.5"
+      stroke="currentColor"
+      aria-hidden="true"
+      data-slot="icon"
+      fill="none"
+      class={@class}
+    >
+      <path
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        d="M15 18.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5zm0-6a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5zm0-6a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5zm-6 12a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5zm0-6a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5zm0-6a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5Z"
+      >
+      </path>
+    </svg>
+    """
+  end
 
   def icon(%{name: "hero-" <> _} = assigns) do
     ~H"""
