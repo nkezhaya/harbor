@@ -176,55 +176,62 @@ defmodule HarborWeb.Admin.ProductLive.Form do
       <:body>
         <div id="variants-card" phx-hook="Sortable" data-list_id="option_types">
           <.inputs_for :let={option_types_form} field={@form[:option_types]}>
-            <div class="pt-2 pb-4 drag-item" data-sortable_id={option_types_form.id}>
-              <div class="cursor-grab drag-handle">
-                <.icon name="grip-vertical" class="size-5 text-gray-950 dark:gray-200" />
+            <div class="flex pt-2 pb-4 drag-item" data-sortable_id={option_types_form.id}>
+              <div class="w-8 flex-none cursor-grab drag-handle">
+                <div class="mt-9">
+                  <.icon name="grip-vertical" class="size-5 text-gray-950 dark:gray-200" />
+                </div>
               </div>
 
-              <input
-                type="hidden"
-                name={input_name(@form, :option_types_sort) <> "[]"}
-                value={option_types_form.index}
-              />
+              <div class="flex-1">
+                <input
+                  type="hidden"
+                  name={input_name(@form, :option_types_sort) <> "[]"}
+                  value={option_types_form.index}
+                />
 
-              <.input
-                field={option_types_form[:name]}
-                type="text"
-                label="Option Name"
-                placeholder="Size"
-              />
+                <.input
+                  field={option_types_form[:name]}
+                  type="text"
+                  label="Option Name"
+                  placeholder="Size"
+                />
 
-              <h6 class="block text-sm/6 font-medium text-gray-900 dark:text-white pt-2">
-                Option Types
-              </h6>
-              <.inputs_for
-                :let={values_form}
-                field={option_types_form[:values]}
-                append={[%OptionValue{}]}
-              >
-                <div :if={not normalize_value("checkbox", values_form[:delete].value)} class="flex">
-                  <div class="grow">
-                    <.input field={values_form[:name]} type="text" placeholder="Small" />
-                  </div>
-
-                  <label>
-                    <div
-                      class="justify-center whitespace-nowrap outline-none -me-2 size-8"
-                      aria-label="Remove option type"
-                    >
-                      <.icon
-                        name="hero-x-mark"
-                        class="mx-auto size-6 text-gray-950 dark:text-gray-500"
-                      />
+                <h6 class="block text-sm/6 font-medium text-gray-900 dark:text-white pt-2">
+                  Option Types
+                </h6>
+                <.inputs_for
+                  :let={values_form}
+                  field={option_types_form[:values]}
+                  append={[%OptionValue{}]}
+                >
+                  <div
+                    :if={not normalize_value("checkbox", values_form[:delete].value)}
+                    class="flex pb-1"
+                  >
+                    <div class="flex-1">
+                      <.input field={values_form[:name]} type="text" placeholder="Small" />
                     </div>
-                    <.input
-                      field={values_form[:delete]}
-                      type="checkbox"
-                      class="hidden"
-                    />
-                  </label>
-                </div>
-              </.inputs_for>
+
+                    <.button variant="link" label>
+                      <div
+                        class="justify-center whitespace-nowrap outline-none -me-2 size-8"
+                        aria-label="Remove option type"
+                      >
+                        <.icon
+                          name="hero-trash"
+                          class="mx-auto size-5 text-gray-950 dark:text-gray-500"
+                        />
+                      </div>
+                      <.input
+                        field={values_form[:delete]}
+                        type="checkbox"
+                        class="hidden"
+                      />
+                    </.button>
+                  </div>
+                </.inputs_for>
+              </div>
             </div>
           </.inputs_for>
         </div>
