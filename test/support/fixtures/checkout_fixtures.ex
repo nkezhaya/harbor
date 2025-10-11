@@ -5,11 +5,12 @@ defmodule Harbor.CheckoutFixtures do
   """
   alias Harbor.Checkout
 
-  def cart_fixture(attrs \\ %{}) do
+  def cart_fixture(scope, attrs \\ %{}) do
+    attrs = Enum.into(attrs, %{})
+
     {:ok, cart} =
-      attrs
-      |> Enum.into(%{session_token: unique_session_token()})
-      |> Checkout.create_cart()
+      scope
+      |> Checkout.create_cart(attrs)
 
     cart
   end
@@ -20,6 +21,4 @@ defmodule Harbor.CheckoutFixtures do
 
     cart_item
   end
-
-  defp unique_session_token, do: "token-#{System.unique_integer([:positive])}"
 end

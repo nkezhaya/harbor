@@ -1,7 +1,7 @@
 defmodule Harbor.TaxTest do
   use Harbor.DataCase
 
-  import Harbor.{CatalogFixtures, CheckoutFixtures, TaxFixtures}
+  import Harbor.{CatalogFixtures, CheckoutFixtures, CustomersFixtures, TaxFixtures}
 
   alias Harbor.Checkout.Session
   alias Harbor.{Repo, Tax}
@@ -18,7 +18,8 @@ defmodule Harbor.TaxTest do
     setup do
       product = product_fixture()
       variant = List.first(product.variants)
-      cart = cart_fixture()
+      scope = guest_scope_fixture(customer: false)
+      cart = cart_fixture(scope)
       cart_item = cart_item_fixture(cart, %{variant_id: variant.id, quantity: 1})
 
       session =

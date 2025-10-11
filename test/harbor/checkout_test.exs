@@ -5,62 +5,90 @@ defmodule Harbor.CheckoutTest do
   import Harbor.CatalogFixtures
   import Harbor.{AccountsFixtures, CheckoutFixtures, CustomersFixtures, ShippingFixtures}
 
+  alias Harbor.Accounts.Scope
   alias Harbor.Checkout
   alias Harbor.Checkout.{Cart, CartItem, Session}
   alias Harbor.Orders.Order
 
   setup do
-    cart = cart_fixture()
+    scope = guest_scope_fixture(customer: false)
+    cart = cart_fixture(scope)
     variant = variant_fixture()
     cart_item = cart_item_fixture(cart, %{variant_id: variant.id})
 
-    [cart: cart, cart_item: cart_item, variant: variant]
+    [scope: scope, cart: cart, cart_item: cart_item, variant: variant]
   end
 
   describe "get_cart!/1" do
-    test "returns the cart with given id" do
-      cart = cart_fixture()
-      assert Checkout.get_cart!(cart.id) == cart
+    test "returns the cart with given id", %{scope: scope, cart: cart} do
+      assert Checkout.get_cart!(scope, cart.id) == cart
     end
   end
 
   describe "create_cart/1" do
-    test "with valid data creates a cart" do
-      valid_attrs = %{session_token: "some session_token"}
-      assert {:ok, %Cart{} = cart} = Checkout.create_cart(valid_attrs)
-      assert cart.session_token == "some session_token"
+    test "with a guest scope creates a cart" do
+      scope = guest_scope_fixture(customer: false)
+      assert {:ok, %Cart{} = cart} = Checkout.create_cart(scope, %{})
+      assert cart.session_token == scope.session_token
     end
 
-    test "with invalid data returns error changeset" do
-      assert {:error, %Ecto.Changeset{}} = Checkout.create_cart(%{})
+    test "with a customer scope associates the customer" do
+      scope = guest_scope_fixture()
+      assert {:ok, %Cart{} = cart} = Checkout.create_cart(scope, %{})
+      assert cart.customer_id == scope.customer.id
+    end
+
+    test "raises when the scope cannot own a cart" do
+      scope = Scope.for_guest()
+
+      assert_raise Harbor.UnauthorizedError, fn ->
+        Checkout.create_cart(scope, %{})
+      end
     end
   end
 
   describe "update_cart/2" do
-    test "with valid data updates the cart", %{cart: cart} do
+    test "enforces scope ownership when updating", %{scope: scope, cart: cart} do
       update_attrs = %{session_token: "some updated session_token"}
-      assert {:ok, %Cart{} = cart} = Checkout.update_cart(cart, update_attrs)
-      assert cart.session_token == "some updated session_token"
+      assert {:ok, %Cart{} = updated_cart} = Checkout.update_cart(scope, cart, update_attrs)
+      assert updated_cart.session_token == scope.session_token
     end
 
-    test "with invalid data returns error changeset", %{cart: cart} do
-      assert {:error, %Ecto.Changeset{}} =
-               Checkout.update_cart(cart, %{user_id: nil, session_token: nil})
+    test "raises when updating a cart for another scope", %{cart: cart} do
+      other_scope = guest_scope_fixture(customer: false)
 
-      assert cart == Checkout.get_cart!(cart.id)
+      assert_raise Harbor.UnauthorizedError, fn ->
+        Checkout.update_cart(other_scope, cart, %{})
+      end
     end
   end
 
   describe "delete_cart/1" do
-    test "deletes the cart", %{cart: cart} do
-      assert {:ok, %Cart{}} = Checkout.delete_cart(cart)
-      assert_raise Ecto.NoResultsError, fn -> Checkout.get_cart!(cart.id) end
+    test "deletes the cart", %{scope: scope, cart: cart} do
+      assert {:ok, %Cart{}} = Checkout.delete_cart(scope, cart)
+      assert_raise Ecto.NoResultsError, fn -> Checkout.get_cart!(scope, cart.id) end
+    end
+
+    test "raises when deleting a cart for another scope", %{cart: cart} do
+      other_scope = guest_scope_fixture(customer: false)
+
+      assert_raise Harbor.UnauthorizedError, fn ->
+        Checkout.delete_cart(other_scope, cart)
+      end
     end
   end
 
   describe "change_cart/1" do
-    test "returns a cart changeset", %{cart: cart} do
-      assert %Ecto.Changeset{} = Checkout.change_cart(cart)
+    test "returns a cart changeset", %{scope: scope, cart: cart} do
+      assert %Ecto.Changeset{} = Checkout.change_cart(scope, cart)
+    end
+
+    test "raises when requesting a cart changeset for another scope", %{cart: cart} do
+      other_scope = guest_scope_fixture(customer: false)
+
+      assert_raise Harbor.UnauthorizedError, fn ->
+        Checkout.change_cart(other_scope, cart)
+      end
     end
   end
 
@@ -113,7 +141,8 @@ defmodule Harbor.CheckoutTest do
     test "creates an order with items, snapshots, and links the session" do
       # Build catalog and cart
       variant = variant_fixture()
-      cart = cart_fixture()
+      cart_scope = guest_scope_fixture(customer: false)
+      cart = cart_fixture(cart_scope)
       cart_item_fixture(cart, %{variant_id: variant.id, quantity: 2})
 
       # Shipping method
@@ -191,7 +220,8 @@ defmodule Harbor.CheckoutTest do
     test "is idempotent when called multiple times for the same session" do
       scope = guest_scope_fixture()
       variant = variant_fixture()
-      cart = cart_fixture()
+      cart_scope = guest_scope_fixture(customer: false)
+      cart = cart_fixture(cart_scope)
       cart_item_fixture(cart, %{variant_id: variant.id, quantity: 1})
       delivery_method = delivery_method_fixture(%{price: 100})
 

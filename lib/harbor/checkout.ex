@@ -4,38 +4,62 @@ defmodule Harbor.Checkout do
   """
   import Ecto.Query, warn: false
 
-  alias Harbor.{Orders, Repo, Tax}
+  alias Harbor.Accounts.Scope
   alias Harbor.Checkout.{Cart, CartItem, Pricing, Session}
-  alias Harbor.Customers.Address
+  alias Harbor.Customers.{Address, Customer}
   alias Harbor.Orders.Order
+  alias Harbor.{Orders, Repo, Tax}
   alias Harbor.Shipping.DeliveryMethod
   alias Harbor.Tax.{Calculation, Request}
 
   ## Carts
 
-  def get_cart!(id) do
-    Repo.get!(Cart, id)
+  def get_cart!(%Scope{} = scope, id) do
+    Cart
+    |> Repo.get!(id)
+    |> tap(&ensure_authorized!(scope, &1))
   end
 
-  def create_cart(attrs) do
+  def create_cart(%Scope{} = scope, attrs) do
     %Cart{}
-    |> Cart.changeset(attrs)
+    |> Cart.changeset(attrs, scope)
     |> Repo.insert()
   end
 
-  def update_cart(%Cart{} = cart, attrs) do
+  def update_cart(%Scope{} = scope, %Cart{} = cart, attrs) do
+    ensure_authorized!(scope, cart)
+
     cart
-    |> Cart.changeset(attrs)
+    |> Cart.changeset(attrs, scope)
     |> Repo.update()
   end
 
-  def delete_cart(%Cart{} = cart) do
+  def delete_cart(%Scope{} = scope, %Cart{} = cart) do
+    ensure_authorized!(scope, cart)
+
     Repo.delete(cart)
   end
 
-  def change_cart(%Cart{} = cart, attrs \\ %{}) do
-    Cart.changeset(cart, attrs)
+  def change_cart(%Scope{} = scope, %Cart{} = cart, attrs \\ %{}) do
+    ensure_authorized!(scope, cart)
+
+    Cart.changeset(cart, attrs, scope)
   end
+
+  defp ensure_authorized!(%Scope{superadmin: true}, _cart), do: :ok
+
+  defp ensure_authorized!(%Scope{customer: %Customer{id: customer_id}}, %Cart{
+         customer_id: customer_id
+       }),
+       do: :ok
+
+  defp ensure_authorized!(%Scope{session_token: session_token}, %Cart{
+         session_token: session_token
+       })
+       when is_binary(session_token),
+       do: :ok
+
+  defp ensure_authorized!(%Scope{}, _cart), do: raise(Harbor.UnauthorizedError)
 
   ## Cart Items
 
