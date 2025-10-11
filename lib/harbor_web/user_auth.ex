@@ -74,7 +74,9 @@ defmodule HarborWeb.UserAuth do
       |> assign(:current_scope, Scope.for_user(user))
       |> maybe_reissue_user_session_token(user, token_inserted_at)
     else
-      nil -> assign(conn, :current_scope, Scope.for_user(nil))
+      nil ->
+        {guest_session_token, conn} = put_new_guest_session_token(conn)
+        assign(conn, :current_scope, Scope.for_guest(guest_session_token))
     end
   end
 
@@ -89,6 +91,18 @@ defmodule HarborWeb.UserAuth do
       else
         nil
       end
+    end
+  end
+
+  defp put_new_guest_session_token(conn) do
+    case get_session(conn, :guest_session_token) do
+      nil ->
+        guest_session_token = Ecto.UUID.generate()
+        conn = put_session(conn, :guest_session_token, guest_session_token)
+        {guest_session_token, conn}
+
+      guest_session_token ->
+        {guest_session_token, conn}
     end
   end
 

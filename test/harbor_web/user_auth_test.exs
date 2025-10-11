@@ -179,7 +179,8 @@ defmodule HarborWeb.UserAuthTest do
       _ = Auth.generate_user_session_token(user)
       conn = UserAuth.fetch_current_scope_for_user(conn, [])
       refute get_session(conn, :user_token)
-      refute conn.assigns.current_scope
+      refute conn.assigns.current_scope.user
+      assert conn.assigns.current_scope.session_token
     end
 
     test "reissues a new token after a few days and refreshes cookie", %{conn: conn, user: user} do
