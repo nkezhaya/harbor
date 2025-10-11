@@ -186,8 +186,8 @@ defmodule Harbor.Checkout do
       is_binary(session.email) and session.email != "" ->
         {:ok, session.email}
 
-      session.cart && session.cart.user && is_binary(session.cart.user.email) ->
-        {:ok, session.cart.user.email}
+      session.cart && session.cart.customer && is_binary(session.cart.customer.email) ->
+        {:ok, session.cart.customer.email}
 
       true ->
         {:error, :missing_email}
