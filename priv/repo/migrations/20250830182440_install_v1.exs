@@ -356,15 +356,25 @@ defmodule Harbor.Repo.Migrations.InstallV1 do
       add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
       add :customer_id, references(:customers, on_delete: :delete_all)
       add :session_token, :string
+      add :status, :string, null: false, default: "active"
 
       timestamps()
     end
 
-    create unique_index(:carts, [:customer_id], where: "customer_id IS NOT NULL")
-    create unique_index(:carts, [:session_token], where: "session_token IS NOT NULL")
+    create unique_index(:carts, [:customer_id],
+             where: "customer_id IS NOT NULL AND status = 'active'"
+           )
+
+    create unique_index(:carts, [:session_token],
+             where: "session_token IS NOT NULL AND status = 'active'"
+           )
 
     create constraint(:carts, :customer_or_session_token,
              check: "customer_id IS NOT NULL OR session_token IS NOT NULL"
+           )
+
+    create constraint(:carts, :carts_check_status,
+             check: "status in ('active', 'merged', 'expired')"
            )
 
     ## Cart items

@@ -30,12 +30,14 @@ defmodule Harbor.CheckoutTest do
       scope = guest_scope_fixture(customer: false)
       assert {:ok, %Cart{} = cart} = Checkout.create_cart(scope, %{})
       assert cart.session_token == scope.session_token
+      assert cart.status == :active
     end
 
     test "with a customer scope associates the customer" do
       scope = guest_scope_fixture()
       assert {:ok, %Cart{} = cart} = Checkout.create_cart(scope, %{})
       assert cart.customer_id == scope.customer.id
+      assert cart.status == :active
     end
 
     test "raises when the scope cannot own a cart" do
@@ -52,6 +54,7 @@ defmodule Harbor.CheckoutTest do
       update_attrs = %{session_token: "some updated session_token"}
       assert {:ok, %Cart{} = updated_cart} = Checkout.update_cart(scope, cart, update_attrs)
       assert updated_cart.session_token == scope.session_token
+      assert updated_cart.status == :active
     end
 
     test "raises when updating a cart for another scope", %{cart: cart} do

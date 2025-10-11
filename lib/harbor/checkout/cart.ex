@@ -11,6 +11,7 @@ defmodule Harbor.Checkout.Cart do
 
   schema "carts" do
     field :session_token, :string
+    field :status, Ecto.Enum, values: [:active, :merged, :expired], default: :active
 
     has_many :items, CartItem
     belongs_to :customer, Customer
@@ -29,7 +30,7 @@ defmodule Harbor.Checkout.Cart do
     )
   end
 
-  defp allowed_fields(%Scope{superadmin: true}), do: [:customer_id, :session_token]
+  defp allowed_fields(%Scope{superadmin: true}), do: [:customer_id, :session_token, :status]
   defp allowed_fields(_scope), do: []
 
   defp apply_scope(changeset, %Scope{superadmin: true}), do: changeset
