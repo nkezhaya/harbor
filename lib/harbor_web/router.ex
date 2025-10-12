@@ -72,6 +72,7 @@ defmodule HarborWeb.Router do
 
     live_session :current_user,
       on_mount: [{HarborWeb.UserAuth, :mount_current_scope}] do
+      live "/", HomeLive, :index
       live "/products", ProductsLive.Index, :index
       live "/products/:slug", ProductsLive.Show, :show
       live "/users/register", UserLive.Registration, :new
