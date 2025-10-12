@@ -127,6 +127,7 @@ defmodule Harbor.Repo.Migrations.InstallV1 do
       add :file_name, :string, null: false
       add :file_size, :integer, null: false
       add :file_type, :string, null: false
+      add :alt_text, :string
       add :image_path, :string, null: false
       add :temp_upload_path, :string
       add :product_id, references(:products, on_delete: :nilify_all), null: false

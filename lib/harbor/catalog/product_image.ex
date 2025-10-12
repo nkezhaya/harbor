@@ -13,6 +13,7 @@ defmodule Harbor.Catalog.ProductImage do
     field :file_name, :string
     field :file_size, :integer
     field :file_type, :string
+    field :alt_text, :string
     field :image_path, :string
     field :temp_upload_path, :string
     field :position, :integer, default: 0
@@ -31,6 +32,7 @@ defmodule Harbor.Catalog.ProductImage do
       :file_name,
       :file_size,
       :file_type,
+      :alt_text,
       :image_path,
       :temp_upload_path,
       :position

@@ -15,6 +15,7 @@ defmodule Harbor.Catalog.Forms.MediaUpload do
     field :file_name, :string
     field :file_size, :integer
     field :file_type, :string
+    field :alt_text, :string
     field :key, :string
     field :position, :integer, default: 0
     field :status, Ecto.Enum, values: [:pending, :complete], default: :pending
@@ -43,6 +44,7 @@ defmodule Harbor.Catalog.Forms.MediaUpload do
       :file_name,
       :file_size,
       :file_type,
+      :alt_text,
       :key,
       :position,
       :delete
