@@ -160,6 +160,13 @@ defmodule Harbor.Catalog do
     |> Repo.all()
   end
 
+  def list_root_categories do
+    Category
+    |> where([c], is_nil(c.parent_id))
+    |> order_by(asc: :position)
+    |> Repo.all()
+  end
+
   def get_category!(id) do
     Repo.get!(Category, id)
   end

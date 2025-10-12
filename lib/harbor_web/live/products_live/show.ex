@@ -10,7 +10,7 @@ defmodule HarborWeb.ProductsLive.Show do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash} current_scope={@current_scope}>
+    <Layouts.app flash={@flash} current_scope={@current_scope} root_categories={@root_categories}>
       <section :if={@product} class="lg:grid lg:grid-cols-2 lg:items-start lg:gap-x-16">
         <div>
           <div class="aspect-square w-full overflow-hidden rounded-lg bg-gray-100">

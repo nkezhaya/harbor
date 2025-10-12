@@ -71,7 +71,11 @@ defmodule HarborWeb.Router do
     pipe_through [:browser]
 
     live_session :current_user,
-      on_mount: [{HarborWeb.UserAuth, :mount_current_scope}] do
+      on_mount: [
+        {HarborWeb.LiveHooks, :global},
+        {HarborWeb.LiveHooks, :storefront},
+        {HarborWeb.UserAuth, :mount_current_scope}
+      ] do
       live "/", HomeLive, :index
       live "/products", ProductsLive.Index, :index
       live "/products/:slug", ProductsLive.Show, :show

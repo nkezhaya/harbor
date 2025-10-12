@@ -1,12 +1,23 @@
 defmodule HarborWeb.LiveHooks do
   @moduledoc """
-  Adds a LiveView hook to set the current path in assigns.
+  Shared LiveView hooks that populate assigns used by multiple views.
   """
-  import Phoenix.Component, only: [assign: 3]
+  import Phoenix.Component, only: [assign: 3, assign_new: 3]
   import Phoenix.LiveView, only: [attach_hook: 4]
+
+  alias Harbor.Catalog
 
   def on_mount(:global, _params, _session, socket) do
     {:cont, attach_hook(socket, :assign_current_path, :handle_params, &assign_current_path/3)}
+  end
+
+  def on_mount(:storefront, _params, _session, socket) do
+    socket =
+      assign_new(socket, :root_categories, fn ->
+        Catalog.list_root_categories()
+      end)
+
+    {:cont, socket}
   end
 
   defp assign_current_path(_params, url, socket) do
