@@ -20,21 +20,6 @@ defmodule HarborWeb.Router do
     plug :put_root_layout, html: {HarborWeb.AdminLayouts, :root}
   end
 
-  pipeline :api do
-    plug :accepts, ["json"]
-  end
-
-  scope "/", HarborWeb do
-    pipe_through :browser
-
-    get "/", PageController, :home
-  end
-
-  # Other scopes may use custom stacks.
-  # scope "/api", HarborWeb do
-  #   pipe_through :api
-  # end
-
   # Enable Swoosh mailbox preview in development
   if Application.compile_env(:harbor, :dev_routes) do
     scope "/dev" do
