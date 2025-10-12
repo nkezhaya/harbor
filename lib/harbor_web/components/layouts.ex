@@ -60,7 +60,6 @@ defmodule HarborWeb.Layouts do
             >
               GitHub
             </a>
-            <.theme_toggle />
             <.button
               href="https://hexdocs.pm/phoenix/overview.html"
               variant="primary"
@@ -127,42 +126,6 @@ defmodule HarborWeb.Layouts do
         <.icon name="hero-arrow-path" class="ml-1 size-3 motion-safe:animate-spin" />
       </.flash>
     </section>
-    """
-  end
-
-  @doc """
-  Provides dark vs light theme toggle based on themes defined in app.css.
-
-  See <head> in root.html.heex which applies the theme before page load.
-  """
-  def theme_toggle(assigns) do
-    ~H"""
-    <div class="flex items-center gap-2 rounded-full bg-gray-100 p-1 text-gray-500 shadow-inner dark:bg-white/5 dark:text-gray-400">
-      <button
-        class="inline-flex size-8 items-center justify-center rounded-full transition hover:bg-white hover:text-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:hover:bg-white/10 dark:hover:text-white dark:focus-visible:outline-indigo-500"
-        phx-click={JS.dispatch("phx:set-theme")}
-        data-phx-theme="system"
-        aria-label="Use system theme"
-      >
-        <.icon name="hero-computer-desktop-micro" class="size-4" />
-      </button>
-      <button
-        class="inline-flex size-8 items-center justify-center rounded-full transition hover:bg-white hover:text-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:hover:bg-white/10 dark:hover:text-white dark:focus-visible:outline-indigo-500"
-        phx-click={JS.dispatch("phx:set-theme")}
-        data-phx-theme="light"
-        aria-label="Use light theme"
-      >
-        <.icon name="hero-sun-micro" class="size-4" />
-      </button>
-      <button
-        class="inline-flex size-8 items-center justify-center rounded-full transition hover:bg-white hover:text-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:hover:bg-white/10 dark:hover:text-white dark:focus-visible:outline-indigo-500"
-        phx-click={JS.dispatch("phx:set-theme")}
-        data-phx-theme="dark"
-        aria-label="Use dark theme"
-      >
-        <.icon name="hero-moon-micro" class="size-4" />
-      </button>
-    </div>
     """
   end
 end
