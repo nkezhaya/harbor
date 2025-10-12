@@ -11,42 +11,7 @@
     <script defer phx-track-static type="text/javascript" src={~p"/assets/js/app.js"}>
     </script>
   </head>
-  <body class="min-h-screen bg-gray-50 text-gray-900 antialiased dark:bg-gray-950 dark:text-gray-100">
-    <header class="border-b border-gray-200 bg-white dark:border-white/10 dark:bg-gray-950">
-      <div class="mx-auto flex max-w-5xl items-center justify-end gap-4 px-4 py-3 text-sm font-medium text-gray-600 sm:px-6 lg:px-8 dark:text-gray-300">
-        <%= if @current_scope.user do %>
-          <span class="hidden text-sm text-gray-500 sm:block dark:text-gray-400">
-            {@current_scope.user.email}
-          </span>
-          <.link
-            href={~p"/users/settings"}
-            class="transition hover:text-gray-900 dark:hover:text-white"
-          >
-            Settings
-          </.link>
-          <.link
-            href={~p"/users/log-out"}
-            method="delete"
-            class="transition hover:text-gray-900 dark:hover:text-white"
-          >
-            Log out
-          </.link>
-        <% else %>
-          <.link
-            href={~p"/users/register"}
-            class="transition hover:text-gray-900 dark:hover:text-white"
-          >
-            Register
-          </.link>
-          <.link
-            href={~p"/users/log-in"}
-            class="transition hover:text-gray-900 dark:hover:text-white"
-          >
-            Log in
-          </.link>
-        <% end %>
-      </div>
-    </header>
+  <body class="bg-white text-gray-900 antialiased">
     {@inner_content}
   </body>
 </html>
