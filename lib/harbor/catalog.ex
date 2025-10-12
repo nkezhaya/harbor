@@ -155,7 +155,9 @@ defmodule Harbor.Catalog do
   ## Categories
 
   def list_categories do
-    Repo.all(Category)
+    Category
+    |> order_by(asc: :position)
+    |> Repo.all()
   end
 
   def get_category!(id) do
