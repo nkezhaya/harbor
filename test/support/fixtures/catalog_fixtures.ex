@@ -18,7 +18,8 @@ defmodule Harbor.CatalogFixtures do
         variants: [
           %{
             sku: "sku-#{System.unique_integer()}",
-            price: 4000
+            price: 4000,
+            enabled: true
           }
         ]
       })

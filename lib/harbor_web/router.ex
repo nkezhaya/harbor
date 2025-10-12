@@ -80,11 +80,15 @@ defmodule HarborWeb.Router do
     end
   end
 
+  ## Public routes
+
   scope "/", HarborWeb do
     pipe_through [:browser]
 
     live_session :current_user,
       on_mount: [{HarborWeb.UserAuth, :mount_current_scope}] do
+      live "/products", ProductsLive.Index, :index
+      live "/products/:slug", ProductsLive.Show, :show
       live "/users/register", UserLive.Registration, :new
       live "/users/log-in", UserLive.Login, :new
       live "/users/log-in/:token", UserLive.Confirmation, :new

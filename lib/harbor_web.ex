@@ -63,6 +63,15 @@ defmodule HarborWeb do
     end
   end
 
+  def component do
+    quote do
+      use Phoenix.Component
+
+      # Include general helpers for rendering HTML
+      unquote(html_helpers())
+    end
+  end
+
   def html do
     quote do
       use Phoenix.Component
@@ -90,6 +99,7 @@ defmodule HarborWeb do
       alias HarborWeb.AdminLayouts
       alias HarborWeb.ImageHelpers
       alias HarborWeb.Layouts
+      alias HarborWeb.ProductComponents
       alias Phoenix.LiveView.JS
 
       # Routes generation with the ~p sigil

@@ -13,6 +13,31 @@ defmodule Harbor.CatalogTest do
     end
   end
 
+  describe "list_storefront_products/0" do
+    test "returns active products with associations" do
+      product = product_fixture()
+
+      # Create an archived product that shouldn't be returned
+      product_fixture(%{status: :archived})
+
+      assert [storefront_product] = Catalog.list_storefront_products()
+      assert storefront_product.id == product.id
+    end
+  end
+
+  describe "get_storefront_product_by_slug!/1" do
+    test "fetches an active product by slug" do
+      product = product_fixture(%{name: "Wool Blanket"})
+      assert Catalog.get_storefront_product_by_slug!(product.slug).id == product.id
+
+      archived = product_fixture(%{name: "Archived", status: :archived})
+
+      assert_raise Ecto.NoResultsError, fn ->
+        Catalog.get_storefront_product_by_slug!(archived.slug)
+      end
+    end
+  end
+
   describe "get_product!/1" do
     test "returns the product with given id" do
       product = product_fixture()

@@ -16,6 +16,26 @@ defmodule Harbor.Catalog do
     |> Repo.all()
   end
 
+  def list_storefront_products do
+    Product
+    |> where([p], p.status == :active)
+    |> preload([:default_variant, images: ^storefront_image_query()])
+    |> Repo.all()
+  end
+
+  def get_storefront_product_by_slug!(slug) do
+    Product
+    |> where([p], p.slug == ^slug and p.status == :active)
+    |> preload([:default_variant, :variants, :images])
+    |> Repo.one!()
+  end
+
+  defp storefront_image_query do
+    ProductImage
+    |> where([i], i.status == :ready)
+    |> limit(1)
+  end
+
   def get_product!(id) do
     Product
     |> preload([:variants])
