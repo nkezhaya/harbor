@@ -5,7 +5,7 @@ defmodule HarborWeb.ProductsLive.Show do
   use HarborWeb, :live_view
 
   alias Harbor.{Catalog, Util}
-  alias Harbor.Catalog.Product
+  alias Harbor.Catalog.{Product, Variant}
 
   @impl true
   def render(assigns) do
@@ -60,7 +60,7 @@ defmodule HarborWeb.ProductsLive.Show do
 
           <div class="mt-4">
             <h2 class="sr-only">Product information</h2>
-            <%= if @product.default_variant do %>
+            <%= if @has_price? do %>
               <p class="text-3xl tracking-tight text-gray-900">
                 {Util.formatted_price(@product.default_variant.price, force_cents: true)}
               </p>
@@ -127,15 +127,20 @@ defmodule HarborWeb.ProductsLive.Show do
      assign(socket,
        product: product,
        selected_image: selected_image,
-       in_stock?: product_in_stock?(product)
+       in_stock?: product_in_stock?(product),
+       has_price?: product_has_price?(product)
      )}
   end
 
-  defp product_in_stock?(%Product{default_variant: %{quantity_available: quantity}}) do
-    quantity > 0
+  defp product_in_stock?(%Product{default_variant: %Variant{} = variant}) do
+    variant.quantity_available > 0 or not variant.track_inventory
   end
 
-  defp product_in_stock?(_), do: false
+  defp product_has_price?(%Product{default_variant: %Variant{price: price}})
+       when not is_nil(price),
+       do: true
+
+  defp product_has_price?(_), do: false
 
   @impl true
   def handle_event("select-image", %{"image-id" => image_id}, socket) do
