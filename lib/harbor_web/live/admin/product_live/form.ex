@@ -286,7 +286,10 @@ defmodule HarborWeb.Admin.ProductLive.Form do
     {:ok, url} =
       ExAws.S3.presigned_url(config, :put, bucket, media_upload.key,
         expires_in: 3600,
-        query_params: [{"Content-Type", media_upload.file_type}]
+        query_params: [
+          {"Content-Type", media_upload.file_type},
+          {"Cache-Control", "max-age=31536000,public"}
+        ]
       )
 
     url
