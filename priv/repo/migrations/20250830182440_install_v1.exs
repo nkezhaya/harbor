@@ -130,7 +130,7 @@ defmodule Harbor.Repo.Migrations.InstallV1 do
       add :alt_text, :string
       add :image_path, :string, null: false
       add :temp_upload_path, :string
-      add :product_id, references(:products, on_delete: :nilify_all), null: false
+      add :product_id, references(:products, on_delete: :delete_all), null: false
       add :position, :integer, null: false, default: 0
 
       timestamps()
