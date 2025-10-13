@@ -12,7 +12,9 @@ defmodule Harbor.Customers do
   Returns the list of customers.
   """
   def list_customers(%Scope{superadmin: true}) do
-    Repo.all(Customer)
+    Customer
+    |> where([c], is_nil(c.deleted_at))
+    |> Repo.all()
   end
 
   def list_customers(_scope) do

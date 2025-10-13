@@ -22,14 +22,18 @@ defmodule HarborWeb.Admin.CustomerLive.Index do
       </.header>
 
       <div :if={@customers_empty?} class="mt-8">
-        <.empty_state icon="hero-user-group" action_label="New Customer">
+        <.empty_state
+          icon="hero-user-group"
+          action_label="New Customer"
+          navigate={~p"/admin/customers/new"}
+        >
           <:header>No customers</:header>
           <:subheader>Get started by creating your first customer.</:subheader>
         </.empty_state>
       </div>
 
       <.table
-        :if={!@customers_empty?}
+        :if={not @customers_empty?}
         id="customers"
         rows={@streams.customers}
         row_click={fn {_id, customer} -> JS.navigate(~p"/admin/customers/#{customer}") end}

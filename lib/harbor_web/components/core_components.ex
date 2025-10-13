@@ -541,6 +541,8 @@ defmodule HarborWeb.CoreComponents do
     required: true,
     doc: "call-to-action button label rendered under the text"
 
+  attr :rest, :global, include: ~w(href navigate patch)
+
   def empty_state(assigns) do
     ~H"""
     <div class="text-center">
@@ -551,14 +553,11 @@ defmodule HarborWeb.CoreComponents do
       <p :if={@subheader != []} class="mt-1 text-sm text-gray-500 dark:text-gray-400">
         {render_slot(@subheader)}
       </p>
-      <div :if={@action_label} class="mt-6">
-        <button
-          type="button"
-          class="inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-xs hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:bg-indigo-500 dark:shadow-none dark:hover:bg-indigo-400 dark:focus-visible:outline-indigo-500"
-        >
-          <.icon name="hero-plus" class="mr-1.5 -ml-0.5 size-5" />
+      <div :if={@action_label != []} class="mt-6">
+        <.button variant="primary" {@rest}>
+          <.icon name="hero-plus" class="-mx-0.5 size-5" />
           {@action_label}
-        </button>
+        </.button>
       </div>
     </div>
     """

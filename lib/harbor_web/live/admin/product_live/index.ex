@@ -25,7 +25,11 @@ defmodule HarborWeb.Admin.ProductLive.Index do
       </.header>
 
       <div :if={@products_empty?} class="mt-8">
-        <.empty_state icon="hero-shopping-bag" action_label="New Product">
+        <.empty_state
+          icon="hero-shopping-bag"
+          action_label="New Product"
+          navigate={~p"/admin/products/new"}
+        >
           <:header>No products</:header>
           <:subheader>Add your first product to start building your catalog.</:subheader>
         </.empty_state>
