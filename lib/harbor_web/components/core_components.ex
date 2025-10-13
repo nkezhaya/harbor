@@ -31,39 +31,43 @@ defmodule HarborWeb.CoreComponents do
       :if={msg = render_slot(@inner_block) || Phoenix.Flash.get(@flash, @kind)}
       id={@id}
       role="alert"
-      class="pointer-events-auto w-full max-w-sm overflow-hidden rounded-lg bg-white shadow-lg ring-1 ring-gray-900/10 transition dark:bg-gray-900 dark:ring-white/10"
+      class="pointer-events-auto w-full max-w-sm translate-y-0 transform rounded-lg bg-white opacity-100 shadow-lg outline-1 outline-black/5 transition duration-300 ease-out sm:translate-x-0 dark:bg-gray-800 dark:-outline-offset-1 dark:outline-white/10 starting:translate-y-2 starting:opacity-0 starting:sm:translate-x-2 starting:sm:translate-y-0"
       {@rest}
     >
       <div class="p-4">
-        <div class="flex items-start gap-3">
-          <div class={[
-            "mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-200",
-            @kind == :error && "bg-red-50 text-red-600 dark:bg-red-500/15 dark:text-red-200"
-          ]}>
-            <.icon name={flash_icon_name(@kind)} class="size-4" />
+        <div class="flex items-start">
+          <div class="shrink-0">
+            <.icon name={flash_icon_name(@kind)} class={flash_icon_class(@kind)} />
           </div>
-          <div class="flex-1 text-sm/6 text-gray-600 dark:text-gray-300">
-            <p :if={@title} class="mb-1 text-sm font-semibold text-gray-900 dark:text-white">
+          <div class="ml-3 w-0 flex-1 pt-0.5">
+            <p :if={@title} class="text-sm font-medium text-gray-900 dark:text-white">
               {@title}
             </p>
-            <p class="text-sm/6">{msg}</p>
+            <p class={["text-sm text-gray-500 dark:text-gray-400", @title && "mt-1"]}>
+              {msg}
+            </p>
           </div>
-          <button
-            type="button"
-            class="rounded-md p-1 text-gray-400 cursor-pointer transition hover:text-gray-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:text-gray-500 dark:hover:text-gray-300 dark:focus-visible:outline-indigo-400"
-            aria-label={gettext("close")}
-            phx-click={dismiss_flash(@id, @kind)}
-          >
-            <.icon name="hero-x-mark" class="size-4" />
-          </button>
+          <div class="ml-4 flex shrink-0">
+            <button
+              type="button"
+              class="inline-flex rounded-md text-gray-400 transition hover:text-gray-500 focus:outline-2 focus:outline-offset-2 focus:outline-indigo-600 dark:hover:text-white dark:focus:outline-indigo-500 cursor-pointer"
+              phx-click={dismiss_flash(@id, @kind)}
+            >
+              <span class="sr-only">{gettext("Close")}</span>
+              <.icon name="hero-x-mark" class="size-5" />
+            </button>
+          </div>
         </div>
       </div>
     </div>
     """
   end
 
-  defp flash_icon_name(:error), do: "hero-exclamation-triangle"
-  defp flash_icon_name(_), do: "hero-information-circle"
+  defp flash_icon_name(:error), do: "hero-x-circle"
+  defp flash_icon_name(_), do: "hero-check-circle"
+
+  defp flash_icon_class(:error), do: "size-6 text-red-400"
+  defp flash_icon_class(_), do: "size-6 text-green-400"
 
   defp dismiss_flash(id, kind) do
     JS.push("lv:clear-flash", value: %{key: kind})
