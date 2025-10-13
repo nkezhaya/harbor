@@ -12,7 +12,7 @@ defmodule HarborWeb.Admin.CustomerLive.Index do
       page_title={@page_title}
       current_path={@current_path}
     >
-      <.header>
+      <.header :if={not @customers_empty?}>
         Listing Customers
         <:actions>
           <.button variant="primary" navigate={~p"/admin/customers/new"}>
@@ -21,7 +21,15 @@ defmodule HarborWeb.Admin.CustomerLive.Index do
         </:actions>
       </.header>
 
+      <div :if={@customers_empty?} class="mt-8">
+        <.empty_state icon="hero-user-group" action_label="New Customer">
+          <:header>No customers</:header>
+          <:subheader>Get started by creating your first customer.</:subheader>
+        </.empty_state>
+      </div>
+
       <.table
+        :if={!@customers_empty?}
         id="customers"
         rows={@streams.customers}
         row_click={fn {_id, customer} -> JS.navigate(~p"/admin/customers/#{customer}") end}
@@ -59,10 +67,13 @@ defmodule HarborWeb.Admin.CustomerLive.Index do
 
   @impl true
   def mount(_params, _session, socket) do
+    customers = Customers.list_customers(socket.assigns.current_scope)
+
     {:ok,
      socket
      |> assign(:page_title, "Listing Customers")
-     |> stream(:customers, Customers.list_customers(socket.assigns.current_scope))}
+     |> assign(:customers_empty?, customers == [])
+     |> stream(:customers, customers)}
   end
 
   @impl true
@@ -70,6 +81,11 @@ defmodule HarborWeb.Admin.CustomerLive.Index do
     customer = Customers.get_customer!(current_scope, id)
     {:ok, _} = Customers.delete_customer(current_scope, customer)
 
-    {:noreply, stream_delete(socket, :customers, customer)}
+    customers = Customers.list_customers(current_scope)
+
+    {:noreply,
+     socket
+     |> assign(:customers_empty?, customers == [])
+     |> stream(:customers, customers, reset: true)}
   end
 end

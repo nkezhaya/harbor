@@ -15,7 +15,7 @@ defmodule HarborWeb.Admin.ProductLive.Index do
       page_title={@page_title}
       current_path={@current_path}
     >
-      <.header>
+      <.header :if={not @products_empty?}>
         Listing Products
         <:actions>
           <.button variant="primary" navigate={~p"/admin/products/new"}>
@@ -24,7 +24,15 @@ defmodule HarborWeb.Admin.ProductLive.Index do
         </:actions>
       </.header>
 
+      <div :if={@products_empty?} class="mt-8">
+        <.empty_state icon="hero-shopping-bag" action_label="New Product">
+          <:header>No products</:header>
+          <:subheader>Add your first product to start building your catalog.</:subheader>
+        </.empty_state>
+      </div>
+
       <.table
+        :if={!@products_empty?}
         id="products"
         rows={@streams.products}
         row_click={fn {_id, product} -> JS.navigate(~p"/admin/products/#{product}") end}
@@ -59,10 +67,13 @@ defmodule HarborWeb.Admin.ProductLive.Index do
 
   @impl true
   def mount(_params, _session, socket) do
+    products = Catalog.list_products()
+
     {:ok,
      socket
      |> assign(:page_title, "Listing Products")
-     |> stream(:products, Catalog.list_products())}
+     |> assign(:products_empty?, products == [])
+     |> stream(:products, products)}
   end
 
   @impl true
@@ -70,6 +81,11 @@ defmodule HarborWeb.Admin.ProductLive.Index do
     product = Catalog.get_product!(id)
     {:ok, _} = Catalog.delete_product(product)
 
-    {:noreply, stream_delete(socket, :products, product)}
+    products = Catalog.list_products()
+
+    {:noreply,
+     socket
+     |> assign(:products_empty?, products == [])
+     |> stream(:products, products, reset: true)}
   end
 end

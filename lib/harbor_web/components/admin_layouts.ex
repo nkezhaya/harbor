@@ -26,7 +26,7 @@ defmodule HarborWeb.AdminLayouts do
         %{
           label: "Customers",
           href: ~p"/admin/customers",
-          icon: "hero-user"
+          icon: "hero-user-group"
         }
       ]
       |> Enum.map(&Map.put(&1, :active?, String.starts_with?(assigns.current_path, &1.href)))

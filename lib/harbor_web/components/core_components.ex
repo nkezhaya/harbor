@@ -524,6 +524,47 @@ defmodule HarborWeb.CoreComponents do
   end
 
   @doc """
+  Renders a generic empty state panel with icon, header, and supporting text.
+
+  ## Examples
+
+      <.empty_state icon="hero-folder-open" action_label="New Project">
+        <:header>No projects</:header>
+        <:subheader>Get started by creating a new project.</:subheader>
+      </.empty_state>
+  """
+  attr :icon, :string, required: true, doc: "the icon name to render with the empty state"
+  slot :header
+  slot :subheader
+
+  attr :action_label, :string,
+    required: true,
+    doc: "call-to-action button label rendered under the text"
+
+  def empty_state(assigns) do
+    ~H"""
+    <div class="text-center">
+      <.icon name={@icon} class="mx-auto size-12 text-gray-400 dark:text-gray-500" />
+      <h3 :if={@header != []} class="mt-2 text-sm font-semibold text-gray-900 dark:text-white">
+        {render_slot(@header)}
+      </h3>
+      <p :if={@subheader != []} class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+        {render_slot(@subheader)}
+      </p>
+      <div :if={@action_label} class="mt-6">
+        <button
+          type="button"
+          class="inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-xs hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:bg-indigo-500 dark:shadow-none dark:hover:bg-indigo-400 dark:focus-visible:outline-indigo-500"
+        >
+          <.icon name="hero-plus" class="mr-1.5 -ml-0.5 size-5" />
+          {@action_label}
+        </button>
+      </div>
+    </div>
+    """
+  end
+
+  @doc """
   Renders a [Heroicon](https://heroicons.com).
 
   Heroicons come in three styles – outline, solid, and mini.
