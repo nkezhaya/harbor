@@ -44,6 +44,6 @@ defmodule Harbor.Catalog.Product do
     |> Slug.put_new_slug(__MODULE__)
     |> validate_required([:name, :status, :tax_code_id])
     |> assoc_constraint(:tax_code)
-    |> assoc_constraint(:default_variant)
+    |> foreign_key_constraint(:default_variant_id)
   end
 end

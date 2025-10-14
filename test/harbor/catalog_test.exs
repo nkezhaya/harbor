@@ -8,8 +8,9 @@ defmodule Harbor.CatalogTest do
 
   describe "list_products/0" do
     test "returns all products" do
-      product = product_fixture()
-      assert Catalog.list_products() == [product]
+      assert [] = Catalog.list_products()
+      product_fixture()
+      assert [_] = Catalog.list_products()
     end
   end
 
@@ -84,11 +85,11 @@ defmodule Harbor.CatalogTest do
       }
 
       assert {:error, changeset} = Catalog.create_product(attrs)
-      assert "does not exist" in errors_on(changeset).default_variant
+      assert "does not exist" in errors_on(changeset).default_variant_id
 
       attrs = %{attrs | default_variant_id: Ecto.UUID.generate()}
       assert {:error, changeset} = Catalog.create_product(attrs)
-      assert "does not exist" in errors_on(changeset).default_variant
+      assert "does not exist" in errors_on(changeset).default_variant_id
     end
   end
 

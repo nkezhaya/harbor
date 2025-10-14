@@ -199,7 +199,8 @@ defmodule HarborWeb.Admin.ProductLiveTest do
       name: "some name",
       status: :draft,
       description: "some description",
-      tax_code_id: tax_code.id
+      tax_code_id: tax_code.id,
+      variants: %{"0" => %{price: 4000}}
     }
   end
 

@@ -8,7 +8,7 @@ defmodule HarborWeb.Admin.ProductLive.Form do
   alias Ecto.Changeset
   alias Harbor.{Catalog, Config, Tax, Util}
   alias Harbor.Catalog.Forms.MediaUpload
-  alias Harbor.Catalog.{OptionType, OptionValue, Product}
+  alias Harbor.Catalog.{OptionType, OptionValue, Product, Variant}
   alias Harbor.Repo
 
   @impl true
@@ -41,6 +41,7 @@ defmodule HarborWeb.Admin.ProductLive.Form do
           prompt="Choose a value"
           options={Ecto.Enum.values(Product, :status)}
         />
+
         <.input
           field={@form[:tax_code_id]}
           type="select"
@@ -48,6 +49,15 @@ defmodule HarborWeb.Admin.ProductLive.Form do
           prompt="Choose a value"
           options={@tax_code_options}
         />
+
+        <.inputs_for
+          :let={variant_form}
+          :if={@form[:option_types].value == []}
+          field={@form[:variants]}
+          append={if @has_variants?, do: [], else: [%Variant{}]}
+        >
+          <.input field={variant_form[:price]} type="text" label="Price" />
+        </.inputs_for>
 
         <div class="col-span-full">
           <label class="block text-sm/6 font-medium text-gray-900 dark:text-white">
@@ -324,7 +334,7 @@ defmodule HarborWeb.Admin.ProductLive.Form do
     product =
       id
       |> Catalog.get_product!()
-      |> Repo.preload([:images, option_types: [:values]])
+      |> Repo.preload([:images, :variants, option_types: [:values]])
 
     media_uploads = Enum.map(product.images, &MediaUpload.from_product_image/1)
 
@@ -336,7 +346,7 @@ defmodule HarborWeb.Admin.ProductLive.Form do
   end
 
   defp apply_action(socket, :new, _params) do
-    product = %Product{option_types: [], images: []}
+    product = %Product{option_types: [], images: [], variants: []}
 
     socket
     |> assign(:page_title, "New Product")
@@ -417,8 +427,14 @@ defmodule HarborWeb.Admin.ProductLive.Form do
   defp put_success_flash(socket, :edit),
     do: put_flash(socket, :info, "Product updated successfully")
 
-  defp assign_form(socket, %Ecto.Changeset{} = changeset) do
-    assign(socket, :form, to_form(changeset, as: :product))
+  defp assign_form(socket, %Changeset{} = changeset) do
+    has_variants? =
+      case Changeset.get_assoc(changeset, :variants) do
+        [_ | _] -> true
+        _ -> false
+      end
+
+    assign(socket, has_variants?: has_variants?, form: to_form(changeset, as: :product))
   end
 
   defp return_path("index", _product), do: ~p"/admin/products"

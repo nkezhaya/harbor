@@ -12,7 +12,7 @@ defmodule Harbor.Catalog do
 
   def list_products do
     Product
-    |> preload([:variants])
+    |> preload([:default_variant])
     |> Repo.all()
   end
 
@@ -38,14 +38,19 @@ defmodule Harbor.Catalog do
 
   def get_product!(id) do
     Product
-    |> preload([:variants])
+    |> preload([:default_variant, :variants])
     |> Repo.get!(id)
   end
 
   def create_product(attrs) do
-    %Product{}
-    |> Product.changeset(attrs)
-    |> Repo.insert()
+    Repo.transact(fn ->
+      changeset = change_product(%Product{}, attrs)
+
+      with {:ok, product} <- Repo.insert(changeset),
+           {:ok, product} <- put_new_default_variant(product) do
+        {:ok, product}
+      end
+    end)
   end
 
   def update_product(%Product{} = product, attrs) do
@@ -59,11 +64,20 @@ defmodule Harbor.Catalog do
 
     Repo.transact(fn ->
       with {:ok, product} <- Repo.insert_or_update(changeset),
+           {:ok, product} <- put_new_default_variant(product),
            {:ok, product_images} <- promote_media_uploads(product, media_uploads) do
         {:ok, %{product | images: product_images}}
       end
     end)
   end
+
+  defp put_new_default_variant(%{default_variant_id: nil, variants: [variant | _]} = product) do
+    with {:ok, product} <- update_product(product, %{default_variant_id: variant.id}) do
+      {:ok, Repo.preload(product, :default_variant)}
+    end
+  end
+
+  defp put_new_default_variant(product), do: {:ok, product}
 
   defp promote_media_uploads(%Product{} = product, media_uploads) do
     product = Repo.preload(product, :images)
