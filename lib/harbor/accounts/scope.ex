@@ -19,6 +19,8 @@ defmodule Harbor.Accounts.Scope do
   alias Harbor.Customers.Customer
   alias Harbor.Repo
 
+  @type t() :: %__MODULE__{}
+
   defstruct user: nil, customer: nil, superadmin: false, session_token: nil
 
   @doc """
