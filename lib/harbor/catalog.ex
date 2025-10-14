@@ -46,9 +46,8 @@ defmodule Harbor.Catalog do
     Repo.transact(fn ->
       changeset = change_product(%Product{}, attrs)
 
-      with {:ok, product} <- Repo.insert(changeset),
-           {:ok, product} <- put_new_default_variant(product) do
-        {:ok, product}
+      with {:ok, product} <- Repo.insert(changeset) do
+        put_new_default_variant(product)
       end
     end)
   end
