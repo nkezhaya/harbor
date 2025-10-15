@@ -5,7 +5,6 @@ defmodule HarborWeb.ProductsLive.Index do
   use HarborWeb, :live_view
 
   alias Harbor.Catalog
-  alias HarborWeb.StoreComponents
 
   @impl true
   def mount(_params, _session, socket) do

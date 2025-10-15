@@ -99,7 +99,7 @@ defmodule HarborWeb do
       alias HarborWeb.AdminLayouts
       alias HarborWeb.ImageHelpers
       alias HarborWeb.Layouts
-      alias HarborWeb.ProductComponents
+      alias HarborWeb.StoreComponents
       alias Phoenix.LiveView.JS
 
       # Routes generation with the ~p sigil
