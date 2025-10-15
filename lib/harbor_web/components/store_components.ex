@@ -56,8 +56,8 @@ defmodule HarborWeb.StoreComponents do
   @doc """
   Renders the cart popover for the given scope.
   """
-  attr :current_scope, :map,
-    default: nil,
+  attr :current_scope, Harbor.Accounts.Scope,
+    required: true,
     doc: "the current [scope](https://hexdocs.pm/phoenix/scopes.html)"
 
   def cart_popover(assigns) do
@@ -165,9 +165,7 @@ defmodule HarborWeb.StoreComponents do
 
   defp assign_cart(assigns) do
     assign_new(assigns, :cart, fn %{current_scope: current_scope} ->
-      if current_scope do
-        Checkout.fetch_active_cart_with_items(current_scope)
-      end
+      Checkout.fetch_active_cart_with_items(current_scope)
     end)
   end
 

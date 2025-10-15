@@ -11,7 +11,7 @@ defmodule Harbor.Customers do
   @doc """
   Returns the list of customers.
   """
-  def list_customers(%Scope{superadmin: true}) do
+  def list_customers(%Scope{role: :superadmin}) do
     Customer
     |> where([c], is_nil(c.deleted_at))
     |> Repo.all()
@@ -46,7 +46,7 @@ defmodule Harbor.Customers do
   @doc """
   Creates a customer.
   """
-  def create_customer(%Scope{superadmin: true} = scope, attrs) do
+  def create_customer(%Scope{role: :superadmin} = scope, attrs) do
     %Customer{}
     |> Customer.changeset(attrs, scope)
     |> Repo.insert()
@@ -99,7 +99,7 @@ defmodule Harbor.Customers do
     Customer.changeset(customer, attrs, scope)
   end
 
-  defp ensure_authorized!(%Scope{superadmin: true}, _customer), do: :ok
+  defp ensure_authorized!(%Scope{role: :superadmin}, _customer), do: :ok
   defp ensure_authorized!(%Scope{customer: %Customer{id: id}}, %Customer{id: id}), do: :ok
   defp ensure_authorized!(%Scope{user: %{id: user_id}}, %Customer{user_id: user_id}), do: :ok
   defp ensure_authorized!(%Scope{}, _customer), do: raise(Harbor.UnauthorizedError)

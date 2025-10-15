@@ -82,7 +82,7 @@ defmodule Harbor.Checkout do
 
   defp cart_base_query_by_scope(_scope), do: nil
 
-  defp ensure_authorized!(%Scope{superadmin: true}, _cart), do: :ok
+  defp ensure_authorized!(%Scope{role: :superadmin}, _cart), do: :ok
 
   defp ensure_authorized!(%Scope{customer: %Customer{id: customer_id}}, %Cart{
          customer_id: customer_id

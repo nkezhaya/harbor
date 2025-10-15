@@ -50,11 +50,11 @@ defmodule Harbor.CustomersFixtures do
   def guest_scope_fixture(customer: customer_attrs) do
     scope = guest_scope()
     customer = customer_fixture(scope, customer_attrs)
-    Scope.attach_customer(scope, customer)
+    %{scope | customer: customer}
   end
 
   defp guest_scope do
-    scope = Scope.for_guest()
-    %{scope | session_token: "token-#{System.unique_integer()}"}
+    session_token = "token-#{System.unique_integer()}"
+    Scope.for_guest(session_token)
   end
 end

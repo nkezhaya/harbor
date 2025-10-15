@@ -27,8 +27,8 @@ defmodule HarborWeb.Layouts do
   """
   attr :flash, :map, required: true, doc: "the map of flash messages"
 
-  attr :current_scope, :map,
-    default: nil,
+  attr :current_scope, Harbor.Accounts.Scope,
+    required: true,
     doc: "the current [scope](https://hexdocs.pm/phoenix/scopes.html)"
 
   attr :root_categories, :list, default: [], doc: "top-level product categories for navigation"
@@ -77,7 +77,7 @@ defmodule HarborWeb.Layouts do
         </nav>
 
         <div class="mt-auto space-y-4 border-t border-gray-200 pt-6 text-sm font-medium text-gray-700">
-          <%= if @current_scope && @current_scope.user do %>
+          <%= if @current_scope.authenticated? do %>
             <p class="text-gray-500">
               Signed in as {@current_scope.user.email}
             </p>
@@ -139,7 +139,7 @@ defmodule HarborWeb.Layouts do
               </button>
 
               <div class="hidden gap-4 text-sm font-medium text-gray-700 lg:flex lg:items-center">
-                <%= if @current_scope && @current_scope.user do %>
+                <%= if @current_scope.authenticated? do %>
                   <span class="text-gray-500">{@current_scope.user.email}</span>
                   <.link href={~p"/users/settings"} class="transition hover:text-gray-900">
                     Settings

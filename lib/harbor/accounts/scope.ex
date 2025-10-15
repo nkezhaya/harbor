@@ -16,12 +16,13 @@ defmodule Harbor.Accounts.Scope do
   growing application requirements.
   """
   alias Harbor.Accounts.User
-  alias Harbor.Customers.Customer
   alias Harbor.Repo
 
-  @type t() :: %__MODULE__{}
+  @type t() :: %__MODULE__{
+          role: :guest | :user | :superadmin
+        }
 
-  defstruct user: nil, customer: nil, superadmin: false, session_token: nil
+  defstruct user: nil, customer: nil, role: :guest, authenticated?: false, session_token: nil
 
   @doc """
   Creates a scope for guest visitors.
@@ -32,43 +33,17 @@ defmodule Harbor.Accounts.Scope do
 
   @doc """
   Creates a scope for the given user.
-
-  Returns nil if no user is given.
   """
   def for_user(%User{} = user) do
     user = Repo.preload(user, [:roles])
-    superadmin = Enum.any?(user.roles, &(&1.role == :superadmin))
-    %__MODULE__{user: user, superadmin: superadmin}
-  end
 
-  def for_user(nil) do
-    nil
-  end
+    role =
+      if Enum.any?(user.roles, &(&1.role == :superadmin)) do
+        :superadmin
+      else
+        :user
+      end
 
-  @doc """
-  Creates a scope for the given customer.
-
-  Returns nil if no customer is given.
-  """
-  def for_customer(%Customer{} = customer) do
-    %__MODULE__{customer: customer}
-  end
-
-  def for_customer(nil) do
-    nil
-  end
-
-  @doc """
-  Attaches the customer to the given scope.
-  """
-  def attach_customer(%__MODULE__{} = scope, %Customer{} = customer) do
-    %{scope | customer: customer}
-  end
-
-  @doc """
-  Attaches the session token to the given scope.
-  """
-  def attach_session_token(%__MODULE__{} = scope, session_token) do
-    %{scope | session_token: session_token}
+    %__MODULE__{user: user, role: role, authenticated?: true}
   end
 end

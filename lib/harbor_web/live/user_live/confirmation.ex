@@ -51,7 +51,7 @@ defmodule HarborWeb.UserLive.Confirmation do
           class="space-y-4"
         >
           <input type="hidden" name={@form[:token].name} value={@form[:token].value} />
-          <%= if @current_scope do %>
+          <%= if @current_scope.authenticated? do %>
             <.button phx-disable-with="Logging in..." class="w-full justify-center" variant="primary">
               Log in
             </.button>

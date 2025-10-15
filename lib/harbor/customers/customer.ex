@@ -33,6 +33,6 @@ defmodule Harbor.Customers.Customer do
   end
 
   @fields [:first_name, :last_name, :company_name, :email, :phone]
-  defp allowed_fields(%Scope{superadmin: true}), do: [:user_id, :deleted_at, :status] ++ @fields
+  defp allowed_fields(%Scope{role: :superadmin}), do: [:user_id, :deleted_at, :status] ++ @fields
   defp allowed_fields(_scope), do: @fields
 end

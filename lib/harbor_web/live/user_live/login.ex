@@ -15,7 +15,7 @@ defmodule HarborWeb.UserLive.Login do
           <.header>
             <p>Log in</p>
             <:subtitle>
-              <%= if @current_scope do %>
+              <%= if @current_scope.authenticated? do %>
                 You need to reauthenticate to perform sensitive actions on your account.
               <% else %>
                 Don't have an account? <.link
@@ -57,7 +57,7 @@ defmodule HarborWeb.UserLive.Login do
           class="space-y-5"
         >
           <.input
-            readonly={!!@current_scope}
+            readonly={@current_scope.authenticated?}
             field={f[:email]}
             type="email"
             label="Email"
@@ -86,7 +86,7 @@ defmodule HarborWeb.UserLive.Login do
           class="space-y-5"
         >
           <.input
-            readonly={!!@current_scope}
+            readonly={@current_scope.authenticated?}
             field={f[:email]}
             type="email"
             label="Email"

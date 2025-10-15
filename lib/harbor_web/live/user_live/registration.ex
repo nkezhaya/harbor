@@ -58,8 +58,7 @@ defmodule HarborWeb.UserLive.Registration do
   end
 
   @impl true
-  def mount(_params, _session, %{assigns: %{current_scope: %{user: user}}} = socket)
-      when not is_nil(user) do
+  def mount(_params, _session, %{assigns: %{current_scope: %{authenticated?: true}}} = socket) do
     {:ok, redirect(socket, to: HarborWeb.UserAuth.signed_in_path(socket))}
   end
 

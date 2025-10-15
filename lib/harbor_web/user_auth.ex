@@ -235,7 +235,7 @@ defmodule HarborWeb.UserAuth do
   def on_mount(:require_authenticated, _params, session, socket) do
     socket = mount_current_scope(socket, session)
 
-    if socket.assigns.current_scope && socket.assigns.current_scope.user do
+    if socket.assigns.current_scope.authenticated? do
       {:cont, socket}
     else
       socket =
@@ -287,12 +287,12 @@ defmodule HarborWeb.UserAuth do
 
   defp mount_current_scope(socket, session) do
     Phoenix.Component.assign_new(socket, :current_scope, fn ->
-      {user, _} =
-        if user_token = session["user_token"] do
-          Auth.get_user_by_session_token(user_token)
-        end || {nil, nil}
-
-      Scope.for_user(user)
+      with %{"user_token" => user_token} when is_binary(user_token) <- session,
+           {user, _} <- Auth.get_user_by_session_token(user_token) do
+        Scope.for_user(user)
+      else
+        _ -> Scope.for_guest(session["guest_session_token"])
+      end
     end)
   end
 
@@ -308,7 +308,7 @@ defmodule HarborWeb.UserAuth do
   Plug for routes that require the user to be authenticated.
   """
   def require_authenticated_user(conn, _opts) do
-    if conn.assigns.current_scope && conn.assigns.current_scope.user do
+    if conn.assigns.current_scope.authenticated? do
       conn
     else
       conn
