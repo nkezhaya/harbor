@@ -11,7 +11,7 @@ defmodule HarborWeb.ProductsLive.Show do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} current_scope={@current_scope} root_categories={@root_categories}>
-      <section :if={@product} class="lg:grid lg:grid-cols-2 lg:items-start lg:gap-x-16">
+      <section class="lg:grid lg:grid-cols-2 lg:items-start lg:gap-x-16">
         <div>
           <div class="aspect-square w-full overflow-hidden rounded-lg bg-gray-100">
             <%= if @selected_image do %>
@@ -38,7 +38,7 @@ defmodule HarborWeb.ProductsLive.Show do
                 "relative flex h-24 items-center justify-center overflow-hidden rounded-md bg-white text-sm font-medium uppercase focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2",
                 if(@selected_image && image.id == @selected_image.id,
                   do: "ring-2 ring-indigo-500 ring-offset-2",
-                  else: "hover:bg-gray-50"
+                  else: "hover:bg-gray-50 cursor-pointer"
                 )
               ]}
             >
@@ -62,7 +62,7 @@ defmodule HarborWeb.ProductsLive.Show do
             <h2 class="sr-only">Product information</h2>
             <%= if @has_price? do %>
               <p class="text-3xl tracking-tight text-gray-900">
-                {Util.formatted_price(@product.default_variant.price, force_cents: true)}
+                {Util.formatted_price(@product.default_variant.price)}
               </p>
             <% else %>
               <p class="text-sm text-gray-500">
@@ -82,33 +82,23 @@ defmodule HarborWeb.ProductsLive.Show do
           </div>
 
           <div class="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <button
+            <.button
               type="button"
-              class={[
-                "flex max-w-xs flex-1 items-center justify-center rounded-md border border-transparent px-8 py-3 text-base font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:max-w-sm",
-                if(@in_stock?,
-                  do: "bg-indigo-600 text-white hover:bg-indigo-700",
-                  else: "cursor-not-allowed bg-gray-200 text-gray-500"
-                )
-              ]}
+              variant="primary"
+              size="custom"
+              class="max-w-xs sm:max-w-sm flex-1 px-8 py-3 text-base"
               disabled={not @in_stock?}
               aria-disabled={not @in_stock?}
             >
-              Add to bag
-            </button>
-
-            <%= if @in_stock? do %>
-              <span class="text-sm text-green-600">In stock and ready to ship</span>
-            <% else %>
-              <span class="text-sm text-gray-500">Currently unavailable</span>
-            <% end %>
+              <%= if @in_stock? do %>
+                Add to bag
+              <% else %>
+                Out of stock
+              <% end %>
+            </.button>
           </div>
         </div>
       </section>
-
-      <div :if={!@product} class="py-24 text-center text-sm text-gray-500">
-        Loading product details...
-      </div>
     </Layouts.app>
     """
   end
