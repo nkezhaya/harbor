@@ -4,7 +4,7 @@ defmodule Harbor.Checkout do
   """
   import Ecto.Query, warn: false
 
-  alias Harbor.Accounts.Scope
+  alias Harbor.Accounts.{Scope, User}
   alias Harbor.Checkout.{Cart, CartItem, Pricing, Session}
   alias Harbor.Customers.{Address, Customer}
   alias Harbor.Orders.Order
@@ -46,6 +46,42 @@ defmodule Harbor.Checkout do
     Cart.changeset(cart, attrs, scope)
   end
 
+  @doc """
+  Returns the most recent active cart for the given scope with items preloaded.
+
+  When the scope belongs to a guest, carts are matched on the session token.
+  When the scope belongs to an authenticated user, carts are matched on the
+  associated customer record.
+  """
+  @spec fetch_active_cart_with_items(Scope.t()) :: Cart.t() | nil
+  def fetch_active_cart_with_items(%Scope{} = scope) do
+    if query = cart_base_query_by_scope(scope) do
+      query
+      |> where([c], c.status == :active)
+      |> order_by([c], desc: c.inserted_at)
+      |> limit(1)
+      |> preload([:customer, items: [variant: [:option_values, product: [:images]]]])
+      |> Repo.one()
+    end
+  end
+
+  defp cart_base_query_by_scope(%Scope{customer: %Customer{id: customer_id}}) do
+    where(Cart, [c], c.customer_id == ^customer_id)
+  end
+
+  defp cart_base_query_by_scope(%Scope{session_token: session_token})
+       when is_binary(session_token) do
+    where(Cart, [c], c.session_token == ^session_token)
+  end
+
+  defp cart_base_query_by_scope(%Scope{user: %User{} = user}) do
+    Cart
+    |> join(:inner, [c], assoc(c, :customer), as: :customer)
+    |> where([customer: customer], customer.user_id == ^user.id)
+  end
+
+  defp cart_base_query_by_scope(_scope), do: nil
+
   defp ensure_authorized!(%Scope{superadmin: true}, _cart), do: :ok
 
   defp ensure_authorized!(%Scope{customer: %Customer{id: customer_id}}, %Cart{
@@ -59,7 +95,7 @@ defmodule Harbor.Checkout do
        when is_binary(session_token),
        do: :ok
 
-  defp ensure_authorized!(%Scope{}, _cart), do: raise(Harbor.UnauthorizedError)
+  defp ensure_authorized!(_scope, _cart), do: raise(Harbor.UnauthorizedError)
 
   ## Cart Items
 

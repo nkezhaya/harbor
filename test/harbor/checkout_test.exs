@@ -95,6 +95,33 @@ defmodule Harbor.CheckoutTest do
     end
   end
 
+  describe "fetch_active_cart_with_items/1" do
+    test "returns the latest active cart with preloaded associations", %{
+      scope: scope,
+      cart: cart,
+      cart_item: cart_item
+    } do
+      active_cart = Checkout.fetch_active_cart_with_items(scope)
+      assert active_cart.id == cart.id
+
+      cart_item_id = cart_item.id
+      assert [%CartItem{id: ^cart_item_id, variant: variant}] = active_cart.items
+      assert Ecto.assoc_loaded?(variant.product)
+    end
+
+    test "returns nil when the scope has no cart" do
+      scope = guest_scope_fixture(customer: false)
+      refute Checkout.fetch_active_cart_with_items(scope)
+    end
+
+    test "supports scopes associated to a customer" do
+      scope = guest_scope_fixture()
+      %Cart{id: cart_id} = cart_fixture(scope)
+
+      assert %Cart{id: ^cart_id} = Checkout.fetch_active_cart_with_items(scope)
+    end
+  end
+
   describe "get_cart_item!/1" do
     test "returns the cart_item with given id", %{cart_item: cart_item} do
       assert Checkout.get_cart_item!(cart_item.id) == cart_item
