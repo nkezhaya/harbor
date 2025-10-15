@@ -32,7 +32,6 @@ defmodule HarborWeb.Layouts do
     doc: "the current [scope](https://hexdocs.pm/phoenix/scopes.html)"
 
   attr :root_categories, :list, default: [], doc: "top-level product categories for navigation"
-
   slot :inner_block, required: true
 
   def app(assigns) do
@@ -162,13 +161,7 @@ defmodule HarborWeb.Layouts do
                 <% end %>
               </div>
 
-              <a
-                href="#"
-                class="rounded-full p-2 text-gray-500 transition hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                aria-label="View bag"
-              >
-                <.icon name="hero-shopping-bag" class="h-6 w-6" />
-              </a>
+              <StoreComponents.cart_popover current_scope={@current_scope} />
             </div>
           </div>
         </nav>
