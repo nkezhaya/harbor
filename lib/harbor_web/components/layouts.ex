@@ -31,6 +31,7 @@ defmodule HarborWeb.Layouts do
     required: true,
     doc: "the current [scope](https://hexdocs.pm/phoenix/scopes.html)"
 
+  attr :cart, Harbor.Checkout.Cart, default: nil
   attr :root_categories, :list, default: [], doc: "top-level product categories for navigation"
   slot :inner_block, required: true
 
@@ -161,7 +162,7 @@ defmodule HarborWeb.Layouts do
                 <% end %>
               </div>
 
-              <CartComponents.cart_popover current_scope={@current_scope} />
+              <CartComponents.cart_popover current_scope={@current_scope} cart={@cart} />
             </div>
           </div>
         </nav>

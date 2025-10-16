@@ -5,7 +5,8 @@ defmodule HarborWeb.LiveHooks do
   import Phoenix.Component, only: [assign: 3, assign_new: 3]
   import Phoenix.LiveView, only: [attach_hook: 4]
 
-  alias Harbor.Catalog
+  alias Harbor.{Catalog, Checkout}
+  alias HarborWeb.CartComponents
 
   def on_mount(:global, _params, _session, socket) do
     {:cont, attach_hook(socket, :assign_current_path, :handle_params, &assign_current_path/3)}
@@ -13,9 +14,14 @@ defmodule HarborWeb.LiveHooks do
 
   def on_mount(:storefront, _params, _session, socket) do
     socket =
-      assign_new(socket, :root_categories, fn ->
+      socket
+      |> assign_new(:root_categories, fn ->
         Catalog.list_root_categories()
       end)
+      |> assign_new(:cart, fn %{current_scope: current_scope} ->
+        Checkout.fetch_active_cart_with_items(current_scope)
+      end)
+      |> attach_hook(:cart, :handle_event, &CartComponents.hooked_event/3)
 
     {:cont, socket}
   end

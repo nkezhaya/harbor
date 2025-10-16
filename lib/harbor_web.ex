@@ -96,11 +96,9 @@ defmodule HarborWeb do
       import HarborWeb.CoreComponents
 
       # Common modules used in templates
-      alias HarborWeb.AdminLayouts
+      alias HarborWeb.{AdminLayouts, Layouts}
+      alias HarborWeb.{CartComponents, StoreComponents}
       alias HarborWeb.ImageHelpers
-      alias HarborWeb.Layouts
-      alias HarborWeb.CartComponents
-      alias HarborWeb.StoreComponents
       alias Phoenix.LiveView.JS
 
       # Routes generation with the ~p sigil

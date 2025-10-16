@@ -10,7 +10,12 @@ defmodule HarborWeb.ProductsLive.Show do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash} current_scope={@current_scope} root_categories={@root_categories}>
+    <Layouts.app
+      flash={@flash}
+      current_scope={@current_scope}
+      root_categories={@root_categories}
+      cart={@cart}
+    >
       <section class="lg:grid lg:grid-cols-2 lg:items-start lg:gap-x-16">
         <div>
           <div class="aspect-square w-full overflow-hidden rounded-lg bg-gray-100">
@@ -87,6 +92,8 @@ defmodule HarborWeb.ProductsLive.Show do
               variant="primary"
               size="custom"
               class="max-w-xs sm:max-w-sm flex-1 px-8 py-3 text-base"
+              phx-click="add_to_cart"
+              phx-value-variant_id={@selected_variant_id}
               disabled={not @in_stock?}
               aria-disabled={not @in_stock?}
             >
@@ -117,6 +124,7 @@ defmodule HarborWeb.ProductsLive.Show do
      assign(socket,
        product: product,
        selected_image: selected_image,
+       selected_variant_id: product.default_variant_id,
        in_stock?: product_in_stock?(product),
        has_price?: product_has_price?(product)
      )}

@@ -1,11 +1,15 @@
 defmodule HarborWeb.CartComponents do
   @moduledoc """
-  Cart components.
+  Component helpers that render the cart toggle popover and related UI.
+
+  The module exposes a `cart_popover/1` function component that renders a
+  button with an accessible item count notification and an expandable popover
+  that lists the current [CartItem](`Harbor.Checkout.CartItem`) entries.
   """
   use HarborWeb, :component
 
-  alias Harbor.Checkout
-  alias Harbor.Checkout.{Cart, CartItem}
+  alias Harbor.Catalog.Variant
+  alias Harbor.Checkout.CartItem
   alias HarborWeb.ImageHelpers
 
   @doc """
@@ -15,11 +19,20 @@ defmodule HarborWeb.CartComponents do
     required: true,
     doc: "the current [scope](https://hexdocs.pm/phoenix/scopes.html)"
 
-  def cart_popover(assigns) do
-    assigns =
-      assigns
-      |> assign_cart()
-      |> assign_cart_item_count()
+  attr :cart, Harbor.Checkout.Cart, default: nil
+
+  def cart_popover(%{cart: cart} = assigns) do
+    count =
+      if is_nil(cart) do
+        []
+      else
+        cart.items
+      end
+      |> Enum.reduce(0, fn %CartItem{quantity: quantity}, acc ->
+        acc + quantity
+      end)
+
+    assigns = assign(assigns, :cart_item_count, count)
 
     ~H"""
     <div class="relative">
@@ -35,7 +48,16 @@ defmodule HarborWeb.CartComponents do
         <span class="ml-2 text-sm font-medium text-gray-700 group-hover:text-gray-800">
           {@cart_item_count}
         </span>
-        <span class="sr-only">{cart_item_sr_label(@cart_item_count)}</span>
+        <span class="sr-only">
+          <%= case @cart_item_count do %>
+            <% 0 -> %>
+              Cart is empty
+            <% _ -> %>
+              {ngettext("%{count} item in cart", "%{count} items in cart", @cart_item_count,
+                count: @cart_item_count
+              )}
+          <% end %>
+        </span>
       </button>
 
       <div
@@ -55,27 +77,12 @@ defmodule HarborWeb.CartComponents do
         </p>
 
         <ul :if={@cart_item_count > 0} role="list" class="divide-y divide-gray-200">
-          <li
-            :for={item <- cart_items(@cart)}
+          <.cart_item
+            :for={item <- @cart.items}
+            :key={item.id}
             id={"cart-item-#{item.id}"}
-            class="flex gap-4 py-4"
-          >
-            <.variant_thumbnail variant={item.variant} />
-
-            <div class="flex-auto">
-              <h3 class="font-medium text-gray-900">
-                <.link
-                  navigate={~p"/products/#{item.variant.product.slug}"}
-                  class="hover:text-indigo-600 hover:underline"
-                >
-                  {item.variant.product.name}
-                </.link>
-              </h3>
-              <p :if={desc = variant_description(item)} class="mt-1 text-sm text-gray-500">
-                {desc}
-              </p>
-            </div>
-          </li>
+            cart_item={item}
+          />
         </ul>
 
         <div :if={@cart_item_count > 0} class="mt-6">
@@ -100,8 +107,32 @@ defmodule HarborWeb.CartComponents do
     """
   end
 
+  defp cart_item(%{cart_item: %{variant: variant}} = assigns) do
+    assigns = assign(assigns, :variant_description, Variant.description(variant))
+
+    ~H"""
+    <li id={"cart-item-#{@cart_item.id}"} class="flex gap-4 py-4">
+      <.variant_thumbnail variant={@cart_item.variant} />
+
+      <div class="flex-auto">
+        <h3 class="font-medium text-gray-900">
+          <.link
+            navigate={~p"/products/#{@cart_item.variant.product.slug}"}
+            class="hover:text-indigo-600 hover:underline"
+          >
+            {@cart_item.variant.product.name}
+          </.link>
+        </h3>
+        <p :if={@variant_description} class="mt-1 text-sm text-gray-500">
+          {@variant_description}
+        </p>
+      </div>
+    </li>
+    """
+  end
+
   defp variant_thumbnail(%{variant: variant} = assigns) do
-    assigns = assign(assigns, :image, variant_image(variant))
+    assigns = assign(assigns, :image, Variant.main_image(variant))
 
     ~H"""
     <%= if @image do %>
@@ -116,44 +147,6 @@ defmodule HarborWeb.CartComponents do
       </div>
     <% end %>
     """
-  end
-
-  defp assign_cart(assigns) do
-    assign_new(assigns, :cart, fn %{current_scope: current_scope} ->
-      Checkout.fetch_active_cart_with_items(current_scope)
-    end)
-  end
-
-  defp assign_cart_item_count(assigns) do
-    count =
-      assigns.cart
-      |> cart_items()
-      |> Enum.reduce(0, fn %CartItem{quantity: quantity}, acc -> acc + quantity end)
-
-    assign(assigns, :cart_item_count, count)
-  end
-
-  defp cart_items(%Cart{items: items}) when is_list(items), do: items
-  defp cart_items(_), do: []
-
-  defp variant_image(%{product: %{images: [image | _]}}), do: image
-  defp variant_image(_variant), do: nil
-
-  defp variant_description(%CartItem{variant: %{option_values: option_values, sku: sku}})
-       when is_list(option_values) do
-    case Enum.map_join(option_values, ", ", & &1.name) do
-      "" -> sku
-      desc -> desc
-    end
-  end
-
-  defp variant_description(_cart_item), do: nil
-
-  defp cart_item_sr_label(0), do: "Cart is empty"
-  defp cart_item_sr_label(1), do: "1 item in cart, view bag"
-
-  defp cart_item_sr_label(count) when is_integer(count) and count > 1 do
-    "#{count} items in cart, view bag"
   end
 
   defp toggle_cart_popover(js \\ %JS{}) do
@@ -174,5 +167,17 @@ defmodule HarborWeb.CartComponents do
         {"ease-in duration-150", "opacity-100 translate-y-0", "opacity-0 -translate-y-2"}
     )
     |> JS.set_attribute({"aria-expanded", "false"}, to: "#cart-toggle")
+  end
+
+  @doc """
+  Handles LiveView hook events to add a variant to the cart and broadcast the
+  updated cart state.
+  """
+  def hooked_event("add_to_cart", %{"variant_id" => _variant_id}, socket) do
+    {:halt, socket}
+  end
+
+  def hooked_event(_event, _params, socket) do
+    {:cont, socket}
   end
 end

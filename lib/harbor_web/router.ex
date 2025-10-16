@@ -48,8 +48,8 @@ defmodule HarborWeb.Router do
 
       live_session :require_authenticated_admin,
         on_mount: [
-          {HarborWeb.LiveHooks, :global},
-          {HarborWeb.UserAuth, :require_admin}
+          {HarborWeb.UserAuth, :require_admin},
+          {HarborWeb.LiveHooks, :global}
         ] do
         live "/", ProductLive.Index, :index
         live "/products", ProductLive.Index, :index
@@ -72,9 +72,9 @@ defmodule HarborWeb.Router do
 
     live_session :current_user,
       on_mount: [
+        {HarborWeb.UserAuth, :mount_current_scope},
         {HarborWeb.LiveHooks, :global},
-        {HarborWeb.LiveHooks, :storefront},
-        {HarborWeb.UserAuth, :mount_current_scope}
+        {HarborWeb.LiveHooks, :storefront}
       ] do
       live "/", HomeLive, :index
       live "/products", ProductsLive.Index, :index
