@@ -6,7 +6,7 @@ defmodule Harbor.CheckoutTest do
   import Harbor.{AccountsFixtures, CheckoutFixtures, CustomersFixtures, ShippingFixtures}
 
   alias Harbor.Accounts.Scope
-  alias Harbor.Checkout
+  alias Harbor.{Checkout, Repo}
   alias Harbor.Checkout.{Cart, CartItem, Session}
   alias Harbor.Orders.Order
 
@@ -95,6 +95,21 @@ defmodule Harbor.CheckoutTest do
     end
   end
 
+  describe "fetch_or_create_active_cart/2" do
+    test "returns the existing active cart for the scope", %{scope: scope, cart: cart} do
+      assert %Cart{id: cart_id} = Checkout.fetch_or_create_active_cart(scope)
+      assert cart_id == cart.id
+    end
+
+    test "creates a new cart when none exists" do
+      scope = guest_scope_fixture(customer: false)
+
+      assert %Cart{} = cart = Checkout.fetch_or_create_active_cart(scope)
+      assert cart.session_token == scope.session_token
+      assert cart.status == :active
+    end
+  end
+
   describe "fetch_active_cart_with_items/1" do
     test "returns the latest active cart with preloaded associations", %{
       scope: scope,
@@ -131,13 +146,44 @@ defmodule Harbor.CheckoutTest do
   describe "create_cart_item/1" do
     test "with valid data creates a cart_item", %{cart: cart} do
       variant = variant_fixture()
-      valid_attrs = %{quantity: 42, variant_id: variant.id}
+      valid_attrs = %{variant_id: variant.id}
       assert {:ok, %CartItem{} = cart_item} = Checkout.create_cart_item(cart, valid_attrs)
-      assert cart_item.quantity == 42
+      assert cart_item.quantity == 1
+      assert cart_item.variant_id == variant.id
     end
 
     test "with invalid data returns error changeset", %{cart: cart} do
       assert {:error, %Ecto.Changeset{}} = Checkout.create_cart_item(cart, %{quantity: nil})
+    end
+  end
+
+  describe "add_item_to_cart/2" do
+    test "creates a cart and adds the requested variant when none exists" do
+      scope = guest_scope_fixture(customer: false)
+      variant = variant_fixture()
+
+      assert {:ok, %CartItem{} = cart_item} =
+               Checkout.add_item_to_cart(scope, %{"variant_id" => variant.id})
+
+      cart = Checkout.fetch_or_create_active_cart(scope)
+      assert cart_item.cart_id == cart.id
+      assert cart_item.variant_id == variant.id
+      assert cart_item.quantity == 1
+      assert cart.last_touched_at
+      assert cart.expires_at
+    end
+
+    test "increments the quantity when the variant already exists", %{
+      scope: scope,
+      cart_item: cart_item
+    } do
+      assert {:ok, %CartItem{} = updated_item} =
+               Checkout.add_item_to_cart(scope, %{"variant_id" => cart_item.variant_id})
+
+      reloaded_item = Repo.get!(CartItem, cart_item.id)
+      assert updated_item.id == cart_item.id
+      assert reloaded_item.quantity == cart_item.quantity + 1
+      assert updated_item.quantity == reloaded_item.quantity
     end
   end
 
@@ -181,8 +227,6 @@ defmodule Harbor.CheckoutTest do
       # Addresses (tied to a user scope)
       user = user_fixture()
       scope = user_scope_fixture(user)
-      customer = customer_fixture(scope)
-      scope = %{scope | customer: customer}
 
       billing =
         address_fixture(scope, %{

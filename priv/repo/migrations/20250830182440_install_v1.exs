@@ -358,6 +358,9 @@ defmodule Harbor.Repo.Migrations.InstallV1 do
       add :customer_id, references(:customers, on_delete: :delete_all)
       add :session_token, :string
       add :status, :string, null: false, default: "active"
+      add :lock_version, :integer, null: false, default: 1
+      add :last_touched_at, :timestamptz
+      add :expires_at, :timestamptz, null: false
 
       timestamps()
     end

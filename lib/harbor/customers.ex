@@ -52,14 +52,8 @@ defmodule Harbor.Customers do
     |> Repo.insert()
   end
 
-  def create_customer(%Scope{customer: nil, user: user} = scope, attrs) do
-    user_id =
-      case user do
-        %{id: id} -> id
-        _ -> nil
-      end
-
-    %Customer{user_id: user_id}
+  def create_customer(%Scope{customer: nil, authenticated?: false} = scope, attrs) do
+    %Customer{user_id: nil}
     |> Customer.changeset(attrs, scope)
     |> Repo.insert()
   end

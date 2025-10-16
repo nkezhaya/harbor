@@ -35,7 +35,8 @@ defmodule Harbor.Accounts.Scope do
   Creates a scope for the given user.
   """
   def for_user(%User{} = user) do
-    user = Repo.preload(user, [:roles])
+    user = Repo.preload(user, [:customer, :roles])
+    customer = user.customer
 
     role =
       if Enum.any?(user.roles, &(&1.role == :superadmin)) do
@@ -44,6 +45,6 @@ defmodule Harbor.Accounts.Scope do
         :user
       end
 
-    %__MODULE__{user: user, role: role, authenticated?: true}
+    %__MODULE__{user: user, customer: customer, role: role, authenticated?: true}
   end
 end

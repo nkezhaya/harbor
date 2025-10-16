@@ -5,6 +5,7 @@ defmodule Harbor.Accounts.User do
   use Harbor.Schema
 
   alias Harbor.Auth.UserRole
+  alias Harbor.Customers.Customer
 
   @type t() :: %__MODULE__{}
 
@@ -16,6 +17,7 @@ defmodule Harbor.Accounts.User do
     field :authenticated_at, :utc_datetime_usec, virtual: true
 
     has_many :roles, UserRole
+    has_one :customer, Customer
 
     timestamps()
   end

@@ -10,7 +10,7 @@ defmodule Harbor.Checkout.CartItem do
   @type t() :: %__MODULE__{}
 
   schema "cart_items" do
-    field :quantity, :integer
+    field :quantity, :integer, default: 1
 
     belongs_to :cart, Cart
     belongs_to :variant, Variant

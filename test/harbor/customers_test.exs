@@ -9,10 +9,9 @@ defmodule Harbor.CustomersTest do
 
   describe "list_customers/1" do
     test "returns all customers" do
-      scope = guest_scope_fixture()
       admin_scope = admin_scope_fixture()
 
-      assert Customers.list_customers(admin_scope) == [scope.customer]
+      assert [_ | _] = Customers.list_customers(admin_scope)
     end
   end
 
@@ -42,8 +41,9 @@ defmodule Harbor.CustomersTest do
   end
 
   describe "create_customer/2" do
-    test "with valid data creates a customer" do
+    test "with valid data creates a customer for a guest scope" do
       scope = guest_scope_fixture(customer: false)
+
       assert {:ok, %Customer{} = customer} = Customers.create_customer(scope, valid_attrs())
       assert is_nil(customer.user_id)
       assert customer.company_name == valid_attrs().company_name
@@ -55,29 +55,25 @@ defmodule Harbor.CustomersTest do
       refute customer.deleted_at
     end
 
-    test "with invalid data returns error changeset" do
+    test "with invalid data returns error changeset for guest scope" do
       scope = guest_scope_fixture(customer: false)
       assert {:error, %Ecto.Changeset{}} = Customers.create_customer(scope, invalid_attrs())
     end
 
-    test "does not allow users to override the user_id" do
-      user = user_fixture()
-      other_user = user_fixture()
-      scope = user_scope_fixture(user)
-      attrs = Map.put(valid_attrs(), :user_id, other_user.id)
+    test "raises when an authenticated user attempts to create a customer" do
+      scope = user_scope_fixture()
 
-      assert {:ok, %Customer{} = customer} = Customers.create_customer(scope, attrs)
-      assert customer.user_id == user.id
+      assert_raise Harbor.UnauthorizedError, fn ->
+        Customers.create_customer(scope, valid_attrs())
+      end
     end
 
-    test "allows admins to override the user_id" do
-      admin = admin_fixture()
-      other_user = user_fixture()
-      scope = user_scope_fixture(admin)
-      attrs = Map.put(valid_attrs(), :user_id, other_user.id)
+    test "allows superadmins to create customers with custom status" do
+      admin_scope = admin_scope_fixture()
+      attrs = Map.put(valid_attrs(), :status, :blocked)
 
-      assert {:ok, %Customer{} = customer} = Customers.create_customer(scope, attrs)
-      assert customer.user_id == other_user.id
+      assert {:ok, %Customer{} = customer} = Customers.create_customer(admin_scope, attrs)
+      assert customer.status == :blocked
     end
   end
 
@@ -114,6 +110,34 @@ defmodule Harbor.CustomersTest do
       assert_raise Harbor.UnauthorizedError, fn ->
         Customers.update_customer(other_scope, customer, update_attrs())
       end
+    end
+
+    test "does not allow non-admin scopes to block a customer" do
+      scope = guest_scope_fixture()
+      customer = scope.customer
+
+      assert {:ok, %Customer{} = updated_customer} =
+               Customers.update_customer(
+                 scope,
+                 customer,
+                 Map.put(update_attrs(), :status, :blocked)
+               )
+
+      assert updated_customer.status == :active
+    end
+
+    test "allows superadmins to block a customer" do
+      admin_scope = admin_scope_fixture()
+      customer = customer_fixture(admin_scope)
+
+      assert {:ok, %Customer{} = updated_customer} =
+               Customers.update_customer(
+                 admin_scope,
+                 customer,
+                 Map.put(update_attrs(), :status, :blocked)
+               )
+
+      assert updated_customer.status == :blocked
     end
   end
 

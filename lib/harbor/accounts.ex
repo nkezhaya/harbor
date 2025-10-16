@@ -67,8 +67,19 @@ defmodule Harbor.Accounts do
   Registers a user.
   """
   def register_user(attrs) do
-    %User{}
-    |> User.email_changeset(attrs)
-    |> Repo.insert()
+    Repo.transact(fn ->
+      %User{}
+      |> User.email_changeset(attrs)
+      |> Repo.insert()
+      |> tap(fn
+        {:ok, user} ->
+          user
+          |> Ecto.build_assoc(:customer, %{email: user.email})
+          |> Repo.insert()
+
+        _ ->
+          nil
+      end)
+    end)
   end
 end

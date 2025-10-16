@@ -19,7 +19,6 @@ defmodule HarborWeb.Admin.CustomerLive.Form do
       </.header>
 
       <.form for={@form} id="customer-form" phx-change="validate" phx-submit="save" class="space-y-6">
-        <input type="hidden" name={@form[:user_id].name} value={@form[:user_id].value} />
         <.input field={@form[:first_name]} type="text" label="First name" />
         <.input field={@form[:last_name]} type="text" label="Last name" />
         <.input field={@form[:company_name]} type="text" label="Company name" />

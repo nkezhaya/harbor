@@ -9,6 +9,7 @@ defmodule HarborWeb.CartComponents do
   use HarborWeb, :component
 
   alias Harbor.Catalog.Variant
+  alias Harbor.Checkout
   alias Harbor.Checkout.CartItem
   alias HarborWeb.ImageHelpers
 
@@ -173,7 +174,9 @@ defmodule HarborWeb.CartComponents do
   Handles LiveView hook events to add a variant to the cart and broadcast the
   updated cart state.
   """
-  def hooked_event("add_to_cart", %{"variant_id" => _variant_id}, socket) do
+  def hooked_event("add_to_cart", params, socket) do
+    Checkout.add_item_to_cart(socket.assigns.current_scope, params)
+
     {:halt, socket}
   end
 
