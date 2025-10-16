@@ -161,7 +161,7 @@ defmodule HarborWeb.Layouts do
                 <% end %>
               </div>
 
-              <StoreComponents.cart_popover current_scope={@current_scope} />
+              <CartComponents.cart_popover current_scope={@current_scope} />
             </div>
           </div>
         </nav>

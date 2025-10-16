@@ -99,6 +99,7 @@ defmodule HarborWeb do
       alias HarborWeb.AdminLayouts
       alias HarborWeb.ImageHelpers
       alias HarborWeb.Layouts
+      alias HarborWeb.CartComponents
       alias HarborWeb.StoreComponents
       alias Phoenix.LiveView.JS
 
