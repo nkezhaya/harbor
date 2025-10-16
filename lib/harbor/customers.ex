@@ -52,12 +52,6 @@ defmodule Harbor.Customers do
     |> Repo.insert()
   end
 
-  def create_customer(%Scope{customer: nil, authenticated?: false} = scope, attrs) do
-    %Customer{user_id: nil}
-    |> Customer.changeset(attrs, scope)
-    |> Repo.insert()
-  end
-
   def create_customer(%Scope{}, _attrs) do
     raise Harbor.UnauthorizedError
   end
@@ -65,7 +59,38 @@ defmodule Harbor.Customers do
   @doc """
   Updates a customer.
   """
-  def update_customer(%Scope{} = scope, %Customer{} = customer, attrs) do
+  def update_customer(%Scope{role: :superadmin} = scope, %Customer{} = customer, attrs) do
+    customer
+    |> Customer.changeset(attrs, scope)
+    |> Repo.update()
+  end
+
+  def update_customer(%Scope{}, _customer, _attrs) do
+    raise Harbor.UnauthorizedError
+  end
+
+  @doc """
+  Deletes a customer.
+  """
+  def delete_customer(%Scope{role: :superadmin} = scope, %Customer{} = customer) do
+    customer
+    |> Customer.changeset(%{deleted_at: DateTime.utc_now()}, scope)
+    |> Repo.update()
+  end
+
+  def delete_customer(%Scope{}, _customer) do
+    raise Harbor.UnauthorizedError
+  end
+
+  @doc """
+  Saves the profile information for the current scope's customer.
+
+  This is intended for storefront flows where guests or authenticated shoppers
+  provide their contact details. If the scope already has a customer record it
+  is updated, otherwise a new one is created and associated to the scope's user
+  when available.
+  """
+  def save_customer_profile(%Scope{customer: %Customer{} = customer} = scope, attrs) do
     ensure_authorized!(scope, customer)
 
     customer
@@ -73,15 +98,11 @@ defmodule Harbor.Customers do
     |> Repo.update()
   end
 
-  @doc """
-  Deletes a customer.
-  """
-  def delete_customer(%Scope{} = scope, %Customer{} = customer) do
-    ensure_authorized!(scope, customer)
-
-    customer
-    |> Customer.changeset(%{deleted_at: DateTime.utc_now()}, scope)
-    |> Repo.update()
+  def save_customer_profile(%Scope{} = scope, attrs) do
+    scope
+    |> build_customer_for_scope()
+    |> Customer.changeset(attrs, scope)
+    |> Repo.insert()
   end
 
   @doc """
@@ -97,6 +118,12 @@ defmodule Harbor.Customers do
   defp ensure_authorized!(%Scope{customer: %Customer{id: id}}, %Customer{id: id}), do: :ok
   defp ensure_authorized!(%Scope{user: %{id: user_id}}, %Customer{user_id: user_id}), do: :ok
   defp ensure_authorized!(%Scope{}, _customer), do: raise(Harbor.UnauthorizedError)
+
+  defp build_customer_for_scope(%Scope{user: %{id: user_id}}) do
+    %Customer{user_id: user_id}
+  end
+
+  defp build_customer_for_scope(_scope), do: %Customer{}
 
   ## Addresses
 

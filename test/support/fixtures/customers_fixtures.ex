@@ -20,7 +20,12 @@ defmodule Harbor.CustomersFixtures do
         status: :active
       })
 
-    {:ok, customer} = Customers.create_customer(scope, attrs)
+    {:ok, customer} =
+      case scope.role do
+        :superadmin -> Customers.create_customer(scope, attrs)
+        _ -> Customers.save_customer_profile(scope, attrs)
+      end
+
     customer
   end
 

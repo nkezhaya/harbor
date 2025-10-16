@@ -4,13 +4,12 @@ defmodule Harbor.CustomersTest do
   import Harbor.AccountsFixtures
   import Harbor.CustomersFixtures
 
-  alias Harbor.Customers
+  alias Harbor.{Customers, Repo}
   alias Harbor.Customers.{Address, Customer}
 
   describe "list_customers/1" do
     test "returns all customers" do
       admin_scope = admin_scope_fixture()
-
       assert [_ | _] = Customers.list_customers(admin_scope)
     end
   end
@@ -41,92 +40,49 @@ defmodule Harbor.CustomersTest do
   end
 
   describe "create_customer/2" do
-    test "with valid data creates a customer for a guest scope" do
-      scope = guest_scope_fixture(customer: false)
-
-      assert {:ok, %Customer{} = customer} = Customers.create_customer(scope, valid_attrs())
-      assert is_nil(customer.user_id)
-      assert customer.company_name == valid_attrs().company_name
-      assert customer.email == valid_attrs().email
-      assert customer.first_name == valid_attrs().first_name
-      assert customer.last_name == valid_attrs().last_name
-      assert customer.phone == valid_attrs().phone
-      assert customer.status == valid_attrs().status
-      refute customer.deleted_at
-    end
-
-    test "with invalid data returns error changeset for guest scope" do
-      scope = guest_scope_fixture(customer: false)
-      assert {:error, %Ecto.Changeset{}} = Customers.create_customer(scope, invalid_attrs())
-    end
-
-    test "raises when an authenticated user attempts to create a customer" do
-      scope = user_scope_fixture()
-
-      assert_raise Harbor.UnauthorizedError, fn ->
-        Customers.create_customer(scope, valid_attrs())
-      end
-    end
-
     test "allows superadmins to create customers with custom status" do
       admin_scope = admin_scope_fixture()
       attrs = Map.put(valid_attrs(), :status, :blocked)
 
       assert {:ok, %Customer{} = customer} = Customers.create_customer(admin_scope, attrs)
       assert customer.status == :blocked
+      assert customer.company_name == attrs.company_name
+    end
+
+    test "raises when a guest scope attempts to create a customer" do
+      scope = guest_scope_fixture(customer: false)
+
+      assert_raise Harbor.UnauthorizedError, fn ->
+        Customers.create_customer(scope, valid_attrs())
+      end
+    end
+
+    test "raises when an authenticated scope without admin privileges attempts to create a customer" do
+      scope = user_scope_fixture()
+
+      assert_raise Harbor.UnauthorizedError, fn ->
+        Customers.create_customer(scope, valid_attrs())
+      end
     end
   end
 
   describe "update_customer/3" do
-    test "with valid data updates the customer" do
-      scope = guest_scope_fixture()
-
-      assert {:ok, %Customer{} = customer} =
-               Customers.update_customer(scope, scope.customer, update_attrs())
-
-      assert customer.company_name == update_attrs().company_name
-      assert customer.email == update_attrs().email
-      assert customer.first_name == update_attrs().first_name
-      assert customer.last_name == update_attrs().last_name
-      assert customer.phone == update_attrs().phone
-      refute customer.deleted_at
-    end
-
-    test "with invalid data returns error changeset" do
-      scope = guest_scope_fixture()
-      customer = scope.customer
-
-      assert {:error, %Ecto.Changeset{}} =
-               Customers.update_customer(scope, customer, invalid_attrs())
-
-      assert customer == Customers.get_customer!(scope, customer.id)
-    end
-
-    test "raises if scope does not own the customer" do
-      scope = guest_scope_fixture()
-      customer = scope.customer
-      other_scope = user_scope_fixture()
-
-      assert_raise Harbor.UnauthorizedError, fn ->
-        Customers.update_customer(other_scope, customer, update_attrs())
-      end
-    end
-
-    test "does not allow non-admin scopes to block a customer" do
-      scope = guest_scope_fixture()
-      customer = scope.customer
+    test "allows superadmins to update any customer" do
+      admin_scope = admin_scope_fixture()
+      customer = customer_fixture(admin_scope)
+      attrs = update_attrs()
 
       assert {:ok, %Customer{} = updated_customer} =
-               Customers.update_customer(
-                 scope,
-                 customer,
-                 Map.put(update_attrs(), :status, :blocked)
-               )
+               Customers.update_customer(admin_scope, customer, update_attrs())
 
-      assert updated_customer.status == :active
+      assert updated_customer.company_name == attrs.company_name
+      assert updated_customer.email == attrs.email
+      assert updated_customer.first_name == attrs.first_name
+      assert updated_customer.last_name == attrs.last_name
+      assert updated_customer.phone == attrs.phone
     end
 
-    test "allows superadmins to block a customer" do
+    test "allows superadmins to change customer status" do
       admin_scope = admin_scope_fixture()
       customer = customer_fixture(admin_scope)
 
@@ -138,6 +94,81 @@ defmodule Harbor.CustomersTest do
                )
 
       assert updated_customer.status == :blocked
+    end
+
+    test "raises when a guest scope attempts to update a customer" do
+      scope = guest_scope_fixture()
+
+      assert_raise Harbor.UnauthorizedError, fn ->
+        Customers.update_customer(scope, scope.customer, update_attrs())
+      end
+    end
+
+    test "raises when a regular user scope attempts to update a customer" do
+      user_scope = user_scope_fixture()
+      {:ok, customer} = Customers.save_customer_profile(user_scope, valid_attrs())
+
+      assert_raise Harbor.UnauthorizedError, fn ->
+        Customers.update_customer(user_scope, customer, update_attrs())
+      end
+    end
+  end
+
+  describe "save_customer_profile/2" do
+    test "creates a customer for a guest scope" do
+      scope = guest_scope_fixture(customer: false)
+
+      assert {:ok, %Customer{} = customer} =
+               Customers.save_customer_profile(scope, valid_attrs())
+
+      assert customer.company_name == valid_attrs().company_name
+      assert customer.email == valid_attrs().email
+      assert customer.first_name == valid_attrs().first_name
+      assert customer.last_name == valid_attrs().last_name
+      assert customer.phone == valid_attrs().phone
+      assert customer.status == :active
+      assert is_nil(customer.user_id)
+    end
+
+    test "returns an error changeset with invalid data" do
+      scope = guest_scope_fixture(customer: false)
+
+      assert {:error, %Ecto.Changeset{}} = Customers.save_customer_profile(scope, %{email: nil})
+    end
+
+    test "updates an existing customer for the scope" do
+      scope = guest_scope_fixture()
+      attrs = Map.drop(update_attrs(), [:status])
+
+      assert {:ok, %Customer{} = updated_customer} =
+               Customers.save_customer_profile(scope, attrs)
+
+      assert updated_customer.company_name == attrs.company_name
+      assert updated_customer.email == attrs.email
+      assert updated_customer.first_name == attrs.first_name
+      assert updated_customer.last_name == attrs.last_name
+      assert updated_customer.phone == attrs.phone
+    end
+
+    test "associates the customer to the authenticated user" do
+      user_scope = user_scope_fixture()
+
+      assert {:ok, %Customer{} = customer} =
+               Customers.save_customer_profile(user_scope, valid_attrs())
+
+      assert customer.user_id == user_scope.user.id
+    end
+
+    test "ignores status changes for non-admin scopes" do
+      scope = guest_scope_fixture()
+
+      assert {:ok, %Customer{} = customer} =
+               Customers.save_customer_profile(
+                 scope,
+                 Map.put(update_attrs(), :status, :blocked)
+               )
+
+      assert customer.status == :active
     end
   end
 
@@ -155,13 +186,11 @@ defmodule Harbor.CustomersTest do
       assert customer.deleted_at
     end
 
-    test "raises if scope does not own the customer" do
+    test "raises when a non-admin scope attempts to delete a customer" do
       scope = guest_scope_fixture()
-      customer = scope.customer
-      other_scope = user_scope_fixture()
 
       assert_raise Harbor.UnauthorizedError, fn ->
-        Customers.delete_customer(other_scope, customer)
+        Customers.delete_customer(scope, scope.customer)
       end
     end
   end
@@ -291,17 +320,6 @@ defmodule Harbor.CustomersTest do
       last_name: "Smith",
       phone: "555-0110",
       status: :blocked
-    }
-  end
-
-  defp invalid_attrs do
-    %{
-      company_name: nil,
-      email: nil,
-      first_name: nil,
-      last_name: nil,
-      phone: nil,
-      status: nil
     }
   end
 end
