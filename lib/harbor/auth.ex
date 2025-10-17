@@ -32,7 +32,7 @@ defmodule Harbor.Auth do
     {:ok, query} = UserToken.verify_magic_link_token_query(token)
 
     case Repo.one(query) do
-      {%User{confirmed_at: nil, hashed_password: hash}, _token} when not is_nil(hash) ->
+      {%User{confirmed_at: nil, hashed_password: hash}, _token} when is_binary(hash) ->
         raise """
         magic link log in is not allowed for unconfirmed users with a password set!
         """
@@ -108,8 +108,8 @@ defmodule Harbor.Auth do
   """
   def sudo_mode?(user, minutes \\ -20)
 
-  def sudo_mode?(%User{authenticated_at: ts}, minutes) when is_struct(ts, DateTime) do
-    DateTime.after?(ts, DateTime.utc_now() |> DateTime.add(minutes, :minute))
+  def sudo_mode?(%User{authenticated_at: %DateTime{} = ts}, minutes) do
+    DateTime.after?(ts, DateTime.add(DateTime.utc_now(), minutes, :minute))
   end
 
   def sudo_mode?(_user, _minutes) do

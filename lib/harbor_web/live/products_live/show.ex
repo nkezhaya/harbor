@@ -130,15 +130,20 @@ defmodule HarborWeb.ProductsLive.Show do
      )}
   end
 
-  defp product_in_stock?(%Product{default_variant: %Variant{} = variant}) do
-    variant.quantity_available > 0 or not variant.track_inventory
+  defp product_in_stock?(%Product{default_variant: %Variant{} = variant})
+       when variant.quantity_available > 0 or not variant.track_inventory do
+    true
+  end
+
+  defp product_in_stock?(_product) do
+    false
   end
 
   defp product_has_price?(%Product{default_variant: %Variant{price: price}})
-       when not is_nil(price),
+       when is_integer(price),
        do: true
 
-  defp product_has_price?(_), do: false
+  defp product_has_price?(_product), do: false
 
   @impl true
   def handle_event("select-image", %{"image-id" => image_id}, socket) do
