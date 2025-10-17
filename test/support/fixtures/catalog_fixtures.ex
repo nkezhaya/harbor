@@ -19,6 +19,7 @@ defmodule Harbor.CatalogFixtures do
           %{
             sku: "sku-#{System.unique_integer()}",
             price: 4000,
+            track_inventory: true,
             enabled: true
           }
         ]
@@ -28,11 +29,10 @@ defmodule Harbor.CatalogFixtures do
     product
   end
 
-  def variant_fixture do
-    product = product_fixture()
+  def variant_fixture(attrs \\ %{}) do
+    %{variants: [variant | _]} = product_fixture(attrs)
 
-    product.variants
-    |> List.first()
+    variant
   end
 
   def product_image_fixture(attrs \\ %{}) do
