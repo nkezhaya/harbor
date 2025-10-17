@@ -20,6 +20,7 @@ defmodule Harbor.CatalogFixtures do
             sku: "sku-#{System.unique_integer()}",
             price: 4000,
             track_inventory: true,
+            quantity_available: 10,
             enabled: true
           }
         ]
