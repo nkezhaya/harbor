@@ -1,13 +1,9 @@
 defmodule Harbor.ShippingTest do
   use Harbor.DataCase
+  import Harbor.ShippingFixtures
 
   alias Harbor.Shipping
-
-  # Address management moved to Accounts context
-
   alias Harbor.Shipping.DeliveryMethod
-
-  import Harbor.ShippingFixtures
 
   describe "list_delivery_methods/0" do
     test "returns all delivery_methods" do

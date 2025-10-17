@@ -87,7 +87,10 @@ defmodule HarborWeb.UserAuth do
       conn = fetch_cookies(conn, signed: [@remember_me_cookie])
 
       if token = conn.cookies[@remember_me_cookie] do
-        {token, conn |> put_token_in_session(token) |> put_session(:user_remember_me, true)}
+        {token,
+         conn
+         |> put_token_in_session(token)
+         |> put_session(:user_remember_me, true)}
       else
         nil
       end

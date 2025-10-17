@@ -4,12 +4,11 @@ defmodule Harbor.Tax.TaxProvider.Stripe do
   Handles fetching tax codes, creating tax calculations, recording transactions,
   and issuing reversals through the Stripe Tax API.
   """
+  @behaviour Harbor.Tax.TaxProvider
 
   alias Harbor.Tax.{Request, TaxProvider}
 
-  @behaviour TaxProvider
-
-  @impl true
+  @impl TaxProvider
   def list_tax_codes do
     case do_list_tax_codes() do
       tax_codes when is_list(tax_codes) ->
@@ -48,7 +47,7 @@ defmodule Harbor.Tax.TaxProvider.Stripe do
     %{name: tax_code.name, description: tax_code.description, provider_ref: tax_code.id}
   end
 
-  @impl true
+  @impl TaxProvider
   def calculate_taxes(%Request{line_items: line_items} = request, idempotency_key) do
     line_items =
       for item <- line_items do
@@ -94,7 +93,7 @@ defmodule Harbor.Tax.TaxProvider.Stripe do
     end
   end
 
-  @impl true
+  @impl TaxProvider
   def record_transaction(params) do
     params = Map.put(params, :expand, ["line_items"])
 
@@ -112,7 +111,7 @@ defmodule Harbor.Tax.TaxProvider.Stripe do
     end
   end
 
-  @impl true
+  @impl TaxProvider
   def refund_transaction(params) do
     Stripe.Tax.Transaction.create_reversal(params)
   end

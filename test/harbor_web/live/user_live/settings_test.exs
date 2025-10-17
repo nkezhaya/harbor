@@ -1,9 +1,10 @@
 defmodule HarborWeb.UserLive.SettingsTest do
   use HarborWeb.ConnCase, async: true
 
-  alias Harbor.{Accounts, Auth}
-  import Phoenix.LiveViewTest
   import Harbor.AccountsFixtures
+  import Phoenix.LiveViewTest
+
+  alias Harbor.{Accounts, Auth}
 
   describe "Settings page" do
     test "renders settings page", %{conn: conn} do

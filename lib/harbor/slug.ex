@@ -52,12 +52,7 @@ defmodule Harbor.Slug do
       end
 
     query = from(q in queryable, where: q.slug == ^slug, limit: 1)
-
-    query =
-      case id do
-        nil -> query
-        _ -> from(q in query, where: q.id != ^id)
-      end
+    query = if id, do: from(q in query, where: q.id != ^id), else: query
 
     if repo.exists?(query) do
       get_slug(queryable, repo, id, string, slug)
