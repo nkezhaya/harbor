@@ -1,4 +1,4 @@
-defmodule HarborWeb.CheckoutLive do
+defmodule HarborWeb.CheckoutLive.Form do
   @moduledoc """
   Placeholder view for the checkout page.
   """
