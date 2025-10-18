@@ -43,10 +43,18 @@ defmodule HarborWeb.Admin.ProductLive.Form do
         />
 
         <.input
+          field={@form[:category_id]}
+          type="select"
+          label="Category"
+          prompt="Choose a category"
+          options={@category_options}
+        />
+
+        <.input
           field={@form[:tax_code_id]}
           type="select"
           label="Tax Code"
-          prompt="Choose a value"
+          prompt="Choose a tax code"
           options={@tax_code_options}
         />
 
@@ -256,6 +264,7 @@ defmodule HarborWeb.Admin.ProductLive.Form do
      socket
      |> assign(:return_to, return_to(params["return_to"]))
      |> assign(:tax_code_options, tax_code_options())
+     |> assign(:category_options, category_options())
      |> allow_upload(:media_asset,
        accept: ~w(.jpg .jpeg .png .mp4),
        auto_upload: true,
@@ -324,6 +333,12 @@ defmodule HarborWeb.Admin.ProductLive.Form do
   defp tax_code_options do
     for tax_code <- Tax.list_tax_codes() do
       {tax_code.name, tax_code.id}
+    end
+  end
+
+  defp category_options do
+    for category <- Catalog.list_categories() do
+      {category.name, category.id}
     end
   end
 

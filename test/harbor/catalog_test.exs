@@ -49,13 +49,15 @@ defmodule Harbor.CatalogTest do
   describe "create_product/1" do
     test "with valid data creates a product" do
       tax_code = TaxFixtures.get_general_tax_code!()
+      category = category_fixture()
 
       valid_attrs = %{
         name: "some name",
         status: :draft,
         description: "some description",
         slug: "some slug",
-        tax_code_id: tax_code.id
+        tax_code_id: tax_code.id,
+        category_id: category.id
       }
 
       assert {:ok, %Product{} = product} = Catalog.create_product(valid_attrs)
@@ -75,11 +77,13 @@ defmodule Harbor.CatalogTest do
       other_product = product_fixture()
       variant = List.first(other_product.variants)
       tax_code = TaxFixtures.get_general_tax_code!()
+      category = category_fixture()
 
       attrs = %{
         name: "other product",
         status: :draft,
         description: "desc",
+        category_id: category.id,
         tax_code_id: tax_code.id,
         default_variant_id: variant.id
       }
@@ -237,7 +241,14 @@ defmodule Harbor.CatalogTest do
 
   describe "create_category/1" do
     test "with valid data creates a category" do
-      valid_attrs = %{name: "some name", position: 42, slug: "some slug"}
+      tax_code = TaxFixtures.get_general_tax_code!()
+
+      valid_attrs = %{
+        name: "some name",
+        position: 42,
+        slug: "some slug",
+        tax_code_id: tax_code.id
+      }
 
       assert {:ok, %Category{} = category} = Catalog.create_category(valid_attrs)
       assert category.name == "some name"

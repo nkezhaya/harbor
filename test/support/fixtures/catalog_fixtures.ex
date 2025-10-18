@@ -6,7 +6,7 @@ defmodule Harbor.CatalogFixtures do
   alias Harbor.TaxFixtures
 
   def product_fixture(attrs \\ %{}) do
-    tax_code = TaxFixtures.get_general_tax_code!()
+    category = category_fixture()
 
     {:ok, product} =
       attrs
@@ -14,7 +14,7 @@ defmodule Harbor.CatalogFixtures do
         description: "some description",
         name: "some name",
         status: :active,
-        tax_code_id: tax_code.id,
+        category_id: category.id,
         variants: [
           %{
             sku: "sku-#{System.unique_integer()}",
@@ -53,12 +53,14 @@ defmodule Harbor.CatalogFixtures do
   end
 
   def category_fixture(attrs \\ %{}) do
+    tax_code = TaxFixtures.get_general_tax_code!()
+
     {:ok, category} =
       attrs
       |> Enum.into(%{
-        name: "some name",
-        position: 0,
-        parent_ids: []
+        name: "some name-#{System.unique_integer()}",
+        parent_ids: [],
+        tax_code_id: tax_code.id
       })
       |> Catalog.create_category()
 

@@ -4,13 +4,12 @@ defmodule HarborWeb.Admin.ProductLive.IndexTest do
   import Phoenix.LiveViewTest
   import Harbor.CatalogFixtures
 
-  alias Harbor.TaxFixtures
-
   setup :register_and_log_in_admin
 
   setup do
-    product = product_fixture()
-    [product: product]
+    category = category_fixture()
+    product = product_fixture(%{category_id: category.id})
+    [category: category, product: product]
   end
 
   test "lists all products", %{conn: conn, product: product} do
@@ -20,7 +19,7 @@ defmodule HarborWeb.Admin.ProductLive.IndexTest do
     assert html =~ product.name
   end
 
-  test "saves new product", %{conn: conn} do
+  test "saves new product", %{conn: conn, category: category} do
     {:ok, index_live, _html} = live(conn, ~p"/admin/products")
 
     assert {:ok, form_live, _} =
@@ -37,7 +36,7 @@ defmodule HarborWeb.Admin.ProductLive.IndexTest do
 
     assert {:ok, index_live, _html} =
              form_live
-             |> form("#product-form", product: create_attrs())
+             |> form("#product-form", product: create_attrs(%{category_id: category.id}))
              |> render_submit()
              |> follow_redirect(conn, ~p"/admin/products")
 
@@ -79,16 +78,13 @@ defmodule HarborWeb.Admin.ProductLive.IndexTest do
     refute has_element?(index_live, "#products-#{product.id}")
   end
 
-  defp create_attrs do
-    tax_code = TaxFixtures.get_general_tax_code!()
-
-    %{
+  defp create_attrs(attrs) do
+    Enum.into(attrs, %{
       name: "some name",
       status: :draft,
       description: "some description",
-      tax_code_id: tax_code.id,
       variants: %{"0" => %{price: 4000}}
-    }
+    })
   end
 
   defp update_attrs do

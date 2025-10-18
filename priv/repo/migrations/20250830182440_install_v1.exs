@@ -26,6 +26,37 @@ defmodule Harbor.Repo.Migrations.InstallV1 do
     create unique_index(:tax_codes, [:provider, :provider_ref])
     create index(:tax_codes, [:position])
 
+    ## Categories
+
+    create table(:categories) do
+      add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
+      add :name, :string, null: false
+      add :slug, :string, null: false
+      add :position, :integer, null: false, default: 0
+      add :parent_id, references(:categories)
+      add :parent_ids, {:array, :integer}, null: false, default: []
+      add :tax_code_id, references(:tax_codes), null: false
+
+      timestamps()
+    end
+
+    create unique_index(:categories, [:slug])
+    create unique_index(:categories, [:parent_id, :name], nulls_distinct: false)
+    create index(:categories, [:parent_id, :position])
+    create index(:categories, [:parent_ids], using: :gin)
+
+    create constraint(:categories, :parent_cannot_be_self,
+             check: "parent_id IS NULL OR parent_id != id"
+           )
+
+    execute """
+            ALTER TABLE categories
+                ADD CONSTRAINT categories_parent_id_position_unique
+                UNIQUE NULLS NOT DISTINCT (parent_id, position)
+                DEFERRABLE INITIALLY DEFERRED
+            """,
+            ""
+
     ## Products
 
     create table(:products) do
@@ -34,7 +65,8 @@ defmodule Harbor.Repo.Migrations.InstallV1 do
       add :slug, :string, null: false
       add :description, :text
       add :status, :string, null: false, default: "draft"
-      add :tax_code_id, references(:tax_codes), null: false
+      add :category_id, references(:categories), null: false
+      add :tax_code_id, references(:tax_codes)
       add :default_variant_id, :binary_id
 
       timestamps()
@@ -44,6 +76,7 @@ defmodule Harbor.Repo.Migrations.InstallV1 do
              check: "status in ('draft', 'active', 'archived')"
            )
 
+    create index(:products, [:category_id])
     create unique_index(:products, [:slug], where: "status = 'active'")
 
     ## Variants
@@ -215,38 +248,6 @@ defmodule Harbor.Repo.Migrations.InstallV1 do
 
     create constraint(:customers, :check_status, check: "status in ('active', 'blocked')")
     create unique_index(:customers, [:user_id], where: "user_id IS NOT NULL")
-
-    ## Categories
-
-    create table(:categories) do
-      add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
-      add :name, :string, null: false
-      add :slug, :string, null: false
-      add :position, :integer, null: false, default: 0
-      add :parent_id, references(:categories)
-      add :parent_ids, {:array, :integer}, null: false, default: []
-      add :tax_code_id, references(:tax_codes)
-
-      timestamps()
-    end
-
-    create unique_index(:categories, [:slug])
-    create unique_index(:categories, [:parent_id, :name])
-    create unique_index(:categories, [:parent_id, :position], where: "parent_id IS NOT NULL")
-    create unique_index(:categories, [:position], where: "parent_id IS NULL")
-    create index(:categories, [:parent_ids], using: :gin)
-
-    create constraint(:categories, :parent_cannot_be_self,
-             check: "parent_id IS NULL OR parent_id != id"
-           )
-
-    create table(:products_categories, primary_key: false) do
-      add :product_id, references(:products, on_delete: :delete_all), primary_key: true
-      add :category_id, references(:categories, on_delete: :delete_all), primary_key: true
-    end
-
-    create index(:products_categories, [:product_id])
-    create index(:products_categories, [:category_id])
 
     ## Addresses
 

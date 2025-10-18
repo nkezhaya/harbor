@@ -17,15 +17,12 @@ defmodule Harbor.Catalog.Product do
     field :status, Ecto.Enum, values: [:draft, :active, :archived], default: :draft
 
     belongs_to :tax_code, TaxCode
+    belongs_to :category, Category
     belongs_to :default_variant, Variant
 
     has_many :images, ProductImage, preload_order: [:position], on_replace: :delete
     has_many :option_types, OptionType, preload_order: [:position], on_replace: :delete
     has_many :variants, Variant, on_replace: :delete
-
-    many_to_many :categories, Category,
-      join_through: "products_categories",
-      join_keys: [product_id: :id, category_id: :id]
 
     timestamps()
   end
@@ -33,7 +30,15 @@ defmodule Harbor.Catalog.Product do
   @doc false
   def changeset(product, attrs) do
     product
-    |> cast(attrs, [:name, :slug, :description, :status, :tax_code_id, :default_variant_id])
+    |> cast(attrs, [
+      :name,
+      :slug,
+      :description,
+      :status,
+      :tax_code_id,
+      :category_id,
+      :default_variant_id
+    ])
     |> cast_assoc(:images)
     |> cast_assoc(:option_types,
       sort_param: :option_types_sort,
@@ -42,8 +47,9 @@ defmodule Harbor.Catalog.Product do
     )
     |> cast_assoc(:variants)
     |> Slug.put_new_slug(__MODULE__)
-    |> validate_required([:name, :status, :tax_code_id])
+    |> validate_required([:name, :status, :category_id])
     |> assoc_constraint(:tax_code)
+    |> assoc_constraint(:category)
     |> foreign_key_constraint(:default_variant_id)
   end
 end
