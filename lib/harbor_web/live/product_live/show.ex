@@ -1,4 +1,4 @@
-defmodule HarborWeb.ProductsLive.Show do
+defmodule HarborWeb.ProductLive.Show do
   @moduledoc """
   Storefront product detail page.
   """

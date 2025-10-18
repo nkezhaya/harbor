@@ -1,4 +1,4 @@
-defmodule HarborWeb.ProductsLive.Index do
+defmodule HarborWeb.ProductLive.Index do
   @moduledoc """
   Storefront product listing page.
   """

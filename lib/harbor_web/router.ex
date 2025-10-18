@@ -77,8 +77,8 @@ defmodule HarborWeb.Router do
         {HarborWeb.LiveHooks, :storefront}
       ] do
       live "/", HomeLive, :index
-      live "/products", ProductsLive.Index, :index
-      live "/products/:slug", ProductsLive.Show, :show
+      live "/products", ProductLive.Index, :index
+      live "/products/:slug", ProductLive.Show, :show
       live "/cart", CartLive.Show, :show
       live "/checkout", CheckoutLive, :index
       live "/users/register", UserLive.Registration, :new

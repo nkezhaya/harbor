@@ -1,4 +1,4 @@
-defmodule HarborWeb.ProductsLive.IndexTest do
+defmodule HarborWeb.ProductLive.IndexTest do
   use HarborWeb.ConnCase
 
   import Phoenix.LiveViewTest
