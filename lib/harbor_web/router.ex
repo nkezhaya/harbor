@@ -61,6 +61,11 @@ defmodule HarborWeb.Router do
         live "/customers/new", CustomerLive.Form, :new
         live "/customers/:id", CustomerLive.Show, :show
         live "/customers/:id/edit", CustomerLive.Form, :edit
+
+        live "/categories", CategoryLive.Index, :index
+        live "/categories/new", CategoryLive.Form, :new
+        live "/categories/:id", CategoryLive.Show, :show
+        live "/categories/:id/edit", CategoryLive.Form, :edit
       end
     end
   end

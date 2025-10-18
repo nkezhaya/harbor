@@ -2,6 +2,7 @@ defmodule Harbor.CatalogTest do
   use Harbor.DataCase
   import Harbor.CatalogFixtures
 
+  alias Harbor.AccountsFixtures
   alias Harbor.Catalog
   alias Harbor.Catalog.{Category, Product, ProductImage}
   alias Harbor.TaxFixtures
@@ -225,22 +226,34 @@ defmodule Harbor.CatalogTest do
     end
   end
 
-  describe "list_categories/0" do
-    test "returns all categories" do
-      category = category_fixture()
-      assert Catalog.list_categories() == [category]
+  describe "list_categories/1" do
+    test "returns all categories for admins" do
+      admin_scope = AccountsFixtures.admin_scope_fixture()
+      category = category_fixture(%{})
+
+      assert Catalog.list_categories(admin_scope) == [category]
+    end
+
+    test "raises for non-admin scopes" do
+      user_scope = AccountsFixtures.user_scope_fixture()
+
+      assert_raise Harbor.UnauthorizedError, fn ->
+        Catalog.list_categories(user_scope)
+      end
     end
   end
 
-  describe "get_category!/1" do
+  describe "get_category!/2" do
     test "returns the category with given id" do
-      category = category_fixture()
-      assert Catalog.get_category!(category.id) == category
+      admin_scope = AccountsFixtures.admin_scope_fixture()
+      category = category_fixture(%{})
+      assert Catalog.get_category!(admin_scope, category.id) == category
     end
   end
 
-  describe "create_category/1" do
+  describe "create_category/2" do
     test "with valid data creates a category" do
+      admin_scope = AccountsFixtures.admin_scope_fixture()
       tax_code = TaxFixtures.get_general_tax_code!()
 
       valid_attrs = %{
@@ -250,51 +263,102 @@ defmodule Harbor.CatalogTest do
         tax_code_id: tax_code.id
       }
 
-      assert {:ok, %Category{} = category} = Catalog.create_category(valid_attrs)
+      assert {:ok, %Category{} = category} = Catalog.create_category(admin_scope, valid_attrs)
       assert category.name == "some name"
       assert category.position == 42
       assert category.slug == "some-slug"
     end
 
     test "with invalid data returns error changeset" do
+      admin_scope = AccountsFixtures.admin_scope_fixture()
+
       assert {:error, %Ecto.Changeset{}} =
-               Catalog.create_category(%{name: nil, position: nil, slug: nil})
+               Catalog.create_category(admin_scope, %{name: nil, position: nil, slug: nil})
+    end
+
+    test "raises for non-admin scopes" do
+      user_scope = AccountsFixtures.user_scope_fixture()
+      tax_code = TaxFixtures.get_general_tax_code!()
+
+      assert_raise Harbor.UnauthorizedError, fn ->
+        Catalog.create_category(user_scope, %{name: "foo", tax_code_id: tax_code.id})
+      end
     end
   end
 
-  describe "update_category/2" do
+  describe "update_category/3" do
     test "with valid data updates the category" do
-      category = category_fixture()
+      admin_scope = AccountsFixtures.admin_scope_fixture()
+      category = category_fixture(%{})
       update_attrs = %{name: "some updated name", position: 43, slug: "some updated slug"}
 
-      assert {:ok, %Category{} = category} = Catalog.update_category(category, update_attrs)
+      assert {:ok, %Category{} = category} =
+               Catalog.update_category(admin_scope, category, update_attrs)
+
       assert category.name == "some updated name"
       assert category.position == 43
       assert category.slug == "some-updated-slug"
     end
 
     test "with invalid data returns error changeset" do
-      category = category_fixture()
+      admin_scope = AccountsFixtures.admin_scope_fixture()
+      category = category_fixture(%{})
 
       assert {:error, %Ecto.Changeset{}} =
-               Catalog.update_category(category, %{name: nil, position: nil, slug: nil})
+               Catalog.update_category(admin_scope, category, %{
+                 name: nil,
+                 position: nil,
+                 slug: nil
+               })
 
-      assert category == Catalog.get_category!(category.id)
+      assert category == Catalog.get_category!(admin_scope, category.id)
+    end
+
+    test "raises for non-admin scopes" do
+      category = category_fixture(%{})
+      user_scope = AccountsFixtures.user_scope_fixture()
+
+      assert_raise Harbor.UnauthorizedError, fn ->
+        Catalog.update_category(user_scope, category, %{name: "updated"})
+      end
     end
   end
 
-  describe "delete_category/1" do
+  describe "delete_category/2" do
     test "deletes the category" do
-      category = category_fixture()
-      assert {:ok, %Category{}} = Catalog.delete_category(category)
-      assert_raise Ecto.NoResultsError, fn -> Catalog.get_category!(category.id) end
+      admin_scope = AccountsFixtures.admin_scope_fixture()
+      category = category_fixture(%{})
+      assert {:ok, %Category{}} = Catalog.delete_category(admin_scope, category)
+
+      assert_raise Ecto.NoResultsError, fn ->
+        Catalog.get_category!(admin_scope, category.id)
+      end
+    end
+
+    test "raises for non-admin scopes" do
+      category = category_fixture(%{})
+      user_scope = AccountsFixtures.user_scope_fixture()
+
+      assert_raise Harbor.UnauthorizedError, fn ->
+        Catalog.delete_category(user_scope, category)
+      end
     end
   end
 
-  describe "change_category/1" do
+  describe "change_category/3" do
     test "returns a category changeset" do
-      category = category_fixture()
-      assert %Ecto.Changeset{} = Catalog.change_category(category)
+      admin_scope = AccountsFixtures.admin_scope_fixture()
+      category = category_fixture(%{})
+      assert %Ecto.Changeset{} = Catalog.change_category(admin_scope, category)
+    end
+
+    test "raises for non-admin scopes" do
+      category = category_fixture(%{})
+      user_scope = AccountsFixtures.user_scope_fixture()
+
+      assert_raise Harbor.UnauthorizedError, fn ->
+        Catalog.change_category(user_scope, category)
+      end
     end
   end
 end

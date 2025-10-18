@@ -264,7 +264,7 @@ defmodule HarborWeb.Admin.ProductLive.Form do
      socket
      |> assign(:return_to, return_to(params["return_to"]))
      |> assign(:tax_code_options, tax_code_options())
-     |> assign(:category_options, category_options())
+     |> assign(:category_options, category_options(socket.assigns.current_scope))
      |> allow_upload(:media_asset,
        accept: ~w(.jpg .jpeg .png .mp4),
        auto_upload: true,
@@ -336,8 +336,8 @@ defmodule HarborWeb.Admin.ProductLive.Form do
     end
   end
 
-  defp category_options do
-    for category <- Catalog.list_categories() do
+  defp category_options(scope) do
+    for category <- Catalog.list_categories(scope) do
       {category.name, category.id}
     end
   end

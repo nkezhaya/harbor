@@ -4,6 +4,7 @@ defmodule Harbor.Catalog do
   """
   import Ecto.Query, warn: false
 
+  alias Harbor.Accounts.Scope
   alias Harbor.Repo
   alias Harbor.Catalog.{Category, Product, ProductImage}
   alias Harbor.Catalog.Forms.{MediaUpload, MediaUploadPromotionWorker}
@@ -167,12 +168,6 @@ defmodule Harbor.Catalog do
 
   ## Categories
 
-  def list_categories do
-    Category
-    |> order_by(asc: :position)
-    |> Repo.all()
-  end
-
   def list_root_categories do
     Category
     |> where([c], is_nil(c.parent_id))
@@ -180,27 +175,57 @@ defmodule Harbor.Catalog do
     |> Repo.all()
   end
 
-  def get_category!(id) do
-    Repo.get!(Category, id)
+  def list_categories(%Scope{} = scope) do
+    ensure_superadmin!(scope)
+
+    Category
+    |> order_by(asc: :position)
+    |> preload([:parent, :tax_code])
+    |> Repo.all()
   end
 
-  def create_category(attrs) do
+  def get_category!(_scope, id) do
+    Category
+    |> preload([:parent, :tax_code])
+    |> Repo.get!(id)
+  end
+
+  def create_category(%Scope{} = scope, attrs) do
+    ensure_superadmin!(scope)
+
     %Category{}
     |> Category.changeset(attrs)
     |> Repo.insert()
+    |> preload_result()
   end
 
-  def update_category(%Category{} = category, attrs) do
+  def update_category(%Scope{} = scope, %Category{} = category, attrs) do
+    ensure_superadmin!(scope)
+
     category
     |> Category.changeset(attrs)
     |> Repo.update()
+    |> preload_result()
   end
 
-  def delete_category(%Category{} = category) do
+  defp preload_result({:ok, category}) do
+    {:ok, Repo.preload(category, [:parent, :tax_code])}
+  end
+
+  defp preload_result(error) do
+    error
+  end
+
+  def delete_category(%Scope{} = scope, %Category{} = category) do
+    ensure_superadmin!(scope)
     Repo.delete(category)
   end
 
-  def change_category(%Category{} = category, attrs \\ %{}) do
+  def change_category(%Scope{} = scope, %Category{} = category, attrs \\ %{}) do
+    ensure_superadmin!(scope)
     Category.changeset(category, attrs)
   end
+
+  defp ensure_superadmin!(%Scope{role: :superadmin}), do: :ok
+  defp ensure_superadmin!(_scope), do: raise(Harbor.UnauthorizedError)
 end

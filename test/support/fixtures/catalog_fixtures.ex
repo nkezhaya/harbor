@@ -2,6 +2,7 @@ defmodule Harbor.CatalogFixtures do
   @moduledoc """
   Test helpers for creating entities via the `Harbor.Catalog` context.
   """
+  alias Harbor.AccountsFixtures
   alias Harbor.Catalog
   alias Harbor.TaxFixtures
 
@@ -53,16 +54,17 @@ defmodule Harbor.CatalogFixtures do
   end
 
   def category_fixture(attrs \\ %{}) do
+    scope = AccountsFixtures.admin_scope_fixture()
     tax_code = TaxFixtures.get_general_tax_code!()
 
-    {:ok, category} =
-      attrs
-      |> Enum.into(%{
+    attrs =
+      Enum.into(attrs, %{
         name: "some name-#{System.unique_integer()}",
         parent_ids: [],
         tax_code_id: tax_code.id
       })
-      |> Catalog.create_category()
+
+    {:ok, category} = Catalog.create_category(scope, attrs)
 
     category
   end
