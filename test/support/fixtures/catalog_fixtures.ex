@@ -19,7 +19,7 @@ defmodule Harbor.CatalogFixtures do
           %{
             sku: "sku-#{System.unique_integer()}",
             price: 4000,
-            track_inventory: true,
+            inventory_policy: :track_strict,
             quantity_available: 10,
             enabled: true
           }

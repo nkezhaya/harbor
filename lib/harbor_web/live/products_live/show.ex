@@ -130,14 +130,11 @@ defmodule HarborWeb.ProductsLive.Show do
      )}
   end
 
-  defp product_in_stock?(%Product{default_variant: %Variant{} = variant})
-       when variant.quantity_available > 0 or not variant.track_inventory do
-    true
+  defp product_in_stock?(%Product{default_variant: %Variant{} = variant}) do
+    variant.quantity_available > 0 or variant.inventory_policy != :track_strict
   end
 
-  defp product_in_stock?(_product) do
-    false
-  end
+  defp product_in_stock?(_product), do: false
 
   defp product_has_price?(%Product{default_variant: %Variant{price: price}})
        when is_integer(price),

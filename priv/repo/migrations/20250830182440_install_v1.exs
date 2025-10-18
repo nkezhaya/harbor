@@ -113,7 +113,7 @@ defmodule Harbor.Repo.Migrations.InstallV1 do
       add :price, :integer, null: false
       add :quantity_available, :integer, default: 0, null: false
       add :enabled, :boolean, null: false, default: false
-      add :track_inventory, :boolean, null: false, default: true
+      add :inventory_policy, :string, null: false, default: "not_tracked"
 
       add :tax_code_id, references(:tax_codes)
 
@@ -126,6 +126,10 @@ defmodule Harbor.Repo.Migrations.InstallV1 do
 
     create constraint(:variants, :price_gte_zero, check: "price >= 0")
     create constraint(:variants, :quantity_available_gte_zero, check: "quantity_available >= 0")
+
+    create constraint(:variants, :inventory_policy_allowed,
+             check: "inventory_policy IN ('not_tracked', 'track_strict', 'track_allow')"
+           )
 
     create table(:variants_option_values, primary_key: false) do
       add :variant_id, references(:variants, on_delete: :delete_all), primary_key: true

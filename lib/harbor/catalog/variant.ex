@@ -19,7 +19,10 @@ defmodule Harbor.Catalog.Variant do
     field :price, :integer
     field :quantity_available, :integer, default: 0
     field :enabled, :boolean, default: false
-    field :track_inventory, :boolean, default: true
+
+    field :inventory_policy, Ecto.Enum,
+      values: [:not_tracked, :track_strict, :track_allow],
+      default: :not_tracked
 
     belongs_to :product, Product
     belongs_to :tax_code, TaxCode
@@ -39,14 +42,14 @@ defmodule Harbor.Catalog.Variant do
       :price,
       :quantity_available,
       :enabled,
-      :track_inventory,
+      :inventory_policy,
       :tax_code_id
     ])
     |> validate_required([
       :price,
       :quantity_available,
       :enabled,
-      :track_inventory
+      :inventory_policy
     ])
     |> check_constraint(:price,
       name: :price_gte_zero,

@@ -162,7 +162,7 @@ defmodule HarborWeb.CartLive.Show do
     ~H"""
     <p class="mt-4 flex items-center space-x-2 text-sm">
       <%= cond do %>
-        <% @variant.track_inventory == false or @variant.quantity_available > 0 -> %>
+        <% @variant.inventory_policy != :track_strict or @variant.quantity_available > 0 -> %>
           <.icon name="hero-check" class="size-5 shrink-0 text-green-500" />
           <span class="text-gray-700">In stock</span>
         <% true -> %>
