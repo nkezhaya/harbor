@@ -192,6 +192,24 @@ defmodule HarborWeb.Layouts do
   end
 
   @doc """
+  Renders the checkout layout.
+  """
+  attr :flash, :map, required: true, doc: "the map of flash messages"
+  slot :inner_block, required: true
+
+  def checkout(assigns) do
+    ~H"""
+    <main class="flex-1 lg:flex lg:min-h-full lg:flex-row-reverse lg:overflow-hidden">
+      <h1 class="sr-only">Checkout</h1>
+
+      {render_slot(@inner_block)}
+    </main>
+
+    <.flash_group flash={@flash} />
+    """
+  end
+
+  @doc """
   Shows the flash group with standard titles and content.
 
   ## Examples
