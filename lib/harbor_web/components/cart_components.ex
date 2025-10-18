@@ -304,8 +304,16 @@ defmodule HarborWeb.CartComponents do
   Handles LiveView hook events to add a variant to the cart and broadcast the
   updated cart state.
   """
-  def hooked_event("add_to_cart", params, socket) do
-    Checkout.add_item_to_cart(socket.assigns.current_scope, params)
+  def hooked_event("add_to_cart", params, %{assigns: %{current_scope: current_scope}} = socket) do
+    socket =
+      case Checkout.add_item_to_cart(current_scope, params) do
+        {:ok, _} ->
+          cart = Checkout.fetch_active_cart_with_items(current_scope)
+          assign(socket, cart: cart)
+
+        _ ->
+          socket
+      end
 
     {:halt, socket}
   end
