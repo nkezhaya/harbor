@@ -24,6 +24,11 @@ defmodule HarborWeb.AdminLayouts do
           icon: "hero-tag-solid"
         },
         %{
+          label: "Categories",
+          href: ~p"/admin/categories",
+          icon: "hero-squares-2x2"
+        },
+        %{
           label: "Customers",
           href: ~p"/admin/customers",
           icon: "hero-user-group"
