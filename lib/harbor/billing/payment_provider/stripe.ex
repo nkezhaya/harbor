@@ -7,7 +7,7 @@ defmodule Harbor.Billing.PaymentProvider.Stripe do
   """
   @behaviour Harbor.Billing.PaymentProvider
 
-  @impl true
+  @impl Harbor.Billing.PaymentProvider
   def create_payment_profile(params) do
     Stripe.Customer.create(params, idempotency_key: params[:email])
     |> to_result()
