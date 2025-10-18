@@ -1,4 +1,4 @@
-defmodule HarborWeb.CartLive do
+defmodule HarborWeb.CartLive.Show do
   @moduledoc """
   Storefront cart page that lets shoppers review and adjust their order.
   """
@@ -200,7 +200,7 @@ defmodule HarborWeb.CartLive do
 
   @impl true
   def handle_event("remove_item", %{"cart_item_id" => cart_item_id}, socket) do
-    cart_item = find_cart_item!(socket.assigns.cart, cart_item_id)
+    cart_item = Checkout.get_cart_item!(cart_item_id)
 
     case Checkout.delete_cart_item(cart_item) do
       {:ok, _deleted} ->
