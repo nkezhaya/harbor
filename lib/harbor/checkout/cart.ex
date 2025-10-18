@@ -58,8 +58,6 @@ defmodule Harbor.Checkout.Cart do
   defp allowed_fields(%Scope{role: :superadmin}), do: [:customer_id, :session_token, :status]
   defp allowed_fields(_scope), do: []
 
-  defp apply_scope(changeset, %Scope{role: :superadmin}), do: changeset
-
   defp apply_scope(changeset, %Scope{customer: %Customer{id: customer_id}}) do
     change(changeset, %{customer_id: customer_id, session_token: nil})
   end
