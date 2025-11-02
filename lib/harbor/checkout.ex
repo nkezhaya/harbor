@@ -215,10 +215,62 @@ defmodule Harbor.Checkout do
 
   ## Sessions
 
+  @doc """
+  Ensures there is an active [Session](`Harbor.Checkout.Session`) for the cart.
+
+  The provided [Scope](`Harbor.Accounts.Scope`) is authorized against the cart
+  before any work is done. If an active session already exists it is touched so
+  expiration timestamps stay fresh; otherwise a new session is inserted. The
+  resulting session is preloaded with the associations required by pricing and
+  tax calculations.
+  """
+  def find_or_create_active_session(%Scope{} = scope, %Cart{} = cart) do
+    ensure_authorized!(scope, cart)
+
+    case get_active_session(cart) do
+      nil -> create_active_session!(cart)
+      session -> touch_session!(session)
+    end
+    |> preload_session()
+  end
+
+  defp get_active_session(%Cart{} = cart) do
+    Repo.get_by(Session, cart_id: cart.id, status: :active)
+  end
+
+  defp get_active_session!(%Cart{} = cart) do
+    Repo.get_by!(Session, cart_id: cart.id, status: :active)
+  end
+
+  @doc false
+  def create_active_session!(%Cart{} = cart) do
+    %Session{cart_id: cart.id}
+    |> Session.changeset(%{})
+    |> Repo.insert!(
+      returning: true,
+      on_conflict: :nothing,
+      conflict_target: {:unsafe_fragment, "(cart_id) WHERE status = 'active'"}
+    )
+    |> case do
+      %Session{id: nil} -> get_active_session!(cart)
+      session -> session
+    end
+  end
+
+  defp touch_session!(%Session{} = session) do
+    session
+    |> Session.touched_changeset()
+    |> Repo.update!()
+  end
+
   defp reload_session(%Session{} = session) do
     session
     |> Repo.reload!()
-    |> Repo.preload([
+    |> preload_session()
+  end
+
+  defp preload_session(%Session{} = session) do
+    Repo.preload(session, [
       :billing_address,
       :shipping_address,
       :delivery_method,
@@ -228,6 +280,14 @@ defmodule Harbor.Checkout do
       ]
     ])
   end
+
+  @doc """
+  Builds a pricing summary struct for the checkout session.
+
+  Delegates to [Pricing.build/1](`Harbor.Checkout.Pricing.build/1`) and returns
+  a `%Harbor.Checkout.Pricing{}` with itemized totals ready for rendering.
+  """
+  defdelegate build_pricing(session), to: Pricing, as: :build
 
   def complete_session(%Session{} = session) do
     session

@@ -25,7 +25,7 @@ defmodule HarborWeb.CartComponents do
   attr :variant, Variant, required: true
   attr :width, :integer, default: 96
   attr :height, :integer, default: 96
-  attr :class, :string, default: "size-16"
+  attr :class, :string, default: "border border-gray-200 size-16"
 
   def variant_image(%{variant: variant} = assigns) do
     assigns = assign(assigns, :image, Variant.main_image(variant))
@@ -35,7 +35,7 @@ defmodule HarborWeb.CartComponents do
       <img
         src={ImageHelpers.product_image_url(@image, width: @width, height: @height)}
         alt={@image.alt_text}
-        class={["flex-none rounded-md border border-gray-200 object-cover", @class]}
+        class={["flex-none rounded-md object-cover", @class]}
       />
     <% else %>
       <div class={[

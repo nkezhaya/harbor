@@ -137,6 +137,26 @@ defmodule Harbor.CheckoutTest do
     end
   end
 
+  describe "create_active_session!/1" do
+    test "creates an active session when none exists", %{cart: cart} do
+      session = Checkout.create_active_session!(cart)
+
+      assert %Session{cart_id: cart_id, status: :active} = session
+      assert cart_id == cart.id
+      assert session.expires_at
+    end
+
+    test "returns the existing active session when one is already present", %{cart: cart} do
+      existing = Checkout.create_active_session!(cart)
+      assert Repo.aggregate(Session, :count, :id) == 1
+
+      session = Checkout.create_active_session!(cart)
+
+      assert session.id == existing.id
+      assert Repo.aggregate(Session, :count, :id) == 1
+    end
+  end
+
   describe "get_cart_item!/1" do
     test "returns the cart_item with given id", %{cart_item: cart_item} do
       assert Checkout.get_cart_item!(cart_item.id) == cart_item

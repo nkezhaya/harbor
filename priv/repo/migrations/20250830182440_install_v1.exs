@@ -408,6 +408,7 @@ defmodule Harbor.Repo.Migrations.InstallV1 do
       add :cart_id, references(:carts, on_delete: :delete_all), null: false
       add :order_id, references(:orders, on_delete: :delete_all), null: true
       add :status, :string, null: false, default: "active"
+      add :last_touched_at, :timestamptz
       add :expires_at, :timestamptz, null: false
 
       add :billing_address_id, references(:addresses, on_delete: :nilify_all)

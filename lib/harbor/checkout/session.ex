@@ -20,6 +20,7 @@ defmodule Harbor.Checkout.Session do
     field :payment_intent_id, :string
     field :payment_method_ref, :string
     field :email, :string
+    field :last_touched_at, :utc_datetime_usec
     field :expires_at, :utc_datetime_usec
     field :current_tax_calculation, :map, virtual: true
 
@@ -47,11 +48,25 @@ defmodule Harbor.Checkout.Session do
       :shipping_address_id,
       :delivery_method_id
     ])
-    |> validate_required([:status, :expires_at, :cart_id])
+    |> put_new_expiration()
+    |> validate_required([:status, :cart_id])
+  end
+
+  @doc false
+  def touched_changeset(session, datetime \\ DateTime.utc_now()) do
+    expires_at = DateTime.add(datetime, 12, :hour)
+    change(session, %{last_touched_at: datetime, expires_at: expires_at})
   end
 
   @doc false
   def order_changeset(session, order) do
     change(session, %{order_id: order.id, status: :completed})
+  end
+
+  defp put_new_expiration(changeset) do
+    case get_field(changeset, :expires_at) do
+      nil -> touched_changeset(changeset)
+      _ -> changeset
+    end
   end
 end

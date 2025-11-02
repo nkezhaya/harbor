@@ -91,7 +91,7 @@ defmodule HarborWeb.CartLive.Show do
           variant={@variant}
           height={600}
           width={600}
-          class="size-24 sm:size-48"
+          class="border border-gray-200 size-24 sm:size-48"
         />
       </div>
 
