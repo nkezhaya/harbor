@@ -10,6 +10,10 @@ defmodule Harbor.Customers.Customer do
   """
   use Harbor.Schema
 
+  alias Harbor.Billing
+
+  @type t() :: %__MODULE__{}
+
   schema "customers" do
     field :first_name, :string
     field :last_name, :string
@@ -29,10 +33,31 @@ defmodule Harbor.Customers.Customer do
     customer
     |> cast(attrs, allowed_fields(scope))
     |> validate_email()
+    |> sync_email_changes()
     |> unique_constraint(:user_id)
   end
 
-  @fields [:first_name, :last_name, :company_name, :email, :phone]
-  defp allowed_fields(%Scope{role: :superadmin}), do: [:user_id, :deleted_at, :status] ++ @fields
-  defp allowed_fields(_scope), do: @fields
+  defp sync_email_changes(changeset) do
+    id = get_field(changeset, :id)
+
+    if changed?(changeset, :email) && id do
+      prepare_changes(changeset, fn prepared_changeset ->
+        Billing.enqueue_payment_profile_email_sync(id)
+
+        prepared_changeset
+      end)
+    else
+      changeset
+    end
+  end
+
+  # Users cannot edit the email on their Customer record, since this is done on
+  # their User account.
+  @fields [:first_name, :last_name, :company_name, :phone]
+  defp allowed_fields(%Scope{role: role}) when role in [:superadmin, :system] do
+    [:email, :user_id, :deleted_at, :status | @fields]
+  end
+
+  defp allowed_fields(%Scope{role: :guest}), do: [:email | @fields]
+  defp allowed_fields(%Scope{role: :user}), do: @fields
 end

@@ -13,6 +13,12 @@ defmodule Harbor.Billing.PaymentProvider.Stripe do
     |> to_result()
   end
 
+  @impl Harbor.Billing.PaymentProvider
+  def update_payment_profile(payment_profile, params) do
+    Stripe.Customer.update(payment_profile.provider_ref, params)
+    |> to_result()
+  end
+
   defp to_result({:ok, _} = result), do: result
   defp to_result({:error, %Stripe.Error{message: message}}), do: {:error, message}
 end

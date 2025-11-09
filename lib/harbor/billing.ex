@@ -7,7 +7,7 @@ defmodule Harbor.Billing do
   create records that Harbor can persist and use internally.
   """
   alias Harbor.Accounts.Scope
-  alias Harbor.Billing.{PaymentProfile, PaymentProvider}
+  alias Harbor.Billing.{PaymentProfile, PaymentProvider, SyncPaymentProfileWorker}
   alias Harbor.Customers.Customer
   alias Harbor.Repo
 
@@ -17,7 +17,7 @@ defmodule Harbor.Billing do
   """
   @spec find_or_create_payment_profile(Scope.t()) :: {:ok, PaymentProfile.t()} | {:error, term()}
   def find_or_create_payment_profile(%Scope{} = scope) do
-    case get_payment_profile(scope) do
+    case get_payment_profile(scope, scope.customer.id) do
       nil ->
         params = %{email: scope.customer.email}
 
@@ -40,16 +40,29 @@ defmodule Harbor.Billing do
     |> PaymentProfile.changeset(attrs, scope)
     |> Repo.insert!(on_conflict: :nothing, conflict_target: [:provider, :customer_id])
     |> case do
-      %PaymentProfile{id: nil} -> get_payment_profile!(scope)
+      %PaymentProfile{id: nil} -> get_payment_profile!(scope, scope.customer.id)
       payment_profile -> payment_profile
     end
   end
 
-  def get_payment_profile(%Scope{customer: %Customer{id: customer_id}}) do
+  def get_payment_profile(%Scope{} = scope, customer_id) do
+    ensure_authorized!(scope, customer_id)
     Repo.get_by(PaymentProfile, customer_id: customer_id)
   end
 
-  def get_payment_profile!(%Scope{customer: %Customer{id: customer_id}}) do
+  def get_payment_profile!(%Scope{} = scope, customer_id) do
+    ensure_authorized!(scope, customer_id)
     Repo.get_by!(PaymentProfile, customer_id: customer_id)
+  end
+
+  defp ensure_authorized!(%Scope{role: :system}, _customer_id), do: :ok
+  defp ensure_authorized!(%Scope{customer: %Customer{id: customer_id}}, customer_id), do: :ok
+  defp ensure_authorized!(_scope, _customer_id), do: raise(Harbor.UnauthorizedError)
+
+  @doc false
+  def enqueue_payment_profile_email_sync(customer_id) do
+    %{customer_id: customer_id}
+    |> SyncPaymentProfileWorker.new(schedule_in: 15, replace: [scheduled: [:scheduled_at]])
+    |> Oban.insert()
   end
 end

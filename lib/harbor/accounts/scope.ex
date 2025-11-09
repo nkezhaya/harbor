@@ -19,7 +19,7 @@ defmodule Harbor.Accounts.Scope do
   alias Harbor.Repo
 
   @type t() :: %__MODULE__{
-          role: :guest | :user | :superadmin
+          role: :guest | :user | :superadmin | :system
         }
 
   defstruct user: nil, customer: nil, role: :guest, authenticated?: false, session_token: nil
@@ -46,5 +46,10 @@ defmodule Harbor.Accounts.Scope do
       end
 
     %__MODULE__{user: user, customer: customer, role: role, authenticated?: true}
+  end
+
+  @doc false
+  def for_system do
+    %__MODULE__{role: :system}
   end
 end

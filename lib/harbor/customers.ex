@@ -8,10 +8,12 @@ defmodule Harbor.Customers do
   alias Harbor.Customers.{Address, Customer}
   alias Harbor.Repo
 
+  @admin_roles [:superadmin, :system]
+
   @doc """
   Returns the list of customers.
   """
-  def list_customers(%Scope{role: :superadmin}) do
+  def list_customers(%Scope{role: role}) when role in @admin_roles do
     Customer
     |> where([c], is_nil(c.deleted_at))
     |> Repo.all()
@@ -44,9 +46,21 @@ defmodule Harbor.Customers do
   end
 
   @doc """
+  Gets a single customer associated with the given user.
+  """
+  def get_customer_for_user(%Scope{} = scope, user_id) do
+    Customer
+    |> Repo.get_by(user_id: user_id)
+    |> tap(fn
+      nil -> nil
+      customer -> ensure_authorized!(scope, customer)
+    end)
+  end
+
+  @doc """
   Creates a customer.
   """
-  def create_customer(%Scope{role: :superadmin} = scope, attrs) do
+  def create_customer(%Scope{role: role} = scope, attrs) when role in @admin_roles do
     %Customer{}
     |> Customer.changeset(attrs, scope)
     |> Repo.insert()
@@ -59,7 +73,8 @@ defmodule Harbor.Customers do
   @doc """
   Updates a customer.
   """
-  def update_customer(%Scope{role: :superadmin} = scope, %Customer{} = customer, attrs) do
+  def update_customer(%Scope{role: role} = scope, %Customer{} = customer, attrs)
+      when role in @admin_roles do
     customer
     |> Customer.changeset(attrs, scope)
     |> Repo.update()
@@ -72,7 +87,8 @@ defmodule Harbor.Customers do
   @doc """
   Deletes a customer.
   """
-  def delete_customer(%Scope{role: :superadmin} = scope, %Customer{} = customer) do
+  def delete_customer(%Scope{role: role} = scope, %Customer{} = customer)
+      when role in @admin_roles do
     customer
     |> Customer.changeset(%{deleted_at: DateTime.utc_now()}, scope)
     |> Repo.update()
@@ -114,7 +130,7 @@ defmodule Harbor.Customers do
     Customer.changeset(customer, attrs, scope)
   end
 
-  defp ensure_authorized!(%Scope{role: :superadmin}, _customer), do: :ok
+  defp ensure_authorized!(%Scope{role: role}, _customer) when role in @admin_roles, do: :ok
   defp ensure_authorized!(%Scope{customer: %Customer{id: id}}, %Customer{id: id}), do: :ok
   defp ensure_authorized!(%Scope{user: %{id: user_id}}, %Customer{user_id: user_id}), do: :ok
   defp ensure_authorized!(%Scope{}, _customer), do: raise(Harbor.UnauthorizedError)

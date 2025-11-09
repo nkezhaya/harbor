@@ -4,9 +4,9 @@ defmodule Harbor.Auth do
   """
   import Ecto.Query
 
-  alias Harbor.Accounts.User
+  alias Harbor.Accounts.{Scope, User}
   alias Harbor.Auth.{UserNotifier, UserToken}
-  alias Harbor.Repo
+  alias Harbor.{Customers, Repo}
 
   def generate_user_session_token(%User{} = user) do
     {token, user_token} = UserToken.build_session_token(user)
@@ -136,12 +136,22 @@ defmodule Harbor.Auth do
            %UserToken{sent_to: email} <- Repo.one(query),
            {:ok, user} <- Repo.update(User.email_changeset(user, %{email: email})),
            {_count, _result} <-
-             Repo.delete_all(from(UserToken, where: [user_id: ^user.id, context: ^context])) do
+             Repo.delete_all(from(UserToken, where: [user_id: ^user.id, context: ^context])),
+           {:ok, _} <- sync_user_email(user) do
         {:ok, user}
       else
         _ -> {:error, :transaction_aborted}
       end
     end)
+  end
+
+  defp sync_user_email(user) do
+    scope = Scope.for_system()
+
+    case Customers.get_customer_for_user(scope, user.id) do
+      nil -> {:ok, nil}
+      customer -> Customers.update_customer(scope, customer, %{email: user.email})
+    end
   end
 
   @doc """
