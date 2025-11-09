@@ -13,7 +13,7 @@ defmodule Harbor.CustomersFixtures do
     attrs =
       Enum.into(attrs, %{
         company_name: "some company_name",
-        email: "some email",
+        email: "customer@example.com",
         first_name: "some first_name",
         last_name: "some last_name",
         phone: "some phone",
