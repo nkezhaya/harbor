@@ -70,7 +70,7 @@ defmodule HarborWeb.Layouts do
         <nav class="mt-8 space-y-6 text-base font-medium text-gray-900">
           <a
             :for={category <- @root_categories}
-            href={~p"/products/#{category.slug}"}
+            href={~p"/shop/#{category.slug}"}
             class="block"
           >
             {category.name}
@@ -122,7 +122,7 @@ defmodule HarborWeb.Layouts do
               <div class="flex gap-10 text-sm font-medium text-gray-700">
                 <a
                   :for={category <- @root_categories}
-                  href={~p"/products/#{category.slug}"}
+                  href={~p"/shop/#{category.slug}"}
                   class="transition hover:text-gray-900"
                 >
                   {category.name}
