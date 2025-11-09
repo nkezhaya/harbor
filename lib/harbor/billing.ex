@@ -24,11 +24,7 @@ defmodule Harbor.Billing do
         case PaymentProvider.create_payment_profile(params) do
           {:ok, %{id: provider_ref}} ->
             attrs = %{provider_ref: provider_ref}
-
-            case insert_payment_profile(scope, attrs) do
-              %PaymentProfile{id: nil} -> get_payment_profile!(scope)
-              payment_profile -> payment_profile
-            end
+            insert_payment_profile!(scope, attrs)
 
           {:error, _} = error ->
             error
@@ -39,10 +35,14 @@ defmodule Harbor.Billing do
     end
   end
 
-  defp insert_payment_profile(%Scope{} = scope, attrs) do
+  defp insert_payment_profile!(%Scope{} = scope, attrs) do
     %PaymentProfile{}
     |> PaymentProfile.changeset(attrs, scope)
     |> Repo.insert!(on_conflict: :nothing, conflict_target: [:provider, :customer_id])
+    |> case do
+      %PaymentProfile{id: nil} -> get_payment_profile!(scope)
+      payment_profile -> payment_profile
+    end
   end
 
   def get_payment_profile(%Scope{customer: %Customer{id: customer_id}}) do
