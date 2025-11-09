@@ -480,24 +480,13 @@ defmodule Harbor.Repo.Migrations.InstallV1 do
       add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
       add :provider, :string, null: false
       add :provider_ref, :string, null: false
-
-      add :user_id, references(:users, on_delete: :delete_all)
-      add :session_token, :string
+      add :customer_id, references(:customers, on_delete: :delete_all), null: false
 
       timestamps()
     end
 
     create unique_index(:payment_profiles, [:provider, :provider_ref])
-
-    create unique_index(:payment_profiles, [:provider, :user_id], where: "user_id IS NOT NULL")
-
-    create unique_index(:payment_profiles, [:provider, :session_token],
-             where: "session_token IS NOT NULL"
-           )
-
-    create constraint(:payment_profiles, :user_or_session_token,
-             check: "user_id IS NOT NULL OR session_token IS NOT NULL"
-           )
+    create unique_index(:payment_profiles, [:provider, :customer_id])
 
     ## Payment Methods
 

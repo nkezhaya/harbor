@@ -28,7 +28,7 @@ defmodule Harbor.Customers.Customer do
   def changeset(customer, attrs, scope) do
     customer
     |> cast(attrs, allowed_fields(scope))
-    |> validate_required([:email])
+    |> validate_email()
     |> unique_constraint(:user_id)
   end
 

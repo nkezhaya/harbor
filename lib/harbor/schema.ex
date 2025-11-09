@@ -2,6 +2,8 @@ defmodule Harbor.Schema do
   @moduledoc """
   Common Ecto schema defaults and imports used across the app.
   """
+  import Ecto.Changeset
+
   defmacro __using__(_opts) do
     quote do
       use Ecto.Schema
@@ -24,9 +26,18 @@ defmodule Harbor.Schema do
   end
 
   def put_delete_if_set(changeset) do
-    case Ecto.Changeset.get_change(changeset, :delete) do
+    case get_change(changeset, :delete) do
       true -> %{changeset | action: :delete}
       _ -> changeset
     end
+  end
+
+  def validate_email(changeset) do
+    changeset
+    |> validate_required([:email])
+    |> validate_format(:email, ~r/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+      message: "must have the @ sign and no spaces"
+    )
+    |> validate_length(:email, max: 160)
   end
 end

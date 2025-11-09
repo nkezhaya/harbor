@@ -5,33 +5,33 @@ defmodule Harbor.Billing.PaymentProfile do
   """
   use Harbor.Schema
 
-  alias Harbor.Accounts.User
+  alias Harbor.Accounts.Scope
   alias Harbor.Billing.PaymentMethod
+  alias Harbor.Customers.Customer
 
   @type t() :: %__MODULE__{}
 
   schema "payment_profiles" do
     field :provider, :string
     field :provider_ref, :string
-    field :session_token, :string
 
-    belongs_to :user, User
+    belongs_to :customer, Customer
     has_many :payment_methods, PaymentMethod
 
     timestamps()
   end
 
   @doc false
-  def changeset(profile, attrs) do
+  def changeset(profile, attrs, scope) do
     profile
-    |> cast(attrs, [:provider, :provider_ref, :user_id, :session_token])
+    |> cast(attrs, [:provider, :provider_ref])
     |> validate_required([:provider, :provider_ref])
-    |> check_constraint(:base,
-      name: :user_or_session_token,
-      message: "either user_id or session_token must be present"
-    )
-    |> unique_constraint([:provider, :user_id])
-    |> unique_constraint([:provider, :session_token])
+    |> apply_scope(scope)
+    |> unique_constraint([:provider, :customer_id])
     |> unique_constraint([:provider, :provider_ref])
+  end
+
+  defp apply_scope(changeset, %Scope{customer: %Customer{} = customer}) do
+    change(changeset, %{customer_id: customer.id})
   end
 end
