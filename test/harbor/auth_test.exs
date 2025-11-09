@@ -3,8 +3,8 @@ defmodule Harbor.AuthTest do
 
   import Harbor.AccountsFixtures
 
-  alias Harbor.Accounts.User
-  alias Harbor.{Accounts, Auth}
+  alias Harbor.Accounts.{Scope, User}
+  alias Harbor.{Accounts, Auth, Customers}
   alias Harbor.Auth.UserToken
 
   setup do
@@ -273,6 +273,15 @@ defmodule Harbor.AuthTest do
 
       assert Repo.get!(User, user.id).email == user.email
       assert Repo.get_by(UserToken, user_id: user.id)
+    end
+
+    test "updates the associated customer email", %{user: user, token: token, email: email} do
+      assert {:ok, %{email: ^email}} = Auth.update_user_email(user, token)
+
+      scope = Scope.for_system()
+      customer = Customers.get_customer_for_user(scope, user.id)
+
+      assert customer.email == email
     end
   end
 

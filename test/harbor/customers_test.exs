@@ -1,9 +1,11 @@
 defmodule Harbor.CustomersTest do
   use Harbor.DataCase
+  use Oban.Testing, repo: Harbor.Repo
 
   import Harbor.AccountsFixtures
   import Harbor.CustomersFixtures
 
+  alias Harbor.Billing.SyncPaymentProfileWorker
   alias Harbor.{Customers, Repo}
   alias Harbor.Customers.{Address, Customer}
 
@@ -111,6 +113,18 @@ defmodule Harbor.CustomersTest do
       assert_raise Harbor.UnauthorizedError, fn ->
         Customers.update_customer(user_scope, customer, update_attrs())
       end
+    end
+
+    test "enqueues a payment profile sync when the email changes" do
+      admin_scope = admin_scope_fixture()
+      customer = customer_fixture(admin_scope)
+
+      assert {:ok, %Customer{}} = Customers.update_customer(admin_scope, customer, update_attrs())
+
+      assert_enqueued(
+        worker: SyncPaymentProfileWorker,
+        args: %{"customer_id" => customer.id}
+      )
     end
   end
 
