@@ -11,6 +11,11 @@ defmodule Harbor.Config do
     to_string(provider)
   end
 
+  def payment_provider do
+    {provider, _} = Application.get_env(:harbor, :payment_provider)
+    to_string(provider)
+  end
+
   def s3_bucket do
     Application.get_env(:harbor, :s3_bucket) ||
       raise """

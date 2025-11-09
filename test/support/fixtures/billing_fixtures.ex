@@ -4,6 +4,7 @@ defmodule Harbor.BillingFixtures do
   [PaymentProfile](`Harbor.Billing.PaymentProfile`).
   """
   alias Harbor.Billing.PaymentProfile
+  alias Harbor.Config
   alias Harbor.Repo
 
   @doc """
@@ -12,7 +13,7 @@ defmodule Harbor.BillingFixtures do
   def payment_profile_fixture(scope, attrs \\ %{}) do
     attrs =
       Enum.into(attrs, %{
-        provider: "stripe",
+        provider: Config.payment_provider(),
         provider_ref: "cust_#{System.unique_integer([:positive])}"
       })
 

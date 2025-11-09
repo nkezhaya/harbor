@@ -8,6 +8,7 @@ defmodule Harbor.Billing do
   """
   alias Harbor.Accounts.Scope
   alias Harbor.Billing.{PaymentProfile, PaymentProvider, SyncPaymentProfileWorker}
+  alias Harbor.Config
   alias Harbor.Customers.Customer
   alias Harbor.Repo
 
@@ -23,7 +24,7 @@ defmodule Harbor.Billing do
 
         case PaymentProvider.create_payment_profile(params) do
           {:ok, %{id: provider_ref}} ->
-            attrs = %{provider_ref: provider_ref}
+            attrs = %{provider: Config.payment_provider(), provider_ref: provider_ref}
             insert_payment_profile!(scope, attrs)
 
           {:error, _} = error ->
