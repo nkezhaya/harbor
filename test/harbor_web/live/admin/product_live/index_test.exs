@@ -1,5 +1,5 @@
 defmodule HarborWeb.Admin.ProductLive.IndexTest do
-  use HarborWeb.ConnCase
+  use HarborWeb.ConnCase, async: true
 
   import Phoenix.LiveViewTest
   import Harbor.CatalogFixtures
