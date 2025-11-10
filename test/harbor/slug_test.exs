@@ -1,5 +1,5 @@
 defmodule Harbor.SlugTest do
-  use Harbor.DataCase
+  use Harbor.DataCase, async: true
   import Harbor.CatalogFixtures
 
   alias Harbor.Catalog.Product

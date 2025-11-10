@@ -1,5 +1,5 @@
 defmodule Harbor.OrdersTest do
-  use Harbor.DataCase
+  use Harbor.DataCase, async: true
   import Harbor.{CatalogFixtures, OrdersFixtures}
 
   alias Harbor.Orders

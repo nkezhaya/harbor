@@ -1,5 +1,5 @@
 defmodule Harbor.AuthTest do
-  use Harbor.DataCase
+  use Harbor.DataCase, async: true
 
   import Harbor.AccountsFixtures
 

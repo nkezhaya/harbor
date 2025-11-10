@@ -1,5 +1,5 @@
 defmodule Harbor.AccountsTest do
-  use Harbor.DataCase
+  use Harbor.DataCase, async: true
 
   import Harbor.AccountsFixtures
 

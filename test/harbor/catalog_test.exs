@@ -1,5 +1,5 @@
 defmodule Harbor.CatalogTest do
-  use Harbor.DataCase
+  use Harbor.DataCase, async: true
   import Harbor.CatalogFixtures
 
   alias Harbor.AccountsFixtures

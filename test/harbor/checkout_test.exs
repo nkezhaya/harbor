@@ -1,5 +1,5 @@
 defmodule Harbor.CheckoutTest do
-  use Harbor.DataCase
+  use Harbor.DataCase, async: true
 
   import Mox
   import Harbor.CatalogFixtures

@@ -1,5 +1,5 @@
 defmodule Harbor.TaxTest do
-  use Harbor.DataCase
+  use Harbor.DataCase, async: true
 
   import Harbor.{CatalogFixtures, CheckoutFixtures, CustomersFixtures, TaxFixtures}
 

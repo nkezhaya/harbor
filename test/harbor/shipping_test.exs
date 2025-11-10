@@ -1,5 +1,5 @@
 defmodule Harbor.ShippingTest do
-  use Harbor.DataCase
+  use Harbor.DataCase, async: true
   import Harbor.ShippingFixtures
 
   alias Harbor.Shipping

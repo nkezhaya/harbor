@@ -1,5 +1,5 @@
 defmodule Harbor.Tax.TaxProviderTest do
-  use Harbor.DataCase
+  use Harbor.DataCase, async: true
   import Mox
 
   alias Harbor.Tax.TaxProvider
