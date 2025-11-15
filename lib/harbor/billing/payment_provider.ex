@@ -13,7 +13,7 @@ defmodule Harbor.Billing.PaymentProvider do
           required(:status) => String.t(),
           required(:amount) => non_neg_integer(),
           required(:currency) => String.t(),
-          optional(:client_secret) => String.t(),
+          required(:client_secret) => String.t(),
           optional(:metadata) => map()
         }
 

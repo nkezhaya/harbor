@@ -518,7 +518,7 @@ defmodule Harbor.Repo.Migrations.InstallV1 do
       add :status, :string, null: false
       add :amount, :integer, null: false
       add :currency, :string, null: false
-      add :client_secret, :string
+      add :client_secret, :string, null: false
       add :metadata, :map, null: false, default: %{}
 
       timestamps()
