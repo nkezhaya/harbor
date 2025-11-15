@@ -29,10 +29,13 @@ defmodule Harbor.Billing.PaymentProvider do
     impl().update_payment_profile(payment_profile, params)
   end
 
-  @callback create_payment_intent(PaymentProfile.t(), %{required(atom()) => any()}) ::
-              result(payment_intent_response())
-  def create_payment_intent(payment_profile, params) do
-    impl().create_payment_intent(payment_profile, params)
+  @callback create_payment_intent(
+              PaymentProfile.t(),
+              %{required(atom()) => any()},
+              keyword()
+            ) :: result(payment_intent_response())
+  def create_payment_intent(payment_profile, params, opts) do
+    impl().create_payment_intent(payment_profile, params, opts)
   end
 
   @callback update_payment_intent(PaymentIntent.t(), %{required(atom()) => any()}) ::

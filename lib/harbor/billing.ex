@@ -63,10 +63,10 @@ defmodule Harbor.Billing do
   @doc """
   Creates a payment intent with the configured provider and persists it.
   """
-  @spec create_payment_intent(PaymentProfile.t(), map()) ::
+  @spec create_payment_intent(PaymentProfile.t(), map(), keyword()) ::
           {:ok, PaymentIntent.t()} | {:error, term()}
-  def create_payment_intent(%PaymentProfile{} = payment_profile, params) do
-    case PaymentProvider.create_payment_intent(payment_profile, params) do
+  def create_payment_intent(%PaymentProfile{} = payment_profile, params, opts \\ []) do
+    case PaymentProvider.create_payment_intent(payment_profile, params, opts) do
       {:ok, provider_intent} ->
         %PaymentIntent{
           provider: Config.payment_provider(),

@@ -87,14 +87,17 @@ defmodule Harbor.BillingTest do
     end
   end
 
-  describe "create_payment_intent/2" do
+  describe "create_payment_intent/3" do
     test "persists the provider response" do
       scope = user_scope_fixture()
       payment_profile = payment_profile_fixture(scope)
       params = %{amount: 12_00, currency: "usd"}
 
       expect(Harbor.Billing.PaymentProviderMock, :create_payment_intent, fn ^payment_profile,
-                                                                            ^params ->
+                                                                            ^params,
+                                                                            opts ->
+        assert opts == []
+
         {:ok,
          %{
            id: "pi_mock",
@@ -117,6 +120,21 @@ defmodule Harbor.BillingTest do
       assert intent.client_secret == "pi_secret"
       assert intent.metadata == %{"cart_id" => "cart_123"}
       assert intent.payment_profile_id == payment_profile.id
+    end
+
+    test "forwards provider opts" do
+      scope = user_scope_fixture()
+      payment_profile = payment_profile_fixture(scope)
+      params = %{amount: 12_00, currency: "usd"}
+      opts = [idempotency_key: "cart_123"]
+
+      expect(Harbor.Billing.PaymentProviderMock, :create_payment_intent, fn ^payment_profile,
+                                                                            ^params,
+                                                                            ^opts ->
+        {:error, :boom}
+      end)
+
+      assert {:error, :boom} = Billing.create_payment_intent(payment_profile, params, opts)
     end
   end
 

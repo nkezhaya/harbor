@@ -22,12 +22,12 @@ defmodule Harbor.Billing.PaymentProvider.Stripe do
   end
 
   @impl Harbor.Billing.PaymentProvider
-  def create_payment_intent(%PaymentProfile{} = payment_profile, params) do
+  def create_payment_intent(%PaymentProfile{} = payment_profile, params, opts) do
     params =
       params
       |> Map.put_new(:customer, payment_profile.provider_ref)
 
-    Stripe.PaymentIntent.create(params)
+    Stripe.PaymentIntent.create(params, opts)
     |> to_result()
   end
 
