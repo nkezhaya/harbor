@@ -508,6 +508,25 @@ defmodule Harbor.Repo.Migrations.InstallV1 do
              where: "\"default\" = true"
            )
 
+    ## Payment Intents
+
+    create table(:payment_intents) do
+      add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
+      add :payment_profile_id, references(:payment_profiles, on_delete: :delete_all), null: false
+      add :provider, :string, null: false
+      add :provider_ref, :string, null: false
+      add :status, :string, null: false
+      add :amount, :integer, null: false
+      add :currency, :string, null: false
+      add :client_secret, :string
+      add :metadata, :map, null: false, default: %{}
+
+      timestamps()
+    end
+
+    create unique_index(:payment_intents, [:provider, :provider_ref])
+    create index(:payment_intents, [:payment_profile_id])
+
     ## Oban
 
     Oban.Migrations.up()

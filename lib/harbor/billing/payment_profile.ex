@@ -24,7 +24,7 @@ defmodule Harbor.Billing.PaymentProfile do
   @doc false
   def changeset(profile, attrs, scope) do
     profile
-    |> cast(attrs, [:provider, :provider_ref])
+    |> cast(attrs, [:provider_ref])
     |> validate_required([:provider, :provider_ref])
     |> apply_scope(scope)
     |> unique_constraint([:provider, :customer_id])

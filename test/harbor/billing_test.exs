@@ -5,6 +5,7 @@ defmodule Harbor.BillingTest do
   import Harbor.BillingFixtures
   import Mox
 
+  alias Harbor.Billing.PaymentIntent
   alias Harbor.{Billing, Config}
 
   setup :set_mox_from_context
@@ -83,6 +84,67 @@ defmodule Harbor.BillingTest do
       assert_raise Harbor.UnauthorizedError, fn ->
         Billing.get_payment_profile!(other_scope, owner_scope.customer.id)
       end
+    end
+  end
+
+  describe "create_payment_intent/2" do
+    test "persists the provider response" do
+      scope = user_scope_fixture()
+      payment_profile = payment_profile_fixture(scope)
+      params = %{amount: 12_00, currency: "usd"}
+
+      expect(Harbor.Billing.PaymentProviderMock, :create_payment_intent, fn ^payment_profile,
+                                                                            ^params ->
+        {:ok,
+         %{
+           id: "pi_mock",
+           status: "requires_payment_method",
+           amount: params.amount,
+           currency: params.currency,
+           client_secret: "pi_secret",
+           metadata: %{"cart_id" => "cart_123"}
+         }}
+      end)
+
+      assert {:ok, %PaymentIntent{} = intent} =
+               Billing.create_payment_intent(payment_profile, params)
+
+      assert intent.provider == Config.payment_provider()
+      assert intent.provider_ref == "pi_mock"
+      assert intent.status == "requires_payment_method"
+      assert intent.amount == params.amount
+      assert intent.currency == params.currency
+      assert intent.client_secret == "pi_secret"
+      assert intent.metadata == %{"cart_id" => "cart_123"}
+      assert intent.payment_profile_id == payment_profile.id
+    end
+  end
+
+  describe "update_payment_intent/2" do
+    test "updates the stored payment intent" do
+      scope = user_scope_fixture()
+      payment_profile = payment_profile_fixture(scope)
+      intent = payment_intent_fixture(payment_profile)
+
+      params = %{payment_method: "pm_123"}
+
+      expect(Harbor.Billing.PaymentProviderMock, :update_payment_intent, fn ^intent, ^params ->
+        {:ok,
+         %{
+           id: intent.provider_ref,
+           status: "processing",
+           amount: intent.amount,
+           currency: intent.currency,
+           client_secret: "updated_secret",
+           metadata: %{"updated" => true}
+         }}
+      end)
+
+      assert {:ok, %PaymentIntent{} = updated} = Billing.update_payment_intent(intent, params)
+      assert updated.id == intent.id
+      assert updated.status == "processing"
+      assert updated.client_secret == "updated_secret"
+      assert updated.metadata == %{"updated" => true}
     end
   end
 end

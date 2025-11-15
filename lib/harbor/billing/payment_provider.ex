@@ -5,9 +5,17 @@ defmodule Harbor.Billing.PaymentProvider do
   The concrete provider module is pulled from the `:harbor, :payment_provider`
   configuration and is expected to implement the callbacks defined here.
   """
-  alias Harbor.Billing.PaymentProfile
+  alias Harbor.Billing.{PaymentIntent, PaymentProfile}
 
   @type result(type) :: {:ok, type} | {:error, any()}
+  @type payment_intent_response() :: %{
+          required(:id) => String.t(),
+          required(:status) => String.t(),
+          required(:amount) => non_neg_integer(),
+          required(:currency) => String.t(),
+          optional(:client_secret) => String.t(),
+          optional(:metadata) => map()
+        }
 
   @callback create_payment_profile(%{required(atom()) => any()}) ::
               result(%{required(:id) => String.t()})
@@ -19,6 +27,18 @@ defmodule Harbor.Billing.PaymentProvider do
               result(%{required(:id) => String.t()})
   def update_payment_profile(payment_profile, params) do
     impl().update_payment_profile(payment_profile, params)
+  end
+
+  @callback create_payment_intent(PaymentProfile.t(), %{required(atom()) => any()}) ::
+              result(payment_intent_response())
+  def create_payment_intent(payment_profile, params) do
+    impl().create_payment_intent(payment_profile, params)
+  end
+
+  @callback update_payment_intent(PaymentIntent.t(), %{required(atom()) => any()}) ::
+              result(payment_intent_response())
+  def update_payment_intent(payment_intent, params) do
+    impl().update_payment_intent(payment_intent, params)
   end
 
   defp impl do
