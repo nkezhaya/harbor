@@ -4,6 +4,7 @@ defmodule Harbor.Checkout.Session do
   """
   use Harbor.Schema
 
+  alias Harbor.Billing.PaymentIntent
   alias Harbor.Checkout.Cart
   alias Harbor.Customers.Address
   alias Harbor.Orders.Order
@@ -17,9 +18,7 @@ defmodule Harbor.Checkout.Session do
       values: [:active, :abandoned, :completed, :expired],
       default: :active
 
-    field :payment_intent_id, :string
     field :payment_method_ref, :string
-    field :email, :string
     field :last_touched_at, :utc_datetime_usec
     field :expires_at, :utc_datetime_usec
     field :current_tax_calculation, :map, virtual: true
@@ -29,6 +28,7 @@ defmodule Harbor.Checkout.Session do
     belongs_to :billing_address, Address
     belongs_to :shipping_address, Address
     belongs_to :delivery_method, DeliveryMethod
+    belongs_to :payment_intent, PaymentIntent
     has_many :tax_calculations, Calculation, foreign_key: :checkout_session_id
 
     timestamps()
@@ -41,7 +41,6 @@ defmodule Harbor.Checkout.Session do
       :status,
       :payment_intent_id,
       :payment_method_ref,
-      :email,
       :expires_at,
       :cart_id,
       :billing_address_id,

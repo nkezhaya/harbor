@@ -371,15 +371,10 @@ defmodule Harbor.Checkout do
   end
 
   defp resolve_email(%Session{} = session) do
-    cond do
-      is_binary(session.email) and session.email != "" ->
-        {:ok, session.email}
-
-      session.cart && session.cart.customer && is_binary(session.cart.customer.email) ->
-        {:ok, session.cart.customer.email}
-
-      true ->
-        {:error, :missing_email}
+    if session.cart && session.cart.customer && is_binary(session.cart.customer.email) do
+      {:ok, session.cart.customer.email}
+    else
+      {:error, :missing_email}
     end
   end
 

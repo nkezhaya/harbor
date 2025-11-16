@@ -3,7 +3,14 @@ defmodule Harbor.CheckoutTest do
 
   import Mox
   import Harbor.CatalogFixtures
-  import Harbor.{AccountsFixtures, CheckoutFixtures, CustomersFixtures, ShippingFixtures}
+
+  import Harbor.{
+    AccountsFixtures,
+    BillingFixtures,
+    CheckoutFixtures,
+    CustomersFixtures,
+    ShippingFixtures
+  }
 
   alias Harbor.Accounts.Scope
   alias Harbor.{Checkout, Repo}
@@ -237,16 +244,15 @@ defmodule Harbor.CheckoutTest do
     test "creates an order with items, snapshots, and links the session" do
       # Build catalog and cart
       variant = variant_fixture()
-      cart_scope = guest_scope_fixture(customer: false)
-      cart = cart_fixture(cart_scope)
+      user = user_fixture()
+      scope = user_scope_fixture(user)
+      cart = cart_fixture(scope)
       cart_item_fixture(cart, %{variant_id: variant.id, quantity: 2})
 
       # Shipping method
       delivery_method = delivery_method_fixture(%{price: 1500})
 
       # Addresses (tied to a user scope)
-      user = user_fixture()
-      scope = user_scope_fixture(user)
 
       billing =
         address_fixture(scope, %{
@@ -268,18 +274,19 @@ defmodule Harbor.CheckoutTest do
 
       # Session that ties everything together
       expires_at = DateTime.add(DateTime.utc_now(), 3600, :second)
+      payment_profile = payment_profile_fixture(scope)
+      payment_intent = payment_intent_fixture(payment_profile)
 
       {:ok, session} =
         %Session{}
         |> Session.changeset(%{
           cart_id: cart.id,
           status: :active,
-          email: "buyer@example.com",
           expires_at: expires_at,
           billing_address_id: billing.id,
           shipping_address_id: shipping.id,
           delivery_method_id: delivery_method.id,
-          payment_intent_id: "pi_test_123"
+          payment_intent_id: payment_intent.id
         })
         |> Repo.insert()
 
@@ -291,7 +298,7 @@ defmodule Harbor.CheckoutTest do
       assert {:ok, %Order{} = order} = Checkout.complete_session(session)
 
       # Subtotal is variant.price * quantity, tax defaults to 0, total is computed column
-      assert order.email == "buyer@example.com"
+      assert order.email == user.email
       assert order.delivery_method_name == delivery_method.name
       assert order.subtotal == variant.price * 2
       assert order.shipping_price == delivery_method.price
@@ -312,10 +319,10 @@ defmodule Harbor.CheckoutTest do
     end
 
     test "is idempotent when called multiple times for the same session" do
-      scope = guest_scope_fixture()
       variant = variant_fixture()
-      cart_scope = guest_scope_fixture(customer: false)
-      cart = cart_fixture(cart_scope)
+      user = user_fixture()
+      scope = user_scope_fixture(user)
+      cart = cart_fixture(scope)
       cart_item_fixture(cart, %{variant_id: variant.id, quantity: 1})
       delivery_method = delivery_method_fixture(%{price: 100})
 
@@ -333,7 +340,6 @@ defmodule Harbor.CheckoutTest do
         |> Session.changeset(%{
           cart_id: cart.id,
           status: :active,
-          email: "idempotent@example.com",
           expires_at: DateTime.add(DateTime.utc_now(), 3600, :second),
           billing_address_id: address.id,
           shipping_address_id: address.id,
