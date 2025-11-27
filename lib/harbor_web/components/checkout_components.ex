@@ -2,10 +2,9 @@ defmodule HarborWeb.CheckoutComponents do
   @moduledoc """
   Function components that support the checkout experience.
 
-  These components power the desktop order summary, individual cart item rows,
-  and the read-only tab buttons that scaffold the forthcoming checkout steps.
-  Each component expects preloaded data so that templates can render without
-  issuing additional database queries.
+  These components power the desktop order summary and individual cart item
+  rows. Each component expects preloaded data so that templates can render
+  without issuing additional database queries.
   """
 
   use HarborWeb, :component
@@ -106,27 +105,6 @@ defmodule HarborWeb.CheckoutComponents do
         </div>
       </div>
     </li>
-    """
-  end
-
-  @doc """
-  Renders a tab-style button used to outline upcoming checkout steps.
-
-  The slot content becomes the button label while ensuring the control stays
-  inactive until its corresponding workflow is in place.
-  """
-  attr :disabled, :boolean, default: false
-  slot :inner_block, required: true
-
-  def tab_button(assigns) do
-    ~H"""
-    <button
-      type="button"
-      class="w-full cursor-auto py-6 text-left text-lg font-medium text-gray-500"
-      disabled={@disabled}
-    >
-      {render_slot(@inner_block)}
-    </button>
     """
   end
 end

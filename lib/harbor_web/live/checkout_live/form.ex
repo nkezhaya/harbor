@@ -67,10 +67,48 @@ defmodule HarborWeb.CheckoutLive.Form do
           </form>
 
           <div class="mt-10 divide-y divide-gray-200 border-t border-b border-gray-200">
-            <.tab_button>Shipping address</.tab_button>
-            <.tab_button>Delivery</.tab_button>
-            <.tab_button>Payment details</.tab_button>
-            <.tab_button>Review</.tab_button>
+            <.step
+              :if={@shipping_required?}
+              id={:shipping}
+              label="Shipping address"
+              status={step_status(@steps, @current_step, :shipping)}
+            >
+              <:summary>123 Market Street, Springfield</:summary>
+              <:body>
+                <p class="text-sm text-gray-700">Shipping form placeholder content.</p>
+              </:body>
+            </.step>
+            <.step
+              id={:delivery}
+              label="Delivery"
+              status={step_status(@steps, @current_step, :delivery)}
+            >
+              <:summary>Standard delivery</:summary>
+              <:body>
+                <p class="text-sm text-gray-700">Delivery options placeholder content.</p>
+              </:body>
+            </.step>
+            <.step
+              :if={@payment_required?}
+              id={:payment}
+              label="Payment details"
+              status={step_status(@steps, @current_step, :payment)}
+            >
+              <:summary>•••• •••• •••• 4242</:summary>
+              <:body>
+                <p class="text-sm text-gray-700">Payment form placeholder content.</p>
+              </:body>
+            </.step>
+            <.step
+              id={:review}
+              label="Review"
+              status={step_status(@steps, @current_step, :review)}
+            >
+              <:summary>Ready to confirm</:summary>
+              <:body>
+                <p class="text-sm text-gray-700">Order review placeholder content.</p>
+              </:body>
+            </.step>
           </div>
         </div>
       </section>
@@ -90,7 +128,81 @@ defmodule HarborWeb.CheckoutLive.Form do
     %{current_scope: current_scope, cart: cart} = assigns
     session = Checkout.find_or_create_active_session(current_scope, cart)
     pricing = Checkout.build_pricing(session)
+    shipping_required? = true
+    payment_required? = true
+    steps = [:contact, :shipping, :delivery, :payment, :review]
+    current_step = List.first(steps)
 
-    {:ok, assign(socket, session: session, pricing: pricing)}
+    {:ok,
+     assign(socket,
+       session: session,
+       pricing: pricing,
+       steps: steps,
+       current_step: current_step,
+       shipping_required?: shipping_required?,
+       payment_required?: payment_required?
+     )}
+  end
+
+  @impl true
+  def handle_event("put_step", %{"step" => step_param}, socket) do
+    next_step = Enum.find(socket.assigns.steps, &(Atom.to_string(&1) == step_param))
+
+    {:noreply, assign(socket, :current_step, next_step || socket.assigns.current_step)}
+  end
+
+  defp step_status(steps, current_step, target_step) do
+    current_idx = Enum.find_index(steps, &(&1 == current_step))
+    target_idx = Enum.find_index(steps, &(&1 == target_step))
+
+    cond do
+      is_nil(target_idx) -> :upcoming
+      is_nil(current_idx) -> :upcoming
+      target_idx < current_idx -> :complete
+      target_idx == current_idx -> :current
+      true -> :upcoming
+    end
+  end
+
+  attr :id, :atom, required: true
+  attr :label, :string, required: true
+  attr :status, :atom, required: true, values: [:upcoming, :current, :complete]
+  slot :summary
+  slot :body
+
+  defp step(assigns) do
+    ~H"""
+    <div id={"checkout-step-#{@id}"}>
+      <button
+        type="button"
+        phx-click="put_step"
+        phx-value-step={@id}
+        disabled={@status != :complete}
+        class={[
+          "flex w-full items-start justify-between py-6 text-left text-lg font-medium",
+          "text-gray-500",
+          @status == :current && "text-gray-900",
+          @status == :complete && "text-gray-700 hover:text-gray-900",
+          "cursor-pointer disabled:cursor-auto disabled:text-gray-400"
+        ]}
+      >
+        <div>
+          <span>{@label}</span>
+        </div>
+      </button>
+
+      <%= case @status do %>
+        <% :complete -> %>
+          <div class="mt-1 text-xs text-gray-600">
+            {render_slot(@summary)}
+          </div>
+        <% :current -> %>
+          <div class="mt-6">
+            {render_slot(@body)}
+          </div>
+        <% _ -> %>
+      <% end %>
+    </div>
+    """
   end
 end
