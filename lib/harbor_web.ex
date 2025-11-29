@@ -97,7 +97,7 @@ defmodule HarborWeb do
 
       # Common modules used in templates
       alias HarborWeb.{AdminLayouts, Layouts}
-      alias HarborWeb.{CartComponents, StoreComponents}
+      alias HarborWeb.{CartComponents, CheckoutComponents, StoreComponents}
       alias HarborWeb.ImageHelpers
       alias Phoenix.LiveView.JS
 

@@ -3,6 +3,7 @@ defmodule HarborWeb.CheckoutLive.Form.DeliveryStep do
   LiveComponent for selecting delivery options during checkout.
   """
   use HarborWeb, :live_component
+  import HarborWeb.CheckoutComponents, only: [continue_button: 1]
 
   @impl true
   def render(assigns) do
@@ -17,13 +18,9 @@ defmodule HarborWeb.CheckoutLive.Form.DeliveryStep do
       >
         <p class="text-sm text-gray-700">Delivery options placeholder content.</p>
 
-        <button
-          type="submit"
-          id="delivery-continue"
-          class="w-full rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-xs hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-hidden"
-        >
+        <.continue_button id="delivery-continue">
           Continue to {@next_step}
-        </button>
+        </.continue_button>
       </.form>
     </div>
     """

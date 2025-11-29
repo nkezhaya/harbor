@@ -3,6 +3,7 @@ defmodule HarborWeb.CheckoutLive.Form.ContactStep do
   LiveComponent for the contact information step of the checkout form.
   """
   use HarborWeb, :live_component
+  import HarborWeb.CheckoutComponents, only: [continue_button: 1]
 
   @impl true
   def render(assigns) do
@@ -17,12 +18,7 @@ defmodule HarborWeb.CheckoutLive.Form.ContactStep do
       >
         <.input field={@form[:email]} type="email" label="Email address" autocomplete="email" />
 
-        <button
-          type="submit"
-          class="w-full rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-xs hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-hidden"
-        >
-          Continue
-        </button>
+        <.continue_button>Continue</.continue_button>
       </.form>
     </div>
     """

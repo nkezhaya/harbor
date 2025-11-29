@@ -150,4 +150,30 @@ defmodule HarborWeb.CheckoutComponents do
     </div>
     """
   end
+
+  @doc """
+  Renders a standardized continue/submit button used across checkout steps.
+  """
+  attr :id, :string, default: nil
+  attr :type, :string, default: "submit", values: ~w(submit button)
+  attr :class, :string, default: nil
+  attr :rest, :global, include: ~w(disabled)
+  slot :inner_block, required: true
+
+  def continue_button(assigns) do
+    ~H"""
+    <button
+      type={@type}
+      id={@id}
+      class={[
+        "w-full rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-xs hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-hidden cursor-pointer disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-500",
+        @class
+      ]}
+      phx-disable-with="Submitting..."
+      {@rest}
+    >
+      {render_slot(@inner_block)}
+    </button>
+    """
+  end
 end
