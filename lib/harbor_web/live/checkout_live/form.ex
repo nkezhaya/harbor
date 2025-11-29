@@ -39,120 +39,79 @@ defmodule HarborWeb.CheckoutLive.Form do
             </div>
           </div>
 
-          <div class="mt-10 divide-y divide-gray-200 border-t border-b border-gray-200">
+          <div class="divide-y divide-gray-200 border-b border-gray-200">
             <.step
-              id={:contact}
+              id="contact"
               label="Contact information"
               status={step_status(@steps, @current_step, :contact)}
             >
               <:summary>you@example.com</:summary>
               <:body>
-                <form id="contact-form" class="space-y-6">
-                  <.input
-                    field={to_form(%{})[:email]}
-                    id="email-address"
-                    name="email-address"
-                    type="email"
-                    label="Email address"
-                    autocomplete="email"
-                  />
-
-                  <button
-                    type="submit"
-                    disabled
-                    class="w-full rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-xs hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-hidden disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-500"
-                  >
-                    Continue
-                  </button>
-                </form>
+                <.live_component
+                  module={__MODULE__.ContactStep}
+                  id="contact-step"
+                  next_step={next_step_for(@steps, :contact)}
+                />
               </:body>
             </.step>
             <.step
               :if={@shipping_required?}
-              id={:shipping}
+              id="shipping"
               label="Shipping address"
               status={step_status(@steps, @current_step, :shipping)}
             >
               <:summary>123 Market Street, Springfield</:summary>
               <:body>
-                <p class="text-sm text-gray-700">Shipping form placeholder content.</p>
+                <.live_component
+                  module={__MODULE__.ShippingStep}
+                  id="shipping-step"
+                  next_step={next_step_for(@steps, :shipping)}
+                />
               </:body>
             </.step>
             <.step
-              id={:delivery}
+              id="delivery"
               label="Delivery"
               status={step_status(@steps, @current_step, :delivery)}
             >
               <:summary>Standard delivery</:summary>
               <:body>
-                <p class="text-sm text-gray-700">Delivery options placeholder content.</p>
+                <.live_component
+                  module={__MODULE__.DeliveryStep}
+                  id="delivery-step"
+                  next_step={next_step_for(@steps, :delivery)}
+                />
               </:body>
             </.step>
             <.step
               :if={@payment_required?}
-              id={:payment}
+              id="payment"
               label="Payment details"
               status={step_status(@steps, @current_step, :payment)}
             >
               <:summary>•••• •••• •••• 4242</:summary>
               <:body>
-                <p class="text-sm text-gray-700">Payment form placeholder content.</p>
+                <.live_component
+                  module={__MODULE__.PaymentStep}
+                  id="payment-step"
+                  next_step={next_step_for(@steps, :payment)}
+                />
               </:body>
             </.step>
             <.step
-              id={:review}
+              id="review"
               label="Review"
               status={step_status(@steps, @current_step, :review)}
             >
               <:summary>Ready to confirm</:summary>
               <:body>
-                <p class="text-sm text-gray-700">Order review placeholder content.</p>
+                <.live_component module={__MODULE__.ReviewStep} id="review-step" />
               </:body>
             </.step>
           </div>
         </div>
       </section>
     </Layouts.checkout>
-    """
-  end
-
-  attr :id, :atom, required: true
-  attr :label, :string, required: true
-  attr :status, :atom, required: true, values: [:upcoming, :current, :complete]
-  slot :summary
-  slot :body
-
-  defp step(assigns) do
-    ~H"""
-    <div id={"checkout-step-#{@id}"}>
-      <button
-        type="button"
-        phx-click="put_step"
-        phx-value-step={@id}
-        disabled={@status != :complete}
-        class={[
-          "flex w-full items-start justify-between py-6 text-left text-lg font-medium",
-          @status == :complete && "text-gray-700 hover:text-gray-900",
-          @status == :current && "text-gray-900",
-          @status == :upcoming && "text-gray-400",
-          "cursor-pointer disabled:cursor-auto"
-        ]}
-      >
-        {@label}
-      </button>
-
-      <%= case @status do %>
-        <% :complete -> %>
-          <div class="mt-1 text-xs text-gray-600">
-            {render_slot(@summary)}
-          </div>
-        <% :current -> %>
-          <div class="mb-6">
-            {render_slot(@body)}
-          </div>
-        <% _ -> %>
-      <% end %>
-    </div>
     """
   end
 
@@ -169,12 +128,14 @@ defmodule HarborWeb.CheckoutLive.Form do
     session = Checkout.find_or_create_active_session(current_scope, cart)
     pricing = Checkout.build_pricing(session)
     shipping_required? = true
-    payment_required? = true
-    steps = [:contact, :shipping, :delivery, :payment, :review]
+    payment_required? = pricing.total_price > 0
+    steps = checkout_steps(shipping_required?, payment_required?)
     current_step = List.first(steps)
 
     {:ok,
      assign(socket,
+       current_scope: current_scope,
+       cart: cart,
        session: session,
        pricing: pricing,
        steps: steps,
@@ -191,16 +152,59 @@ defmodule HarborWeb.CheckoutLive.Form do
     {:noreply, assign(socket, :current_step, next_step || socket.assigns.current_step)}
   end
 
+  @impl true
+  def handle_info({:step_continue, params, next_step}, %{assigns: assigns} = socket) do
+    %{current_scope: current_scope, session: session} = assigns
+
+    case Checkout.update_session(current_scope, session, params) do
+      {:ok, session} ->
+        {:noreply,
+         assign(socket,
+           session: session,
+           pricing: Checkout.build_pricing(session),
+           current_step: next_step
+         )}
+
+      {:error, _reason} ->
+        {:noreply, put_flash(socket, :error, "Unable to update checkout for this step.")}
+    end
+  end
+
   defp step_status(steps, current_step, target_step) do
     current_idx = Enum.find_index(steps, &(&1 == current_step))
     target_idx = Enum.find_index(steps, &(&1 == target_step))
 
     cond do
-      is_nil(target_idx) -> :upcoming
-      is_nil(current_idx) -> :upcoming
-      target_idx < current_idx -> :complete
       target_idx == current_idx -> :current
+      target_idx < current_idx -> :complete
       true -> :upcoming
     end
+  end
+
+  defp next_step_for(steps, current_step) do
+    idx = Enum.find_index(steps, &(&1 == current_step))
+    Enum.at(steps, idx + 1)
+  end
+
+  defp checkout_steps(shipping_required?, payment_required?) do
+    steps = [:contact]
+
+    steps =
+      if shipping_required? do
+        steps ++ [:shipping]
+      else
+        steps
+      end
+
+    steps = steps ++ [:delivery]
+
+    steps =
+      if payment_required? do
+        steps ++ [:payment]
+      else
+        steps
+      end
+
+    steps ++ [:review]
   end
 end
