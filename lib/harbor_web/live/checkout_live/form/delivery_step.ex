@@ -7,23 +7,25 @@ defmodule HarborWeb.CheckoutLive.Form.DeliveryStep do
   @impl true
   def render(assigns) do
     ~H"""
-    <.form
-      for={@form}
-      id="delivery-form"
-      class="space-y-4"
-      phx-target={@myself}
-      phx-submit="continue"
-    >
-      <p class="text-sm text-gray-700">Delivery options placeholder content.</p>
-
-      <button
-        type="submit"
-        id="delivery-continue"
-        class="w-full rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-xs hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-hidden"
+    <div>
+      <.form
+        for={@form}
+        id="delivery-form"
+        class="space-y-4"
+        phx-target={@myself}
+        phx-submit="continue"
       >
-        Continue to {@next_step}
-      </button>
-    </.form>
+        <p class="text-sm text-gray-700">Delivery options placeholder content.</p>
+
+        <button
+          type="submit"
+          id="delivery-continue"
+          class="w-full rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-xs hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-hidden"
+        >
+          Continue to {@next_step}
+        </button>
+      </.form>
+    </div>
     """
   end
 
