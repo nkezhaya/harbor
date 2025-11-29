@@ -39,34 +39,34 @@ defmodule HarborWeb.CheckoutLive.Form do
             </div>
           </div>
 
-          <form class="mt-6">
-            <h2 class="text-lg font-medium text-gray-900">Contact information</h2>
-
-            <div class="mt-6">
-              <label for="email-address" class="block text-sm/6 font-medium text-gray-700">
-                Email address
-              </label>
-              <div class="mt-2">
-                <input
-                  id="email-address"
-                  type="email"
-                  name="email-address"
-                  autocomplete="email"
-                  class="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6"
-                />
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled
-              class="mt-6 w-full rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-xs hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-hidden disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-500"
-            >
-              Continue
-            </button>
-          </form>
-
           <div class="mt-10 divide-y divide-gray-200 border-t border-b border-gray-200">
+            <.step
+              id={:contact}
+              label="Contact information"
+              status={step_status(@steps, @current_step, :contact)}
+            >
+              <:summary>you@example.com</:summary>
+              <:body>
+                <form id="contact-form" class="space-y-6">
+                  <.input
+                    field={to_form(%{})[:email]}
+                    id="email-address"
+                    name="email-address"
+                    type="email"
+                    label="Email address"
+                    autocomplete="email"
+                  />
+
+                  <button
+                    type="submit"
+                    disabled
+                    class="w-full rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-xs hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-hidden disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-500"
+                  >
+                    Continue
+                  </button>
+                </form>
+              </:body>
+            </.step>
             <.step
               :if={@shipping_required?}
               id={:shipping}
@@ -116,6 +116,46 @@ defmodule HarborWeb.CheckoutLive.Form do
     """
   end
 
+  attr :id, :atom, required: true
+  attr :label, :string, required: true
+  attr :status, :atom, required: true, values: [:upcoming, :current, :complete]
+  slot :summary
+  slot :body
+
+  defp step(assigns) do
+    ~H"""
+    <div id={"checkout-step-#{@id}"}>
+      <button
+        type="button"
+        phx-click="put_step"
+        phx-value-step={@id}
+        disabled={@status != :complete}
+        class={[
+          "flex w-full items-start justify-between py-6 text-left text-lg font-medium",
+          @status == :complete && "text-gray-700 hover:text-gray-900",
+          @status == :current && "text-gray-900",
+          @status == :upcoming && "text-gray-400",
+          "cursor-pointer disabled:cursor-auto"
+        ]}
+      >
+        {@label}
+      </button>
+
+      <%= case @status do %>
+        <% :complete -> %>
+          <div class="mt-1 text-xs text-gray-600">
+            {render_slot(@summary)}
+          </div>
+        <% :current -> %>
+          <div class="mb-6">
+            {render_slot(@body)}
+          </div>
+        <% _ -> %>
+      <% end %>
+    </div>
+    """
+  end
+
   @impl true
   def mount(_params, _session, %{assigns: %{cart: nil}} = socket) do
     {:ok,
@@ -162,47 +202,5 @@ defmodule HarborWeb.CheckoutLive.Form do
       target_idx == current_idx -> :current
       true -> :upcoming
     end
-  end
-
-  attr :id, :atom, required: true
-  attr :label, :string, required: true
-  attr :status, :atom, required: true, values: [:upcoming, :current, :complete]
-  slot :summary
-  slot :body
-
-  defp step(assigns) do
-    ~H"""
-    <div id={"checkout-step-#{@id}"}>
-      <button
-        type="button"
-        phx-click="put_step"
-        phx-value-step={@id}
-        disabled={@status != :complete}
-        class={[
-          "flex w-full items-start justify-between py-6 text-left text-lg font-medium",
-          "text-gray-500",
-          @status == :current && "text-gray-900",
-          @status == :complete && "text-gray-700 hover:text-gray-900",
-          "cursor-pointer disabled:cursor-auto disabled:text-gray-400"
-        ]}
-      >
-        <div>
-          <span>{@label}</span>
-        </div>
-      </button>
-
-      <%= case @status do %>
-        <% :complete -> %>
-          <div class="mt-1 text-xs text-gray-600">
-            {render_slot(@summary)}
-          </div>
-        <% :current -> %>
-          <div class="mt-6">
-            {render_slot(@body)}
-          </div>
-        <% _ -> %>
-      <% end %>
-    </div>
-    """
   end
 end
