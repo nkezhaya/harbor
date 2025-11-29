@@ -107,4 +107,47 @@ defmodule HarborWeb.CheckoutComponents do
     </li>
     """
   end
+
+  @doc """
+  Renders a checkout step shell with summary and body slots.
+  """
+  attr :id, :string, required: true
+  attr :label, :string, required: true
+  attr :status, :atom, required: true, values: [:upcoming, :current, :complete]
+  slot :summary
+  slot :body
+
+  def step(assigns) do
+    ~H"""
+    <div id={"checkout-step-#{@id}"}>
+      <button
+        type="button"
+        phx-click="put_step"
+        phx-value-step={@id}
+        disabled={@status != :complete}
+        class={[
+          "flex w-full items-start justify-between py-6 text-left text-lg font-medium",
+          @status == :upcoming && "text-gray-400",
+          @status == :current && "text-gray-900",
+          @status == :complete && "text-gray-700 hover:text-gray-900",
+          "cursor-pointer disabled:cursor-auto"
+        ]}
+      >
+        {@label}
+      </button>
+
+      <%= case @status do %>
+        <% :complete -> %>
+          <div class="mt-1 mb-6 text-xs text-gray-600">
+            {render_slot(@summary)}
+          </div>
+        <% :current -> %>
+          <div class="mb-6">
+            {render_slot(@body)}
+          </div>
+        <% _ -> %>
+      <% end %>
+    </div>
+    """
+  end
 end
