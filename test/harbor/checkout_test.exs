@@ -164,6 +164,30 @@ defmodule Harbor.CheckoutTest do
     end
   end
 
+  describe "update_session/3" do
+    test "updates the session when the scope owns the cart" do
+      scope = guest_scope_fixture()
+      cart = cart_fixture(scope)
+      session = Checkout.create_active_session!(cart)
+      address = address_fixture(scope, %{line1: "123 Harbor Way"})
+
+      assert {:ok, updated} =
+               Checkout.update_session(scope, session, %{shipping_address_id: address.id})
+
+      assert updated.shipping_address.id == address.id
+      assert updated.cart.id == cart.id
+    end
+
+    test "raises when the scope does not own the cart", %{cart: cart} do
+      session = Checkout.create_active_session!(cart)
+      other_scope = guest_scope_fixture(customer: false)
+
+      assert_raise Harbor.UnauthorizedError, fn ->
+        Checkout.update_session(other_scope, session, %{status: :completed})
+      end
+    end
+  end
+
   describe "get_cart_item!/1" do
     test "returns the cart_item with given id", %{cart_item: cart_item} do
       assert Checkout.get_cart_item!(cart_item.id) == cart_item

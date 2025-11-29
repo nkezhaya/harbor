@@ -269,6 +269,19 @@ defmodule Harbor.Checkout do
     |> preload_session()
   end
 
+  def update_session(%Scope{} = scope, %Session{} = session, attrs) do
+    session = Repo.preload(session, :cart)
+    ensure_authorized!(scope, session.cart)
+
+    session
+    |> Session.changeset(attrs)
+    |> Repo.update()
+    |> case do
+      {:ok, session} -> {:ok, preload_session(session)}
+      {:error, _} = error -> error
+    end
+  end
+
   defp preload_session(%Session{} = session) do
     Repo.preload(session, [
       :billing_address,
