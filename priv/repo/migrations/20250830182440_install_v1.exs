@@ -65,6 +65,7 @@ defmodule Harbor.Repo.Migrations.InstallV1 do
       add :slug, :string, null: false
       add :description, :text
       add :status, :string, null: false, default: "draft"
+      add :physical_product, :boolean, null: false, default: true
       add :category_id, references(:categories), null: false
       add :tax_code_id, references(:tax_codes)
       add :default_variant_id, :binary_id

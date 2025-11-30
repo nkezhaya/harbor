@@ -15,6 +15,7 @@ defmodule Harbor.Catalog.Product do
     field :slug, :string
     field :description, :string
     field :status, Ecto.Enum, values: [:draft, :active, :archived], default: :draft
+    field :physical_product, :boolean, default: true
 
     belongs_to :tax_code, TaxCode
     belongs_to :category, Category
@@ -35,6 +36,7 @@ defmodule Harbor.Catalog.Product do
       :slug,
       :description,
       :status,
+      :physical_product,
       :tax_code_id,
       :category_id,
       :default_variant_id

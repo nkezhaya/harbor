@@ -116,7 +116,7 @@ defmodule HarborWeb.CheckoutLive.Form do
     session = Checkout.find_or_create_active_session(current_scope, cart)
     pricing = Checkout.build_pricing(session)
     contact_required? = not current_scope.authenticated?
-    shipping_required? = true
+    shipping_required? = Enum.any?(cart.items, & &1.variant.product.physical_product)
     payment_required? = pricing.total_price > 0
     steps = checkout_steps(contact_required?, shipping_required?, payment_required?)
     current_step = List.first(steps)
