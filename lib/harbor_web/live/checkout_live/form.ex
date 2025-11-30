@@ -41,15 +41,17 @@ defmodule HarborWeb.CheckoutLive.Form do
 
           <div class="divide-y divide-gray-200 border-b border-gray-200">
             <.step
+              :if={@contact_required?}
               id="contact"
               label="Contact information"
               status={step_status(@steps, @current_step, :contact)}
             >
-              <:summary>you@example.com</:summary>
+              <:summary>{@current_scope.customer.email}</:summary>
               <:body>
                 <.live_component
                   module={__MODULE__.ContactStep}
                   id="contact-step"
+                  current_scope={@current_scope}
                   next_step={next_step_for(@steps, :contact)}
                 />
               </:body>
@@ -127,9 +129,10 @@ defmodule HarborWeb.CheckoutLive.Form do
     %{current_scope: current_scope, cart: cart} = assigns
     session = Checkout.find_or_create_active_session(current_scope, cart)
     pricing = Checkout.build_pricing(session)
+    contact_required? = not current_scope.authenticated?
     shipping_required? = true
     payment_required? = pricing.total_price > 0
-    steps = checkout_steps(shipping_required?, payment_required?)
+    steps = checkout_steps(contact_required?, shipping_required?, payment_required?)
     current_step = List.first(steps)
 
     {:ok,
@@ -140,6 +143,7 @@ defmodule HarborWeb.CheckoutLive.Form do
        pricing: pricing,
        steps: steps,
        current_step: current_step,
+       contact_required?: contact_required?,
        shipping_required?: shipping_required?,
        payment_required?: payment_required?
      )}
@@ -186,17 +190,20 @@ defmodule HarborWeb.CheckoutLive.Form do
     Enum.at(steps, idx + 1)
   end
 
-  defp checkout_steps(shipping_required?, payment_required?) do
-    steps = [:contact]
+  defp checkout_steps(contact_required?, shipping_required?, payment_required?) do
+    steps =
+      if contact_required? do
+        [:contact]
+      else
+        []
+      end
 
     steps =
       if shipping_required? do
-        steps ++ [:shipping]
+        steps ++ [:shipping, :delivery]
       else
         steps
       end
-
-    steps = steps ++ [:delivery]
 
     steps =
       if payment_required? do
