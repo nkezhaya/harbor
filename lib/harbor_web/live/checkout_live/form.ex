@@ -44,10 +44,10 @@ defmodule HarborWeb.CheckoutLive.Form do
 
           <div class="divide-y divide-gray-200 border-b border-gray-200">
             <.step
-              :if={@contact_required?}
+              :if={:contact in @steps}
               id="contact"
               label="Contact information"
-              status={step_status(@steps, @current_step, :contact)}
+              status={step_status(@steps, @session.current_step, :contact)}
             >
               <:summary>{@current_scope.customer.email}</:summary>
               <:body>
@@ -55,10 +55,10 @@ defmodule HarborWeb.CheckoutLive.Form do
               </:body>
             </.step>
             <.step
-              :if={@shipping_required?}
+              :if={:shipping in @steps}
               id="shipping"
               label="Shipping address"
-              status={step_status(@steps, @current_step, :shipping)}
+              status={step_status(@steps, @session.current_step, :shipping)}
             >
               <:summary>123 Market Street, Springfield</:summary>
               <:body>
@@ -66,9 +66,10 @@ defmodule HarborWeb.CheckoutLive.Form do
               </:body>
             </.step>
             <.step
+              :if={:delivery in @steps}
               id="delivery"
               label="Delivery"
-              status={step_status(@steps, @current_step, :delivery)}
+              status={step_status(@steps, @session.current_step, :delivery)}
             >
               <:summary>Standard delivery</:summary>
               <:body>
@@ -76,10 +77,10 @@ defmodule HarborWeb.CheckoutLive.Form do
               </:body>
             </.step>
             <.step
-              :if={@payment_required?}
+              :if={:payment in @steps}
               id="payment"
               label="Payment details"
-              status={step_status(@steps, @current_step, :payment)}
+              status={step_status(@steps, @session.current_step, :payment)}
             >
               <:summary>•••• •••• •••• 4242</:summary>
               <:body>
@@ -87,9 +88,10 @@ defmodule HarborWeb.CheckoutLive.Form do
               </:body>
             </.step>
             <.step
+              :if={:review in @steps}
               id="review"
               label="Review"
-              status={step_status(@steps, @current_step, :review)}
+              status={step_status(@steps, @session.current_step, :review)}
             >
               <:summary>Ready to confirm</:summary>
               <:body>
@@ -214,11 +216,8 @@ defmodule HarborWeb.CheckoutLive.Form do
     %{current_scope: current_scope, cart: cart} = assigns
     session = Checkout.find_or_create_active_session(current_scope, cart)
     pricing = Checkout.build_pricing(session)
-    contact_required? = not current_scope.authenticated?
-    shipping_required? = Enum.any?(cart.items, & &1.variant.product.physical_product)
-    payment_required? = pricing.total_price > 0
-    steps = checkout_steps(contact_required?, shipping_required?, payment_required?)
-    current_step = List.first(steps)
+    steps = Checkout.checkout_steps(current_scope, session, pricing)
+    session = Checkout.ensure_valid_current_step!(current_scope, session, steps)
     contact_form = contact_form(current_scope)
 
     {:ok,
@@ -228,10 +227,6 @@ defmodule HarborWeb.CheckoutLive.Form do
        session: session,
        pricing: pricing,
        steps: steps,
-       current_step: current_step,
-       contact_required?: contact_required?,
-       shipping_required?: shipping_required?,
-       payment_required?: payment_required?,
        contact_form: contact_form
      )}
   end
@@ -240,7 +235,7 @@ defmodule HarborWeb.CheckoutLive.Form do
   def handle_event("put_step", %{"step" => step_param}, socket) do
     next_step = Enum.find(socket.assigns.steps, &(Atom.to_string(&1) == step_param))
 
-    {:noreply, assign(socket, :current_step, next_step || socket.assigns.current_step)}
+    {:noreply, put_current_step(socket, next_step)}
   end
 
   def handle_event("contact_submit", %{"customer" => customer_params}, socket) do
@@ -291,7 +286,7 @@ defmodule HarborWeb.CheckoutLive.Form do
   defp put_next_step(socket, step) do
     case next_step_for(socket.assigns.steps, step) do
       nil -> socket
-      next_step -> assign(socket, :current_step, next_step)
+      next_step -> put_current_step(socket, next_step)
     end
   end
 
@@ -300,29 +295,23 @@ defmodule HarborWeb.CheckoutLive.Form do
     Enum.at(steps, idx + 1)
   end
 
-  defp checkout_steps(contact_required?, shipping_required?, payment_required?) do
-    steps =
-      if contact_required? do
-        [:contact]
-      else
-        []
-      end
+  defp put_current_step(socket, nil), do: socket
 
-    steps =
-      if shipping_required? do
-        steps ++ [:shipping, :delivery]
-      else
-        steps
-      end
+  defp put_current_step(%{assigns: %{steps: steps}} = socket, step) do
+    if step in steps do
+      persist_current_step(socket, step)
+    else
+      socket
+    end
+  end
 
-    steps =
-      if payment_required? do
-        steps ++ [:payment]
-      else
-        steps
-      end
+  defp persist_current_step(socket, step) do
+    %{current_scope: scope, session: session} = socket.assigns
 
-    steps ++ [:review]
+    case Checkout.update_session(scope, session, %{current_step: step}) do
+      {:ok, updated_session} -> assign(socket, session: updated_session)
+      {:error, _changeset} -> socket
+    end
   end
 
   defp contact_form(%Scope{} = scope) do

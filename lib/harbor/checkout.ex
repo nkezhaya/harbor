@@ -269,6 +269,59 @@ defmodule Harbor.Checkout do
     |> preload_session()
   end
 
+  def checkout_steps(%Scope{} = scope, %Session{} = session, %Pricing{} = pricing) do
+    steps =
+      if not scope.authenticated? do
+        [:contact]
+      else
+        []
+      end
+
+    steps =
+      if Enum.any?(session.cart.items, & &1.variant.product.physical_product) do
+        steps ++ [:shipping, :delivery]
+      else
+        steps
+      end
+
+    steps =
+      if pricing.total_price > 0 do
+        steps ++ [:payment]
+      else
+        steps
+      end
+
+    steps ++ [:review]
+  end
+
+  def ensure_valid_current_step!(%Scope{} = scope, %Session{} = session, [first | _] = steps) do
+    validated_step =
+      cond do
+        session.current_step not in steps ->
+          first
+
+        session.current_step == first ->
+          first
+
+        true ->
+          steps
+          |> Enum.find(&(not did_complete?(scope, session, &1)))
+          |> case do
+            nil -> List.last(steps)
+            incomplete_step -> incomplete_step
+          end
+      end
+
+    case update_session(scope, session, %{current_step: validated_step}) do
+      {:ok, session} -> session
+      {:error, changeset} -> raise "failed to update session: #{inspect(changeset.errors)}"
+    end
+  end
+
+  defp did_complete?(_scope, %Session{cart: %Cart{customer: %Customer{}}}, :contact), do: true
+  defp did_complete?(_scope, _session, :contact), do: false
+  defp did_complete?(_scope, _session, _step), do: false
+
   def update_session(%Scope{} = scope, %Session{} = session, attrs) do
     session = Repo.preload(session, :cart)
     ensure_authorized!(scope, session.cart)
