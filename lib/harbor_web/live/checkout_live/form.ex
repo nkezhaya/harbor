@@ -5,7 +5,10 @@ defmodule HarborWeb.CheckoutLive.Form do
   use HarborWeb, :live_view
   import HarborWeb.CheckoutComponents
 
+  alias Harbor.Accounts.Scope
   alias Harbor.Checkout
+  alias Harbor.Customers
+  alias Harbor.Customers.Customer
 
   @impl true
   def render(assigns) do
@@ -48,12 +51,7 @@ defmodule HarborWeb.CheckoutLive.Form do
             >
               <:summary>{@current_scope.customer.email}</:summary>
               <:body>
-                <.live_component
-                  module={__MODULE__.ContactStep}
-                  id="contact-step"
-                  current_scope={@current_scope}
-                  next_step={next_step_for(@steps, :contact)}
-                />
+                <.contact_step form={@contact_form} />
               </:body>
             </.step>
             <.step
@@ -64,11 +62,7 @@ defmodule HarborWeb.CheckoutLive.Form do
             >
               <:summary>123 Market Street, Springfield</:summary>
               <:body>
-                <.live_component
-                  module={__MODULE__.ShippingStep}
-                  id="shipping-step"
-                  next_step={next_step_for(@steps, :shipping)}
-                />
+                <.shipping_step />
               </:body>
             </.step>
             <.step
@@ -78,11 +72,7 @@ defmodule HarborWeb.CheckoutLive.Form do
             >
               <:summary>Standard delivery</:summary>
               <:body>
-                <.live_component
-                  module={__MODULE__.DeliveryStep}
-                  id="delivery-step"
-                  next_step={next_step_for(@steps, :delivery)}
-                />
+                <.delivery_step next_step={next_step_for(@steps, :delivery)} />
               </:body>
             </.step>
             <.step
@@ -93,11 +83,7 @@ defmodule HarborWeb.CheckoutLive.Form do
             >
               <:summary>•••• •••• •••• 4242</:summary>
               <:body>
-                <.live_component
-                  module={__MODULE__.PaymentStep}
-                  id="payment-step"
-                  next_step={next_step_for(@steps, :payment)}
-                />
+                <.payment_step />
               </:body>
             </.step>
             <.step
@@ -107,7 +93,7 @@ defmodule HarborWeb.CheckoutLive.Form do
             >
               <:summary>Ready to confirm</:summary>
               <:body>
-                <.live_component module={__MODULE__.ReviewStep} id="review-step" />
+                <.review_step />
               </:body>
             </.step>
           </div>
@@ -134,6 +120,7 @@ defmodule HarborWeb.CheckoutLive.Form do
     payment_required? = pricing.total_price > 0
     steps = checkout_steps(contact_required?, shipping_required?, payment_required?)
     current_step = List.first(steps)
+    contact_form = contact_form(current_scope)
 
     {:ok,
      assign(socket,
@@ -145,7 +132,8 @@ defmodule HarborWeb.CheckoutLive.Form do
        current_step: current_step,
        contact_required?: contact_required?,
        shipping_required?: shipping_required?,
-       payment_required?: payment_required?
+       payment_required?: payment_required?,
+       contact_form: contact_form
      )}
   end
 
@@ -156,22 +144,137 @@ defmodule HarborWeb.CheckoutLive.Form do
     {:noreply, assign(socket, :current_step, next_step || socket.assigns.current_step)}
   end
 
-  @impl true
-  def handle_info({:step_continue, params, next_step}, %{assigns: assigns} = socket) do
-    %{current_scope: current_scope, session: session} = assigns
+  def handle_event("contact_submit", %{"customer" => customer_params}, socket) do
+    scope = socket.assigns.current_scope
 
-    case Checkout.update_session(current_scope, session, params) do
-      {:ok, session} ->
+    case Customers.save_customer_profile(scope, customer_params) do
+      {:ok, customer} ->
+        scope = %{scope | customer: customer}
+
         {:noreply,
-         assign(socket,
-           session: session,
-           pricing: Checkout.build_pricing(session),
-           current_step: next_step
-         )}
+         socket
+         |> assign(:current_scope, scope)
+         |> assign(:contact_form, contact_form(scope))
+         |> put_next_step(:contact)}
 
-      {:error, _reason} ->
-        {:noreply, put_flash(socket, :error, "Unable to update checkout for this step.")}
+      {:error, changeset} ->
+        {:noreply, assign(socket, :contact_form, to_form(changeset))}
     end
+  end
+
+  def handle_event("shipping_submit", _params, socket) do
+    {:noreply, put_next_step(socket, :shipping)}
+  end
+
+  def handle_event("delivery_submit", _params, socket) do
+    {:noreply, put_next_step(socket, :delivery)}
+  end
+
+  def handle_event("payment_submit", _params, socket) do
+    {:noreply, put_next_step(socket, :payment)}
+  end
+
+  def handle_event("review_submit", _params, socket) do
+    {:noreply, socket}
+  end
+
+  attr :form, :any, required: true
+
+  defp contact_step(assigns) do
+    ~H"""
+    <div>
+      <.form for={@form} id="customer-form" class="space-y-4" phx-submit="contact_submit">
+        <.input field={@form[:email]} type="email" label="Email address" autocomplete="email" />
+
+        <.continue_button>Continue</.continue_button>
+      </.form>
+    </div>
+    """
+  end
+
+  attr :form, :any, default: nil
+
+  defp shipping_step(assigns) do
+    assigns = assign_new(assigns, :form, fn -> to_form(%{}) end)
+
+    ~H"""
+    <div>
+      <.form
+        for={@form}
+        id="shipping-form"
+        class="space-y-4"
+        phx-submit="shipping_submit"
+      >
+        <p class="text-sm text-gray-700">Shipping form placeholder content.</p>
+
+        <.continue_button id="shipping-continue">Continue to delivery</.continue_button>
+      </.form>
+    </div>
+    """
+  end
+
+  attr :form, :any, default: nil
+  attr :next_step, :atom, default: :payment
+
+  defp delivery_step(assigns) do
+    assigns = assign_new(assigns, :form, fn -> to_form(%{}) end)
+
+    ~H"""
+    <div>
+      <.form
+        for={@form}
+        id="delivery-form"
+        class="space-y-4"
+        phx-submit="delivery_submit"
+      >
+        <p class="text-sm text-gray-700">Delivery options placeholder content.</p>
+
+        <.continue_button id="delivery-continue">Continue to {@next_step}</.continue_button>
+      </.form>
+    </div>
+    """
+  end
+
+  attr :form, :any, default: nil
+
+  defp payment_step(assigns) do
+    assigns = assign_new(assigns, :form, fn -> to_form(%{}) end)
+
+    ~H"""
+    <div>
+      <.form
+        for={@form}
+        id="payment-form"
+        class="space-y-4"
+        phx-submit="payment_submit"
+      >
+        <p class="text-sm text-gray-700">Payment form placeholder content.</p>
+
+        <.continue_button id="payment-continue">Continue to review</.continue_button>
+      </.form>
+    </div>
+    """
+  end
+
+  attr :form, :any, default: nil
+
+  defp review_step(assigns) do
+    assigns = assign_new(assigns, :form, fn -> to_form(%{}) end)
+
+    ~H"""
+    <div>
+      <.form
+        for={@form}
+        id="review-form"
+        class="space-y-4"
+        phx-submit="review_submit"
+      >
+        <p class="text-sm text-gray-700">Order review placeholder content.</p>
+
+        <.continue_button id="review-continue">Place order</.continue_button>
+      </.form>
+    </div>
+    """
   end
 
   defp step_status(steps, current_step, target_step) do
@@ -182,6 +285,13 @@ defmodule HarborWeb.CheckoutLive.Form do
       target_idx == current_idx -> :current
       target_idx < current_idx -> :complete
       true -> :upcoming
+    end
+  end
+
+  defp put_next_step(socket, step) do
+    case next_step_for(socket.assigns.steps, step) do
+      nil -> socket
+      next_step -> assign(socket, :current_step, next_step)
     end
   end
 
@@ -213,5 +323,13 @@ defmodule HarborWeb.CheckoutLive.Form do
       end
 
     steps ++ [:review]
+  end
+
+  defp contact_form(%Scope{} = scope) do
+    customer = scope.customer || %Customer{}
+
+    customer
+    |> Customer.changeset(%{}, scope)
+    |> to_form()
   end
 end
