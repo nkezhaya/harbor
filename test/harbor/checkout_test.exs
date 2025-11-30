@@ -188,6 +188,59 @@ defmodule Harbor.CheckoutTest do
     end
   end
 
+  describe "checkout_steps/3" do
+    test "includes contact, shipping, and payment when required", %{scope: scope, cart: cart} do
+      variant = variant_fixture()
+      cart_item_fixture(cart, %{variant_id: variant.id})
+      session = Checkout.find_or_create_active_session(scope, cart)
+      pricing = Checkout.build_pricing(session)
+
+      assert Checkout.checkout_steps(scope, session, pricing) ==
+               [:contact, :shipping, :delivery, :payment, :review]
+    end
+
+    test "omits optional steps when not required" do
+      scope = user_scope_fixture()
+      cart = cart_fixture(scope)
+
+      variant =
+        variant_fixture(%{
+          physical_product: false,
+          variants: [
+            %{
+              sku: "sku-#{System.unique_integer()}",
+              price: 0,
+              inventory_policy: :track_strict,
+              quantity_available: 10,
+              enabled: true
+            }
+          ]
+        })
+
+      cart_item_fixture(cart, %{variant_id: variant.id})
+      session = Checkout.find_or_create_active_session(scope, cart)
+      pricing = Checkout.build_pricing(session)
+
+      assert Checkout.checkout_steps(scope, session, pricing) == [:review]
+    end
+  end
+
+  describe "ensure_valid_current_step!/3" do
+    test "rewinds to the first incomplete step and persists it", %{scope: scope, cart: cart} do
+      variant = variant_fixture()
+      cart_item_fixture(cart, %{variant_id: variant.id})
+      session = Checkout.find_or_create_active_session(scope, cart)
+      pricing = Checkout.build_pricing(session)
+      steps = Checkout.checkout_steps(scope, session, pricing)
+      {:ok, session} = Checkout.update_session(scope, session, %{current_step: :review})
+
+      updated = Checkout.ensure_valid_current_step!(scope, session, steps)
+
+      assert updated.current_step == :contact
+      assert Repo.get!(Session, session.id).current_step == :contact
+    end
+  end
+
   describe "get_cart_item!/1" do
     test "returns the cart_item with given id", %{cart_item: cart_item} do
       assert Checkout.get_cart_item!(cart_item.id) == cart_item

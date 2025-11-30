@@ -269,6 +269,15 @@ defmodule Harbor.Checkout do
     |> preload_session()
   end
 
+  @doc """
+  Computes the ordered checkout steps for the given scope, session, and pricing.
+
+  - Adds `:contact` when the scope is not authenticated.
+  - Adds `:shipping` and `:delivery` when any cart item is a physical product.
+  - Adds `:payment` when the order total is greater than zero.
+  - Always appends `:review` as the final step.
+  """
+  @spec checkout_steps(Scope.t(), Session.t(), Pricing.t()) :: [atom()]
   def checkout_steps(%Scope{} = scope, %Session{} = session, %Pricing{} = pricing) do
     steps =
       if scope.authenticated? do
@@ -294,6 +303,14 @@ defmodule Harbor.Checkout do
     steps ++ [:review]
   end
 
+  @doc """
+  Normalizes the session's `current_step` against the provided steps.
+
+  If the current step is invalid, it is set to the first step. If any prior step
+  has not been completed, the current step is rewound to the first incomplete
+  step. Expects a non-empty `steps` list and raises when persisting the updated
+  step fails.
+  """
   def ensure_valid_current_step!(%Scope{} = scope, %Session{} = session, [first | _] = steps) do
     validated_step =
       cond do
@@ -313,8 +330,11 @@ defmodule Harbor.Checkout do
       end
 
     case update_session(scope, session, %{current_step: validated_step}) do
-      {:ok, session} -> session
-      {:error, changeset} -> raise "failed to update session: #{inspect(changeset.errors)}"
+      {:ok, session} ->
+        session
+
+      {:error, changeset} ->
+        raise ArgumentError, "failed to update session: #{inspect(changeset.errors)}"
     end
   end
 
@@ -322,6 +342,13 @@ defmodule Harbor.Checkout do
   defp did_complete?(_scope, _session, :contact), do: false
   defp did_complete?(_scope, _session, _step), do: false
 
+  @doc """
+  Updates a checkout session when the given scope owns the backing cart.
+
+  Preloads associations on success and returns `{:ok, session}` or
+  `{:error, changeset}`. Raises `Harbor.UnauthorizedError` when the scope does
+  not own the cart.
+  """
   def update_session(%Scope{} = scope, %Session{} = session, attrs) do
     session = Repo.preload(session, :cart)
     ensure_authorized!(scope, session.cart)
