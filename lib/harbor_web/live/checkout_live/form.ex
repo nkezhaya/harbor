@@ -103,81 +103,6 @@ defmodule HarborWeb.CheckoutLive.Form do
     """
   end
 
-  @impl true
-  def mount(_params, _session, %{assigns: %{cart: nil}} = socket) do
-    {:ok,
-     socket
-     |> put_flash(:info, "No cart found.")
-     |> push_navigate(to: ~p"/products")}
-  end
-
-  def mount(_params, _session, %{assigns: assigns} = socket) do
-    %{current_scope: current_scope, cart: cart} = assigns
-    session = Checkout.find_or_create_active_session(current_scope, cart)
-    pricing = Checkout.build_pricing(session)
-    contact_required? = not current_scope.authenticated?
-    shipping_required? = Enum.any?(cart.items, & &1.variant.product.physical_product)
-    payment_required? = pricing.total_price > 0
-    steps = checkout_steps(contact_required?, shipping_required?, payment_required?)
-    current_step = List.first(steps)
-    contact_form = contact_form(current_scope)
-
-    {:ok,
-     assign(socket,
-       current_scope: current_scope,
-       cart: cart,
-       session: session,
-       pricing: pricing,
-       steps: steps,
-       current_step: current_step,
-       contact_required?: contact_required?,
-       shipping_required?: shipping_required?,
-       payment_required?: payment_required?,
-       contact_form: contact_form
-     )}
-  end
-
-  @impl true
-  def handle_event("put_step", %{"step" => step_param}, socket) do
-    next_step = Enum.find(socket.assigns.steps, &(Atom.to_string(&1) == step_param))
-
-    {:noreply, assign(socket, :current_step, next_step || socket.assigns.current_step)}
-  end
-
-  def handle_event("contact_submit", %{"customer" => customer_params}, socket) do
-    scope = socket.assigns.current_scope
-
-    case Customers.save_customer_profile(scope, customer_params) do
-      {:ok, customer} ->
-        scope = %{scope | customer: customer}
-
-        {:noreply,
-         socket
-         |> assign(:current_scope, scope)
-         |> assign(:contact_form, contact_form(scope))
-         |> put_next_step(:contact)}
-
-      {:error, changeset} ->
-        {:noreply, assign(socket, :contact_form, to_form(changeset))}
-    end
-  end
-
-  def handle_event("shipping_submit", _params, socket) do
-    {:noreply, put_next_step(socket, :shipping)}
-  end
-
-  def handle_event("delivery_submit", _params, socket) do
-    {:noreply, put_next_step(socket, :delivery)}
-  end
-
-  def handle_event("payment_submit", _params, socket) do
-    {:noreply, put_next_step(socket, :payment)}
-  end
-
-  def handle_event("review_submit", _params, socket) do
-    {:noreply, socket}
-  end
-
   attr :form, :any, required: true
 
   defp contact_step(assigns) do
@@ -275,6 +200,81 @@ defmodule HarborWeb.CheckoutLive.Form do
       </.form>
     </div>
     """
+  end
+
+  @impl true
+  def mount(_params, _session, %{assigns: %{cart: nil}} = socket) do
+    {:ok,
+     socket
+     |> put_flash(:info, "No cart found.")
+     |> push_navigate(to: ~p"/products")}
+  end
+
+  def mount(_params, _session, %{assigns: assigns} = socket) do
+    %{current_scope: current_scope, cart: cart} = assigns
+    session = Checkout.find_or_create_active_session(current_scope, cart)
+    pricing = Checkout.build_pricing(session)
+    contact_required? = not current_scope.authenticated?
+    shipping_required? = Enum.any?(cart.items, & &1.variant.product.physical_product)
+    payment_required? = pricing.total_price > 0
+    steps = checkout_steps(contact_required?, shipping_required?, payment_required?)
+    current_step = List.first(steps)
+    contact_form = contact_form(current_scope)
+
+    {:ok,
+     assign(socket,
+       current_scope: current_scope,
+       cart: cart,
+       session: session,
+       pricing: pricing,
+       steps: steps,
+       current_step: current_step,
+       contact_required?: contact_required?,
+       shipping_required?: shipping_required?,
+       payment_required?: payment_required?,
+       contact_form: contact_form
+     )}
+  end
+
+  @impl true
+  def handle_event("put_step", %{"step" => step_param}, socket) do
+    next_step = Enum.find(socket.assigns.steps, &(Atom.to_string(&1) == step_param))
+
+    {:noreply, assign(socket, :current_step, next_step || socket.assigns.current_step)}
+  end
+
+  def handle_event("contact_submit", %{"customer" => customer_params}, socket) do
+    scope = socket.assigns.current_scope
+
+    case Customers.save_customer_profile(scope, customer_params) do
+      {:ok, customer} ->
+        scope = %{scope | customer: customer}
+
+        {:noreply,
+         socket
+         |> assign(:current_scope, scope)
+         |> assign(:contact_form, contact_form(scope))
+         |> put_next_step(:contact)}
+
+      {:error, changeset} ->
+        {:noreply, assign(socket, :contact_form, to_form(changeset))}
+    end
+  end
+
+  def handle_event("shipping_submit", _params, socket) do
+    {:noreply, put_next_step(socket, :shipping)}
+  end
+
+  def handle_event("delivery_submit", _params, socket) do
+    {:noreply, put_next_step(socket, :delivery)}
+  end
+
+  def handle_event("payment_submit", _params, socket) do
+    {:noreply, put_next_step(socket, :payment)}
+  end
+
+  def handle_event("review_submit", _params, socket) do
+    {:noreply, socket}
   end
 
   defp step_status(steps, current_step, target_step) do
