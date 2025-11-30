@@ -12,11 +12,14 @@ defmodule Harbor.Checkout.Session do
   alias Harbor.Tax.Calculation
 
   @type t() :: %__MODULE__{}
+  @current_step_values [:contact, :shipping, :delivery, :payment, :review]
 
   schema "checkout_sessions" do
     field :status, Ecto.Enum,
       values: [:active, :abandoned, :completed, :expired],
       default: :active
+
+    field :current_step, Ecto.Enum, values: @current_step_values
 
     field :payment_method_ref, :string
     field :last_touched_at, :utc_datetime_usec
@@ -39,6 +42,7 @@ defmodule Harbor.Checkout.Session do
     session
     |> cast(attrs, [
       :status,
+      :current_step,
       :payment_intent_id,
       :payment_method_ref,
       :expires_at,
@@ -49,6 +53,7 @@ defmodule Harbor.Checkout.Session do
     ])
     |> put_new_expiration()
     |> validate_required([:status, :cart_id])
+    |> check_constraint(:current_step, name: :check_current_step)
   end
 
   @doc false
@@ -68,4 +73,6 @@ defmodule Harbor.Checkout.Session do
       _ -> changeset
     end
   end
+
+  def current_step_values, do: @current_step_values
 end

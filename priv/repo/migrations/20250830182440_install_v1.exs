@@ -462,6 +462,7 @@ defmodule Harbor.Repo.Migrations.InstallV1 do
       add :cart_id, references(:carts, on_delete: :delete_all), null: false
       add :order_id, references(:orders, on_delete: :delete_all), null: true
       add :status, :string, null: false, default: "active"
+      add :current_step, :string
       add :last_touched_at, :timestamptz
       add :expires_at, :timestamptz, null: false
 
@@ -482,6 +483,11 @@ defmodule Harbor.Repo.Migrations.InstallV1 do
 
     create constraint(:checkout_sessions, :check_status,
              check: "status in ('active', 'abandoned', 'completed', 'expired')"
+           )
+
+    create constraint(:checkout_sessions, :check_current_step,
+             check:
+               "current_step IS NULL OR current_step in ('contact', 'shipping', 'delivery', 'payment', 'review')"
            )
 
     ## Tax Calculations
