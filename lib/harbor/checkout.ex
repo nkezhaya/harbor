@@ -271,10 +271,10 @@ defmodule Harbor.Checkout do
 
   def checkout_steps(%Scope{} = scope, %Session{} = session, %Pricing{} = pricing) do
     steps =
-      if not scope.authenticated? do
-        [:contact]
-      else
+      if scope.authenticated? do
         []
+      else
+        [:contact]
       end
 
     steps =
