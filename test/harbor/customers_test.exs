@@ -1,6 +1,5 @@
 defmodule Harbor.CustomersTest do
   use Harbor.DataCase, async: true
-  use Oban.Testing, repo: Harbor.Repo
 
   import Harbor.AccountsFixtures
   import Harbor.CustomersFixtures
