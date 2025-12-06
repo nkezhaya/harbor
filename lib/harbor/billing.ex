@@ -25,14 +25,15 @@ defmodule Harbor.Billing do
         case PaymentProvider.create_payment_profile(params) do
           {:ok, %{id: provider_ref}} ->
             attrs = %{provider: Config.payment_provider(), provider_ref: provider_ref}
-            insert_payment_profile!(scope, attrs)
+            profile = insert_payment_profile!(scope, attrs)
+            {:ok, profile}
 
           {:error, _} = error ->
             error
         end
 
       profile ->
-        profile
+        {:ok, profile}
     end
   end
 

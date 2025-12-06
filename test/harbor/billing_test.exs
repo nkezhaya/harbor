@@ -20,7 +20,7 @@ defmodule Harbor.BillingTest do
         {:ok, %{id: "cust_mock"}}
       end)
 
-      profile = Billing.find_or_create_payment_profile(scope)
+      {:ok, profile} = Billing.find_or_create_payment_profile(scope)
 
       assert profile.provider == Config.payment_provider()
       assert profile.provider_ref == "cust_mock"
@@ -31,7 +31,7 @@ defmodule Harbor.BillingTest do
       scope = user_scope_fixture()
       profile = payment_profile_fixture(scope)
 
-      assert Billing.find_or_create_payment_profile(scope).id == profile.id
+      assert {:ok, ^profile} = Billing.find_or_create_payment_profile(scope)
     end
   end
 
