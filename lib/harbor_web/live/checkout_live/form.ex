@@ -7,7 +7,6 @@ defmodule HarborWeb.CheckoutLive.Form do
 
   alias Harbor.Accounts.Scope
   alias Harbor.Checkout
-  alias Harbor.Customers
   alias Harbor.Customers.Customer
 
   @impl true
@@ -49,7 +48,7 @@ defmodule HarborWeb.CheckoutLive.Form do
               label="Contact information"
               status={step_status(@steps, @session.current_step, :contact)}
             >
-              <:summary>{@current_scope.customer.email}</:summary>
+              <:summary>{@session.cart.customer.email}</:summary>
               <:body>
                 <.contact_step form={@contact_form} />
               </:body>
@@ -241,12 +240,11 @@ defmodule HarborWeb.CheckoutLive.Form do
   def handle_event("contact_submit", %{"customer" => customer_params}, socket) do
     scope = socket.assigns.current_scope
 
-    case Customers.save_customer_profile(scope, customer_params) do
-      {:ok, customer} ->
-        scope = %{scope | customer: customer}
-
+    case Checkout.complete_contact_step(scope, socket.assigns.session, customer_params) do
+      {:ok, session, scope} ->
         {:noreply,
          socket
+         |> assign(:session, session)
          |> assign(:current_scope, scope)
          |> assign(:contact_form, contact_form(scope))
          |> put_next_step(:contact)}

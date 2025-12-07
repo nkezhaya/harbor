@@ -55,8 +55,12 @@ defmodule Harbor.Checkout.Cart do
     change(changeset, %{last_touched_at: datetime, expires_at: expires_at})
   end
 
-  defp allowed_fields(%Scope{role: :superadmin}), do: [:customer_id, :session_token, :status]
+  defp allowed_fields(%Scope{role: role}) when role in [:superadmin, :system],
+    do: [:customer_id, :session_token, :status]
+
   defp allowed_fields(_scope), do: []
+
+  defp apply_scope(changeset, %Scope{role: :system}), do: changeset
 
   defp apply_scope(changeset, %Scope{customer: %Customer{id: customer_id}}) do
     change(changeset, %{customer_id: customer_id, session_token: nil})

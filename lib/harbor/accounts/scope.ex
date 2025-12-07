@@ -16,6 +16,7 @@ defmodule Harbor.Accounts.Scope do
   growing application requirements.
   """
   alias Harbor.Accounts.User
+  alias Harbor.Customers.Customer
   alias Harbor.Repo
 
   @type t() :: %__MODULE__{
@@ -46,6 +47,13 @@ defmodule Harbor.Accounts.Scope do
       end
 
     %__MODULE__{user: user, customer: customer, role: role, authenticated?: true}
+  end
+
+  @doc """
+  Attaches a customer to the scope.
+  """
+  def attach_customer(%__MODULE__{customer: nil} = scope, %Customer{} = customer) do
+    %{scope | customer: customer}
   end
 
   @doc false

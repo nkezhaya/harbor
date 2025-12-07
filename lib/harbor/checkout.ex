@@ -5,10 +5,10 @@ defmodule Harbor.Checkout do
   import Ecto.Query, warn: false
 
   alias Harbor.Accounts.{Scope, User}
-  alias Harbor.Checkout.{Cart, CartItem, Pricing, Session}
+  alias Harbor.Checkout.{Cart, CartItem, EnsurePaymentSetupWorker, Pricing, Session}
   alias Harbor.Customers.{Address, Customer}
+  alias Harbor.{Customers, Orders, Repo, Tax}
   alias Harbor.Orders.Order
-  alias Harbor.{Orders, Repo, Tax}
   alias Harbor.Shipping.DeliveryMethod
   alias Harbor.Tax.{Calculation, Request}
 
@@ -172,7 +172,7 @@ defmodule Harbor.Checkout do
     |> where([customer: customer], customer.user_id == ^user.id)
   end
 
-  defp ensure_authorized!(%Scope{role: :superadmin}, _cart), do: :ok
+  defp ensure_authorized!(%Scope{role: role}, _cart) when role in [:superadmin, :system], do: :ok
 
   defp ensure_authorized!(%Scope{customer: %Customer{id: customer_id}}, %Cart{
          customer_id: customer_id
@@ -267,6 +267,38 @@ defmodule Harbor.Checkout do
     session
     |> Repo.reload!()
     |> preload_session()
+  end
+
+  @doc """
+  Completes the contact step by saving the customer profile and enqueueing
+  payment profile setup work.
+
+  Returns `{:ok, session, scope}` with the updated scope containing the saved
+  customer, or `{:error, changeset}` when validation fails.
+  """
+  @spec complete_contact_step(Scope.t(), Session.t(), map()) ::
+          {:ok, Session.t(), Scope.t()} | {:error, Ecto.Changeset.t()} | {:error, term()}
+  def complete_contact_step(%Scope{} = scope, %Session{} = session, params) when is_map(params) do
+    Repo.transact(fn ->
+      with {:ok, customer} <- Customers.save_customer_profile(scope, params),
+           {:ok, _cart} <-
+             update_cart(Scope.for_system(), session.cart, %{customer_id: customer.id}) do
+        scope = Scope.attach_customer(scope, customer)
+        enqueue_payment_setup(customer.id, session.id)
+
+        {:ok, {session, scope}}
+      end
+    end)
+    |> case do
+      {:ok, {session, scope}} -> {:ok, session, scope}
+      error -> error
+    end
+  end
+
+  defp enqueue_payment_setup(customer_id, checkout_session_id) do
+    %{"customer_id" => customer_id, "checkout_session_id" => checkout_session_id}
+    |> EnsurePaymentSetupWorker.new()
+    |> Oban.insert()
   end
 
   @doc """

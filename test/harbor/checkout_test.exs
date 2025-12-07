@@ -14,7 +14,7 @@ defmodule Harbor.CheckoutTest do
 
   alias Harbor.Accounts.Scope
   alias Harbor.{Checkout, Repo}
-  alias Harbor.Checkout.{Cart, CartItem, Session}
+  alias Harbor.Checkout.{Cart, CartItem, EnsurePaymentSetupWorker, Session}
   alias Harbor.Orders.Order
 
   setup do
@@ -185,6 +185,46 @@ defmodule Harbor.CheckoutTest do
       assert_raise Harbor.UnauthorizedError, fn ->
         Checkout.update_session(other_scope, session, %{status: :completed})
       end
+    end
+  end
+
+  describe "complete_contact_step/3" do
+    test "saves the customer, enqueues payment profile setup, and returns updated scope and session" do
+      scope = guest_scope_fixture(customer: false)
+      cart = cart_fixture(scope)
+      session = Checkout.find_or_create_active_session(scope, cart)
+
+      params = %{
+        "email" => "contact@example.com",
+        "first_name" => "Jane",
+        "last_name" => "Doe",
+        "phone" => "555-0100"
+      }
+
+      assert {:ok, session, updated_scope} =
+               Checkout.complete_contact_step(scope, session, params)
+
+      assert updated_scope.customer.email == "contact@example.com"
+      assert session.id
+
+      assert_enqueued(
+        worker: EnsurePaymentSetupWorker,
+        args: %{
+          "customer_id" => updated_scope.customer.id,
+          "checkout_session_id" => session.id
+        }
+      )
+    end
+
+    test "returns a changeset when validation fails" do
+      scope = guest_scope_fixture(customer: false)
+      cart = cart_fixture(scope)
+      session = Checkout.find_or_create_active_session(scope, cart)
+
+      assert {:error, %Ecto.Changeset{}} =
+               Checkout.complete_contact_step(scope, session, %{"email" => nil})
+
+      refute_enqueued(worker: EnsurePaymentSetupWorker)
     end
   end
 
