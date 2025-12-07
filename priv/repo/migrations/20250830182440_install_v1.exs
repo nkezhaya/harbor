@@ -472,7 +472,6 @@ defmodule Harbor.Repo.Migrations.InstallV1 do
 
       # payments
       add :payment_intent_id, references(:payment_intents, on_delete: :nilify_all)
-      add :payment_method_ref, :string
 
       timestamps()
     end

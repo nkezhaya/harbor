@@ -21,7 +21,6 @@ defmodule Harbor.Checkout.Session do
 
     field :current_step, Ecto.Enum, values: @current_step_values
 
-    field :payment_method_ref, :string
     field :last_touched_at, :utc_datetime_usec
     field :expires_at, :utc_datetime_usec
     field :current_tax_calculation, :map, virtual: true
@@ -44,7 +43,6 @@ defmodule Harbor.Checkout.Session do
       :status,
       :current_step,
       :payment_intent_id,
-      :payment_method_ref,
       :expires_at,
       :cart_id,
       :billing_address_id,
