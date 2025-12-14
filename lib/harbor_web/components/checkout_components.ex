@@ -11,17 +11,18 @@ defmodule HarborWeb.CheckoutComponents do
   import Harbor.Util, only: [formatted_price: 1]
 
   alias Harbor.Catalog.Variant
-  alias Harbor.Checkout.{Cart, CartItem, Pricing}
+  alias Harbor.Checkout.Pricing
+  alias Harbor.Orders.{Order, OrderItem}
   alias HarborWeb.CartComponents
 
   @doc """
   Renders the desktop order summary sidebar for a checkout session.
 
-  Expects a [Cart](`Harbor.Checkout.Cart`) with items and a
+  Expects an [Order](`Harbor.Orders.Order`) with items and a
   [Pricing](`Harbor.Checkout.Pricing`) summary so that totals can be displayed
   alongside product details.
   """
-  attr :cart, Cart, required: true
+  attr :order, Order, required: true
   attr :pricing, Pricing, required: true
 
   def order_summary(assigns) do
@@ -33,7 +34,7 @@ defmodule HarborWeb.CheckoutComponents do
       <h2 id="summary-heading" class="sr-only">Order summary</h2>
 
       <ul role="list" class="flex-auto divide-y divide-gray-200 overflow-y-auto px-6">
-        <.cart_item :for={item <- @cart.items} item={item} class="flex space-x-6 py-6" />
+        <.order_item :for={item <- @order.items} item={item} class="flex space-x-6 py-6" />
       </ul>
 
       <div class="sticky bottom-0 flex-none border-t border-gray-200 bg-gray-50 p-6">
@@ -61,17 +62,17 @@ defmodule HarborWeb.CheckoutComponents do
   end
 
   @doc """
-  Renders a single cart item within the order summary list.
+  Renders a single order item within the order summary list.
 
   The component relies on the associated variant and product data being
   preloaded so image, description, and pricing details render without extra
   queries. An optional `:class` attribute can be provided to tweak layout
   styling from the call site.
   """
-  attr :item, CartItem, required: true
+  attr :item, OrderItem, required: true
   attr :class, :string
 
-  def cart_item(assigns) do
+  def order_item(assigns) do
     ~H"""
     <li class={@class}>
       <CartComponents.variant_image
@@ -83,25 +84,9 @@ defmodule HarborWeb.CheckoutComponents do
       <div class="flex flex-col justify-between space-y-4">
         <div class="space-y-1 text-sm font-medium">
           <h3 class="text-gray-900">{@item.variant.product.name}</h3>
-          <p class="text-gray-900">{formatted_price(@item.variant.price * @item.quantity)}</p>
+          <p class="text-gray-900">{formatted_price(@item.price * @item.quantity)}</p>
           <p class="text-gray-500">{Variant.description(@item.variant)}</p>
           <p class="text-gray-500">Qty: {@item.quantity}</p>
-        </div>
-        <div class="flex space-x-4">
-          <button
-            type="button"
-            class="text-sm font-medium text-indigo-600 hover:text-indigo-500"
-          >
-            Edit
-          </button>
-          <div class="flex border-l border-gray-300 pl-4">
-            <button
-              type="button"
-              class="text-sm font-medium text-indigo-600 hover:text-indigo-500"
-            >
-              Remove
-            </button>
-          </div>
         </div>
       </div>
     </li>

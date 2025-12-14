@@ -9,6 +9,7 @@ defmodule Harbor.Checkout.EnsurePaymentSetupWorkerTest do
   alias Harbor.{Billing, Checkout, Repo}
   alias Harbor.Billing.{PaymentIntent, PaymentProviderMock}
   alias Harbor.Checkout.{EnsurePaymentSetupWorker, Session}
+  alias Harbor.Orders.Order
 
   setup :verify_on_exit!
 
@@ -33,7 +34,7 @@ defmodule Harbor.Checkout.EnsurePaymentSetupWorkerTest do
     cart = cart_fixture(scope)
     variant = variant_fixture()
     cart_item_fixture(cart, %{variant_id: variant.id})
-    session = Checkout.find_or_create_active_session(scope, cart)
+    session = Checkout.start_checkout(scope, cart)
     pricing = Checkout.build_pricing(session)
 
     expect(PaymentProviderMock, :create_payment_profile, fn %{email: email} ->
@@ -51,7 +52,7 @@ defmodule Harbor.Checkout.EnsurePaymentSetupWorkerTest do
 
       assert params.metadata == %{
                "checkout_session_id" => session.id,
-               "cart_id" => cart.id
+               "order_id" => session.order_id
              }
 
       assert opts == [idempotency_key: "checkout-session:#{session.id}"]
@@ -78,6 +79,7 @@ defmodule Harbor.Checkout.EnsurePaymentSetupWorkerTest do
     assert intent.payment_profile_id == payment_profile.id
 
     session = Repo.get!(Session, session.id)
-    assert session.payment_intent_id == intent.id
+    order = Repo.get!(Order, session.order_id)
+    assert order.payment_intent_id == intent.id
   end
 end

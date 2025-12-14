@@ -26,7 +26,7 @@ defmodule HarborWeb.CartLive.ShowTest do
     assert has_element?(view, "#cart-item-#{cart_item.id}", product_name)
     assert render(view) =~ Util.formatted_price(variant.price)
     assert render(view) =~ Util.formatted_price(variant.price * cart_item.quantity)
-    assert has_element?(view, ~S(a[href="/checkout"]), "Checkout")
+    assert has_element?(view, ~S(button[phx-click="checkout"]), "Checkout")
     assert render(view) =~ "Shipping estimate"
     assert render(view) =~ "Calculated at checkout"
   end
@@ -61,7 +61,7 @@ defmodule HarborWeb.CartLive.ShowTest do
     |> render_click()
 
     refute has_element?(view, "#cart-item-#{cart_item.id}")
-    refute has_element?(view, "a[href=\"/checkout\"]")
+    refute has_element?(view, ~S(button[phx-click="checkout"]))
     assert render(view) =~ "Your cart is empty"
   end
 end

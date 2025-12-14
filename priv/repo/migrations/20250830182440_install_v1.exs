@@ -304,7 +304,11 @@ defmodule Harbor.Repo.Migrations.InstallV1 do
       add :status, :string, null: false, default: "pending"
       add :number, :string, null: false
       add :customer_id, references(:customers)
-      add :email, :string, null: false
+      add :email, :string
+
+      add :billing_address_id, references(:addresses, on_delete: :nilify_all)
+      add :shipping_address_id, references(:addresses, on_delete: :nilify_all)
+      add :delivery_method_id, references(:delivery_methods, on_delete: :nilify_all)
 
       add :address_name, :string
       add :address_line1, :string
@@ -315,7 +319,7 @@ defmodule Harbor.Repo.Migrations.InstallV1 do
       add :address_country, :string
       add :address_phone, :string
 
-      add :delivery_method_name, :string, null: false
+      add :delivery_method_name, :string
 
       add :subtotal, :integer, null: false
       add :tax, :integer, null: false
@@ -332,7 +336,7 @@ defmodule Harbor.Repo.Migrations.InstallV1 do
     create unique_index(:orders, [:number])
 
     create constraint(:orders, :check_status,
-             check: "status in ('pending', 'paid', 'shipped', 'delivered', 'canceled')"
+             check: "status in ('draft', 'pending', 'paid', 'shipped', 'delivered', 'canceled')"
            )
 
     create constraint(:orders, :subtotal_gte_zero, check: "subtotal >= 0")
@@ -386,6 +390,12 @@ defmodule Harbor.Repo.Migrations.InstallV1 do
     create constraint(:carts, :carts_check_status,
              check: "status in ('active', 'merged', 'expired')"
            )
+
+    alter table(:orders) do
+      add :cart_id, references(:carts, on_delete: :nilify_all)
+    end
+
+    create index(:orders, [:cart_id])
 
     ## Cart items
 
@@ -455,29 +465,24 @@ defmodule Harbor.Repo.Migrations.InstallV1 do
     create unique_index(:payment_intents, [:provider, :provider_ref])
     create index(:payment_intents, [:payment_profile_id])
 
+    alter table(:orders) do
+      add :payment_intent_id, references(:payment_intents, on_delete: :nilify_all)
+    end
+
     ## Checkout sessions
 
     create table(:checkout_sessions) do
       add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
-      add :cart_id, references(:carts, on_delete: :delete_all), null: false
-      add :order_id, references(:orders, on_delete: :delete_all), null: true
+      add :order_id, references(:orders, on_delete: :delete_all), null: false
       add :status, :string, null: false, default: "active"
       add :current_step, :string
       add :last_touched_at, :timestamptz
       add :expires_at, :timestamptz, null: false
 
-      add :billing_address_id, references(:addresses, on_delete: :nilify_all)
-      add :shipping_address_id, references(:addresses, on_delete: :nilify_all)
-      add :delivery_method_id, references(:delivery_methods, on_delete: :nilify_all)
-
-      # payments
-      add :payment_intent_id, references(:payment_intents, on_delete: :nilify_all)
-
       timestamps()
     end
 
-    create unique_index(:checkout_sessions, [:cart_id], where: "status = 'active'")
-    create unique_index(:checkout_sessions, [:order_id], where: "order_id IS NOT NULL")
+    create unique_index(:checkout_sessions, [:order_id], where: "status = 'active'")
     create index(:checkout_sessions, [:expires_at])
 
     create constraint(:checkout_sessions, :check_status,
@@ -494,10 +499,7 @@ defmodule Harbor.Repo.Migrations.InstallV1 do
     create table(:tax_calculations) do
       add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
       add :provider_ref, :string, null: false
-
-      add :checkout_session_id, references(:checkout_sessions, on_delete: :delete_all),
-        null: false
-
+      add :order_id, references(:orders, on_delete: :delete_all), null: false
       add :amount, :integer, null: false
       add :hash, :integer, null: false
 
@@ -505,14 +507,14 @@ defmodule Harbor.Repo.Migrations.InstallV1 do
     end
 
     create unique_index(:tax_calculations, [:provider_ref])
-    create unique_index(:tax_calculations, [:checkout_session_id, :hash])
+    create unique_index(:tax_calculations, [:order_id, :hash])
 
     ## Tax Calculation Line Items
 
     create table(:tax_calculation_line_items) do
       add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
       add :provider_ref, :string, null: false
-      add :cart_item_id, references(:cart_items, on_delete: :delete_all), null: false
+      add :order_item_id, references(:order_items, on_delete: :delete_all), null: false
       add :calculation_id, references(:tax_calculations, on_delete: :delete_all), null: false
       add :amount, :integer, null: false
     end

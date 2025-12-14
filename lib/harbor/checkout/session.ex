@@ -4,12 +4,7 @@ defmodule Harbor.Checkout.Session do
   """
   use Harbor.Schema
 
-  alias Harbor.Billing.PaymentIntent
-  alias Harbor.Checkout.Cart
-  alias Harbor.Customers.Address
   alias Harbor.Orders.Order
-  alias Harbor.Shipping.DeliveryMethod
-  alias Harbor.Tax.Calculation
 
   @type t() :: %__MODULE__{}
   @current_step_values [:contact, :shipping, :delivery, :payment, :review]
@@ -25,13 +20,7 @@ defmodule Harbor.Checkout.Session do
     field :expires_at, :utc_datetime_usec
     field :current_tax_calculation, :map, virtual: true
 
-    belongs_to :cart, Cart
     belongs_to :order, Order
-    belongs_to :billing_address, Address
-    belongs_to :shipping_address, Address
-    belongs_to :delivery_method, DeliveryMethod
-    belongs_to :payment_intent, PaymentIntent
-    has_many :tax_calculations, Calculation, foreign_key: :checkout_session_id
 
     timestamps()
   end
@@ -42,15 +31,10 @@ defmodule Harbor.Checkout.Session do
     |> cast(attrs, [
       :status,
       :current_step,
-      :payment_intent_id,
-      :expires_at,
-      :cart_id,
-      :billing_address_id,
-      :shipping_address_id,
-      :delivery_method_id
+      :expires_at
     ])
     |> put_new_expiration()
-    |> validate_required([:status, :cart_id])
+    |> validate_required([:status, :order_id])
     |> check_constraint(:current_step, name: :check_current_step)
   end
 
@@ -61,8 +45,8 @@ defmodule Harbor.Checkout.Session do
   end
 
   @doc false
-  def order_changeset(session, order) do
-    change(session, %{order_id: order.id, status: :completed})
+  def completed_changeset(session) do
+    change(session, %{status: :completed})
   end
 
   defp put_new_expiration(changeset) do

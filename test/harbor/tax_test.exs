@@ -3,8 +3,7 @@ defmodule Harbor.TaxTest do
 
   import Harbor.{CatalogFixtures, CheckoutFixtures, CustomersFixtures, TaxFixtures}
 
-  alias Harbor.Checkout.Session
-  alias Harbor.{Repo, Tax}
+  alias Harbor.{Checkout, Repo, Tax}
   alias Harbor.Tax.Calculation
 
   describe "list_tax_codes/0" do
@@ -21,14 +20,7 @@ defmodule Harbor.TaxTest do
       scope = guest_scope_fixture(customer: false)
       cart = cart_fixture(scope)
       cart_item = cart_item_fixture(cart, %{variant_id: variant.id, quantity: 1})
-
-      session =
-        %Session{}
-        |> Session.changeset(%{
-          cart_id: cart.id,
-          expires_at: DateTime.add(DateTime.utc_now(), 3600, :second)
-        })
-        |> Repo.insert!()
+      session = Checkout.start_checkout(scope, cart)
 
       %{session: session, cart_item: cart_item}
     end
@@ -36,7 +28,7 @@ defmodule Harbor.TaxTest do
     test "returns existing calculation when one already exists", %{session: session} do
       attrs = %{
         provider_ref: "calc_123",
-        checkout_session_id: session.id,
+        order_id: session.order_id,
         amount: 1_000,
         hash: 123
       }

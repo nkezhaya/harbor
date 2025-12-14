@@ -5,18 +5,27 @@ defmodule Harbor.Orders.Order do
   use Harbor.Schema
 
   alias Harbor.Accounts.Scope
+  alias Harbor.Billing.PaymentIntent
+  alias Harbor.Checkout.Cart
+  alias Harbor.Customers.Address
   alias Harbor.Customers.Customer
   alias Harbor.Orders.OrderItem
+  alias Harbor.Shipping.DeliveryMethod
 
   @type t() :: %__MODULE__{}
 
   schema "orders" do
     field :status, Ecto.Enum,
-      values: [:pending, :paid, :shipped, :delivered, :canceled],
+      values: [:draft, :pending, :paid, :shipped, :delivered, :canceled],
       default: :pending
 
     field :number, :string
     field :email, :string
+
+    belongs_to :billing_address, Address
+    belongs_to :shipping_address, Address
+    belongs_to :delivery_method, DeliveryMethod
+    belongs_to :payment_intent, PaymentIntent
 
     # Snapshotted address fields
     field :address_name, :string
@@ -35,6 +44,7 @@ defmodule Harbor.Orders.Order do
     field :shipping_price, :integer, default: 0
     field :total_price, :integer, read_after_writes: true
 
+    belongs_to :cart, Cart
     belongs_to :customer, Customer
     has_many :items, OrderItem
 
@@ -45,6 +55,8 @@ defmodule Harbor.Orders.Order do
   def changeset(order, attrs, scope) do
     order
     |> cast(attrs, [
+      :customer_id,
+      :cart_id,
       :status,
       :number,
       :email,
@@ -61,14 +73,8 @@ defmodule Harbor.Orders.Order do
       :tax,
       :shipping_price
     ])
-    |> validate_required([
-      :status,
-      :email,
-      :delivery_method_name,
-      :subtotal,
-      :tax,
-      :shipping_price
-    ])
+    |> validate_required([:status, :subtotal, :tax, :shipping_price])
+    |> validate_required_unless_draft([:email])
     |> cast_assoc(:items)
     |> put_new_order_number()
     |> apply_scope(scope)
@@ -84,22 +90,10 @@ defmodule Harbor.Orders.Order do
     |> unique_constraint(:number)
   end
 
-  defp put_new_order_number(changeset) do
-    case get_field(changeset, :number) do
-      nil ->
-        digits = 9
-
-        n =
-          :crypto.strong_rand_bytes(16)
-          |> :binary.decode_unsigned()
-          |> rem(10 ** digits)
-
-        number = :io_lib.format("R~9..0B", [n]) |> IO.iodata_to_binary()
-
-        put_change(changeset, :number, number)
-
-      _ ->
-        changeset
+  defp validate_required_unless_draft(changeset, fields) do
+    case get_field(changeset, :status) do
+      :draft -> changeset
+      _ -> validate_required(changeset, fields)
     end
   end
 
@@ -112,5 +106,23 @@ defmodule Harbor.Orders.Order do
 
   defp apply_scope(_changeset, %Scope{}) do
     raise Harbor.UnauthorizedError
+  end
+
+  defp put_new_order_number(changeset) do
+    case get_field(changeset, :number) do
+      nil -> put_change(changeset, :number, random_order_number())
+      _ -> changeset
+    end
+  end
+
+  defp random_order_number do
+    digits = 9
+
+    n =
+      :crypto.strong_rand_bytes(16)
+      |> :binary.decode_unsigned()
+      |> rem(10 ** digits)
+
+    :io_lib.format("R~9..0B", [n]) |> IO.iodata_to_binary()
   end
 end

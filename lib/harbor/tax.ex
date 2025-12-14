@@ -47,12 +47,12 @@ defmodule Harbor.Tax do
   def create_calculation(attrs) do
     %Calculation{}
     |> Calculation.changeset(attrs)
-    |> Repo.insert(on_conflict: :nothing, conflict_target: [:checkout_session_id, :hash])
+    |> Repo.insert(on_conflict: :nothing, conflict_target: [:order_id, :hash])
     |> case do
       {:ok, %Calculation{id: nil} = calculation} ->
         calculation =
           Repo.get_by!(Calculation,
-            checkout_session_id: calculation.checkout_session_id,
+            order_id: calculation.order_id,
             hash: calculation.hash
           )
 
