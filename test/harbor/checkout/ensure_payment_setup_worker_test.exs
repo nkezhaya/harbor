@@ -13,29 +13,14 @@ defmodule Harbor.Checkout.EnsurePaymentSetupWorkerTest do
 
   setup :verify_on_exit!
 
-  test "creates a payment profile for the customer" do
-    scope = guest_scope_fixture()
-    customer = scope.customer
-    expected_email = customer.email
-
-    expect(PaymentProviderMock, :create_payment_profile, fn %{email: email} ->
-      assert email == expected_email
-      {:ok, %{id: "prof_123"}}
-    end)
-
-    assert :ok = perform_job(EnsurePaymentSetupWorker, %{"customer_id" => customer.id})
-
-    payment_profile = Billing.get_payment_profile(scope, customer.id)
-    assert payment_profile.provider_ref == "prof_123"
-  end
-
-  test "creates a payment intent for the checkout session" do
+  test "creates a payment intent for the order" do
     scope = guest_scope_fixture()
     cart = cart_fixture(scope)
     variant = variant_fixture()
     cart_item_fixture(cart, %{variant_id: variant.id})
     session = Checkout.start_checkout(scope, cart)
-    pricing = Checkout.build_pricing(session)
+    order = session.order
+    pricing = Checkout.build_pricing(order)
 
     expect(PaymentProviderMock, :create_payment_profile, fn %{email: email} ->
       assert email == scope.customer.email
@@ -50,12 +35,9 @@ defmodule Harbor.Checkout.EnsurePaymentSetupWorkerTest do
       assert params.amount == pricing.total_price
       assert params.currency == "usd"
 
-      assert params.metadata == %{
-               "checkout_session_id" => session.id,
-               "order_id" => session.order_id
-             }
+      assert params.metadata == %{"order_id" => session.order_id}
 
-      assert opts == [idempotency_key: "checkout-session:#{session.id}"]
+      assert opts == [idempotency_key: "order:#{session.order_id}"]
 
       {:ok,
        %{
@@ -71,7 +53,7 @@ defmodule Harbor.Checkout.EnsurePaymentSetupWorkerTest do
     assert :ok =
              perform_job(EnsurePaymentSetupWorker, %{
                "customer_id" => scope.customer.id,
-               "checkout_session_id" => session.id
+               "order_id" => session.order_id
              })
 
     payment_profile = Billing.get_payment_profile(scope, scope.customer.id)
