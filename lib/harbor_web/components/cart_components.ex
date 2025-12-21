@@ -7,6 +7,7 @@ defmodule HarborWeb.CartComponents do
   that lists the current [CartItem](`Harbor.Checkout.CartItem`) entries.
   """
   use HarborWeb, :component
+  import Phoenix.LiveView, only: [push_navigate: 2]
 
   alias Harbor.Catalog.Variant
   alias Harbor.{Checkout, Util}
@@ -114,12 +115,13 @@ defmodule HarborWeb.CartComponents do
 
       <div class="mt-6">
         <%= if @summary.item_count > 0 do %>
-          <.link
-            navigate={~p"/checkout"}
+          <button
+            type="button"
+            phx-click="checkout"
             class="block w-full rounded-md border border-transparent bg-indigo-600 px-4 py-3 text-center text-base font-medium text-white shadow-xs transition hover:bg-indigo-700 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-50"
           >
             Checkout
-          </.link>
+          </button>
         <% else %>
           <.button
             type="button"
@@ -207,12 +209,13 @@ defmodule HarborWeb.CartComponents do
           </ul>
 
           <div class="mt-6">
-            <.link
-              navigate={~p"/checkout"}
-              class="block w-full rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-center text-sm font-medium text-white shadow-xs hover:bg-indigo-700 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-50"
+            <button
+              type="button"
+              class="block w-full rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-center text-sm font-medium text-white shadow-xs hover:bg-indigo-700 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-50 cursor-pointer"
+              phx-click="checkout"
             >
               Checkout
-            </.link>
+            </button>
 
             <p class="mt-6 text-center">
               <.link
@@ -316,6 +319,11 @@ defmodule HarborWeb.CartComponents do
       end
 
     {:halt, socket}
+  end
+
+  def hooked_event("checkout", _params, %{assigns: %{cart: %Cart{} = cart}} = socket) do
+    session = Checkout.start_checkout(socket.assigns.current_scope, cart)
+    {:halt, push_navigate(socket, to: ~p"/checkout/#{session.id}")}
   end
 
   def hooked_event(_event, _params, socket) do
