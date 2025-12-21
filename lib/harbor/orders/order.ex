@@ -17,7 +17,7 @@ defmodule Harbor.Orders.Order do
   schema "orders" do
     field :status, Ecto.Enum,
       values: [:draft, :pending, :paid, :shipped, :delivered, :canceled],
-      default: :pending
+      default: :draft
 
     field :number, :string
     field :email, :string
