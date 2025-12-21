@@ -4,34 +4,54 @@ defmodule Harbor.Orders do
   """
   import Ecto.Query, warn: false
 
+  alias Harbor.Accounts.Scope
+  alias Harbor.Customers.Customer
   alias Harbor.Orders.Order
   alias Harbor.Repo
 
-  def list_orders do
-    Repo.all(Order)
+  def get_order!(%Scope{} = scope, id) do
+    Order
+    |> Repo.get!(id)
+    |> tap(&ensure_authorized!(scope, &1))
   end
 
-  def get_order!(id) do
-    Repo.get!(Order, id)
-  end
-
-  def create_order(attrs) do
+  def create_order(%Scope{} = scope, attrs) do
     %Order{}
-    |> Order.changeset(attrs)
+    |> Order.changeset(attrs, scope)
     |> Repo.insert()
   end
 
-  def update_order(%Order{} = order, attrs) do
+  def update_order(%Scope{} = scope, %Order{} = order, attrs) do
+    ensure_authorized!(scope, order)
+
     order
-    |> Order.changeset(attrs)
+    |> Order.changeset(attrs, scope)
     |> Repo.update()
   end
 
-  def delete_order(%Order{} = order) do
+  def delete_order(%Scope{} = scope, %Order{} = order) do
+    ensure_authorized!(scope, order)
     Repo.delete(order)
   end
 
-  def change_order(%Order{} = order, attrs \\ %{}) do
-    Order.changeset(order, attrs)
+  def change_order(%Scope{} = scope, %Order{} = order) do
+    ensure_authorized!(scope, order)
+    Order.changeset(order, %{}, scope)
   end
+
+  def change_order(%Scope{} = scope, %Order{} = order, attrs) do
+    ensure_authorized!(scope, order)
+    Order.changeset(order, attrs, scope)
+  end
+
+  @admin_roles [:superadmin, :system]
+
+  defp ensure_authorized!(%Scope{role: role}, _order) when role in @admin_roles, do: :ok
+
+  defp ensure_authorized!(%Scope{customer: %Customer{id: customer_id}}, %Order{
+         customer_id: customer_id
+       }),
+       do: :ok
+
+  defp ensure_authorized!(%Scope{}, _order), do: raise(Harbor.UnauthorizedError)
 end

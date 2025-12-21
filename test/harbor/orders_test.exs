@@ -1,32 +1,24 @@
 defmodule Harbor.OrdersTest do
   use Harbor.DataCase, async: true
-  import Harbor.{CatalogFixtures, OrdersFixtures}
+  import Harbor.OrdersFixtures
 
+  alias Harbor.Accounts.Scope
   alias Harbor.Orders
   alias Harbor.Orders.Order
 
   setup do
-    variant = variant_fixture()
-
-    [variant: variant]
+    [scope: Scope.for_system()]
   end
 
-  describe "list_orders/0" do
-    test "returns all orders" do
+  describe "get_order!/2" do
+    test "returns the order with given id", %{scope: scope} do
       order = order_fixture()
-      assert Orders.list_orders() == [order]
+      assert Orders.get_order!(scope, order.id) == order
     end
   end
 
-  describe "get_order!/1" do
-    test "returns the order with given id" do
-      order = order_fixture()
-      assert Orders.get_order!(order.id) == order
-    end
-  end
-
-  describe "create_order/1" do
-    test "with valid data creates an order" do
+  describe "create_order/2" do
+    test "with valid data creates an order", %{scope: scope} do
       valid_attrs = %{
         email: "user@example.com",
         delivery_method_name: "Local Pickup",
@@ -34,48 +26,48 @@ defmodule Harbor.OrdersTest do
         shipping_price: 10
       }
 
-      assert {:ok, %Order{} = order} = Orders.create_order(valid_attrs)
+      assert {:ok, %Order{} = order} = Orders.create_order(scope, valid_attrs)
       assert order.shipping_price == 10
       assert order.total_price == 52
     end
 
-    test "with invalid data returns error changeset" do
+    test "with invalid data returns error changeset", %{scope: scope} do
       assert {:error, %Ecto.Changeset{}} =
-               Orders.create_order(%{shipping_price: nil, total_price: nil})
+               Orders.create_order(scope, %{shipping_price: nil, total_price: nil})
     end
   end
 
-  describe "update_order/2" do
-    test "with valid data updates the order" do
+  describe "update_order/3" do
+    test "with valid data updates the order", %{scope: scope} do
       order = order_fixture()
       update_attrs = %{email: "new@example.com"}
 
-      assert {:ok, %Order{} = order} = Orders.update_order(order, update_attrs)
+      assert {:ok, %Order{} = order} = Orders.update_order(scope, order, update_attrs)
       assert order.email == "new@example.com"
     end
 
-    test "with invalid data returns error changeset" do
+    test "with invalid data returns error changeset", %{scope: scope} do
       order = order_fixture()
 
       assert {:error, %Ecto.Changeset{}} =
-               Orders.update_order(order, %{shipping_price: nil, total_price: nil})
+               Orders.update_order(scope, order, %{shipping_price: nil, total_price: nil})
 
-      assert order == Orders.get_order!(order.id)
+      assert order == Orders.get_order!(scope, order.id)
     end
   end
 
-  describe "delete_order/1" do
-    test "deletes the order" do
+  describe "delete_order/2" do
+    test "deletes the order", %{scope: scope} do
       order = order_fixture()
-      assert {:ok, %Order{}} = Orders.delete_order(order)
-      assert_raise Ecto.NoResultsError, fn -> Orders.get_order!(order.id) end
+      assert {:ok, %Order{}} = Orders.delete_order(scope, order)
+      assert_raise Ecto.NoResultsError, fn -> Orders.get_order!(scope, order.id) end
     end
   end
 
-  describe "change_order/1" do
-    test "returns an order changeset" do
+  describe "change_order/2" do
+    test "returns an order changeset", %{scope: scope} do
       order = order_fixture()
-      assert %Ecto.Changeset{} = Orders.change_order(order)
+      assert %Ecto.Changeset{} = Orders.change_order(scope, order)
     end
   end
 end

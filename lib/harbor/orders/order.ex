@@ -4,6 +4,7 @@ defmodule Harbor.Orders.Order do
   """
   use Harbor.Schema
 
+  alias Harbor.Accounts.Scope
   alias Harbor.Customers.Customer
   alias Harbor.Orders.OrderItem
 
@@ -41,7 +42,7 @@ defmodule Harbor.Orders.Order do
   end
 
   @doc false
-  def changeset(order, attrs) do
+  def changeset(order, attrs, scope) do
     order
     |> cast(attrs, [
       :status,
@@ -70,6 +71,7 @@ defmodule Harbor.Orders.Order do
     ])
     |> cast_assoc(:items)
     |> put_new_order_number()
+    |> apply_scope(scope)
     |> check_constraint(:subtotal,
       name: :subtotal_gte_zero,
       message: "must be greater than or equal to 0"
@@ -99,5 +101,16 @@ defmodule Harbor.Orders.Order do
       _ ->
         changeset
     end
+  end
+
+  @admin_roles [:superadmin, :system]
+  defp apply_scope(changeset, %Scope{role: role}) when role in @admin_roles, do: changeset
+
+  defp apply_scope(changeset, %Scope{customer: %Customer{id: customer_id}}) do
+    change(changeset, %{customer_id: customer_id})
+  end
+
+  defp apply_scope(_changeset, %Scope{}) do
+    raise Harbor.UnauthorizedError
   end
 end

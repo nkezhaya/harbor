@@ -456,8 +456,10 @@ defmodule Harbor.Checkout do
         shipping_price: pricing.shipping_price
       }
 
+      scope = Scope.for_system()
+
       Repo.transact(fn ->
-        with {:ok, order} <- Orders.create_order(order_attrs),
+        with {:ok, order} <- Orders.create_order(scope, order_attrs),
              {:ok, _session} <- put_session_order(session, order) do
           {:ok, order}
         else
