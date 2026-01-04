@@ -10,8 +10,10 @@ defmodule Harbor.Billing.PaymentProvider.Stripe do
   alias Harbor.Billing.{PaymentIntent, PaymentProfile}
 
   @impl Harbor.Billing.PaymentProvider
-  def create_payment_profile(params) do
-    Stripe.Customer.create(params, idempotency_key: params[:email])
+  def create_payment_profile(params, opts) do
+    opts = Keyword.take(opts, [:idempotency_key])
+
+    Stripe.Customer.create(params, opts)
     |> to_result()
   end
 

@@ -21,8 +21,10 @@ defmodule Harbor.Checkout.EnsurePaymentSetupWorkerTest do
     order = session.order
     pricing = Checkout.build_pricing(order)
 
-    expect(PaymentProviderMock, :create_payment_profile, fn %{email: email} ->
+    expect(PaymentProviderMock, :create_payment_profile, fn %{email: email}, opts ->
       assert email == scope.customer.email
+      assert opts == [idempotency_key: scope.customer.id]
+
       {:ok, %{id: "prof_1"}}
     end)
 

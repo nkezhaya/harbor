@@ -25,7 +25,7 @@ defmodule Harbor.Billing do
       nil ->
         params = %{email: customer.email}
 
-        case PaymentProvider.create_payment_profile(params) do
+        case PaymentProvider.create_payment_profile(params, idempotency_key: customer.id) do
           {:ok, %{id: provider_ref}} ->
             attrs = %{provider: Config.payment_provider(), provider_ref: provider_ref}
             profile = insert_payment_profile!(scope, attrs)

@@ -17,10 +17,10 @@ defmodule Harbor.Billing.PaymentProvider do
           optional(:metadata) => map()
         }
 
-  @callback create_payment_profile(%{required(atom()) => any()}) ::
+  @callback create_payment_profile(%{required(atom()) => any()}, keyword()) ::
               result(%{required(:id) => String.t()})
-  def create_payment_profile(params) do
-    impl().create_payment_profile(params)
+  def create_payment_profile(params, opts \\ []) do
+    impl().create_payment_profile(params, opts)
   end
 
   @callback update_payment_profile(PaymentProfile.t(), %{required(atom()) => any()}) ::

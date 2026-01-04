@@ -15,8 +15,10 @@ defmodule Harbor.BillingTest do
     test "creates a payment profile with provider information" do
       scope = user_scope_fixture()
 
-      expect(Harbor.Billing.PaymentProviderMock, :create_payment_profile, fn params ->
+      expect(Harbor.Billing.PaymentProviderMock, :create_payment_profile, fn params, opts ->
         assert params == %{email: scope.customer.email}
+        assert opts == [idempotency_key: scope.customer.id]
+
         {:ok, %{id: "cust_mock"}}
       end)
 
