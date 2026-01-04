@@ -13,7 +13,7 @@ defmodule HarborWeb.CheckoutLive.Form do
   def render(assigns) do
     ~H"""
     <Layouts.checkout flash={@flash}>
-      <.order_summary cart={@cart} pricing={@pricing} />
+      <.order_summary order={@order} pricing={@pricing} />
 
       <section
         aria-labelledby="payment-heading"
@@ -48,7 +48,11 @@ defmodule HarborWeb.CheckoutLive.Form do
               label="Contact information"
               status={step_status(@steps, @session.current_step, :contact)}
             >
-              <:summary>{@session.cart.customer.email}</:summary>
+              <:summary>
+                <%= if @session.order.customer do %>
+                  {@session.order.customer.email}
+                <% end %>
+              </:summary>
               <:body>
                 <.contact_step form={@contact_form} />
               </:body>
@@ -204,30 +208,40 @@ defmodule HarborWeb.CheckoutLive.Form do
   end
 
   @impl true
-  def mount(_params, _session, %{assigns: %{cart: nil}} = socket) do
-    {:ok,
-     socket
-     |> put_flash(:info, "No cart found.")
-     |> push_navigate(to: ~p"/products")}
+  def mount(%{"id" => id}, _session, %{assigns: %{current_scope: current_scope}} = socket) do
+    case Checkout.get_session(current_scope, id) do
+      {:ok, session} ->
+        pricing = Checkout.build_pricing(session.order)
+        steps = Checkout.checkout_steps(current_scope, session.order, pricing)
+        session = Checkout.ensure_valid_current_step!(current_scope, session, steps)
+        contact_form = contact_form(current_scope)
+
+        {:ok,
+         assign(socket,
+           current_scope: current_scope,
+           session: session,
+           order: session.order,
+           pricing: pricing,
+           steps: steps,
+           contact_form: contact_form
+         )}
+
+      {:error, error} ->
+        {:ok, redirect_with_error(socket, error)}
+    end
   end
 
-  def mount(_params, _session, %{assigns: assigns} = socket) do
-    %{current_scope: current_scope, cart: cart} = assigns
-    session = Checkout.find_or_create_active_session(current_scope, cart)
-    pricing = Checkout.build_pricing(session)
-    steps = Checkout.checkout_steps(current_scope, session, pricing)
-    session = Checkout.ensure_valid_current_step!(current_scope, session, steps)
-    contact_form = contact_form(current_scope)
+  defp redirect_with_error(socket, error) do
+    message =
+      case error do
+        :not_found -> "Checkout session not found."
+        :session_expired -> "Checkout session has expired."
+        _ -> "Unable to load checkout session."
+      end
 
-    {:ok,
-     assign(socket,
-       current_scope: current_scope,
-       cart: cart,
-       session: session,
-       pricing: pricing,
-       steps: steps,
-       contact_form: contact_form
-     )}
+    socket
+    |> put_flash(:error, message)
+    |> push_navigate(to: ~p"/cart")
   end
 
   @impl true
@@ -245,6 +259,7 @@ defmodule HarborWeb.CheckoutLive.Form do
         {:noreply,
          socket
          |> assign(:session, session)
+         |> assign(:order, session.order)
          |> assign(:current_scope, scope)
          |> assign(:contact_form, contact_form(scope))
          |> put_next_step(:contact)}

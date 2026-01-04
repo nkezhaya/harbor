@@ -6,7 +6,6 @@ defmodule Harbor.CheckoutTest do
 
   import Harbor.{
     AccountsFixtures,
-    BillingFixtures,
     CheckoutFixtures,
     CustomersFixtures,
     ShippingFixtures
@@ -144,42 +143,52 @@ defmodule Harbor.CheckoutTest do
     end
   end
 
-  describe "create_active_session!/1" do
-    test "creates an active session when none exists", %{cart: cart} do
-      session = Checkout.create_active_session!(cart)
+  describe "create_session/2" do
+    test "creates a draft order and active session", %{
+      scope: scope,
+      cart: cart,
+      cart_item: cart_item,
+      variant: variant
+    } do
+      {:ok, session} = Checkout.create_session(scope, cart)
 
-      assert %Session{cart_id: cart_id, status: :active} = session
-      assert cart_id == cart.id
+      assert %Session{status: :active, order_id: order_id} = session
+      assert order_id
       assert session.expires_at
+
+      order = Repo.get!(Order, order_id) |> Repo.preload(:items)
+      assert order.cart_id == cart.id
+      assert order.status == :draft
+
+      assert [%{variant_id: variant_id, quantity: quantity, price: price}] = order.items
+      assert variant_id == variant.id
+      assert quantity == cart_item.quantity
+      assert price == variant.price
     end
 
-    test "returns the existing active session when one is already present", %{cart: cart} do
-      existing = Checkout.create_active_session!(cart)
-      assert Repo.aggregate(Session, :count, :id) == 1
+    test "creates a new session per checkout", %{scope: scope, cart: cart} do
+      {:ok, session} = Checkout.create_session(scope, cart)
+      {:ok, other_session} = Checkout.create_session(scope, cart)
 
-      session = Checkout.create_active_session!(cart)
-
-      assert session.id == existing.id
-      assert Repo.aggregate(Session, :count, :id) == 1
+      refute session.id == other_session.id
+      refute session.order_id == other_session.order_id
     end
   end
 
   describe "update_session/3" do
-    test "updates the session when the scope owns the cart" do
+    test "updates the session when the scope owns the order cart" do
       scope = guest_scope_fixture()
       cart = cart_fixture(scope)
-      session = Checkout.create_active_session!(cart)
-      address = address_fixture(scope, %{line1: "123 Harbor Way"})
+      {:ok, session} = Checkout.create_session(scope, cart)
 
-      assert {:ok, updated} =
-               Checkout.update_session(scope, session, %{shipping_address_id: address.id})
+      assert {:ok, updated} = Checkout.update_session(scope, session, %{current_step: :review})
 
-      assert updated.shipping_address.id == address.id
-      assert updated.cart.id == cart.id
+      assert updated.current_step == :review
+      assert updated.order.cart_id == cart.id
     end
 
-    test "raises when the scope does not own the cart", %{cart: cart} do
-      session = Checkout.create_active_session!(cart)
+    test "raises when the scope does not own the order cart", %{cart: cart, scope: scope} do
+      {:ok, session} = Checkout.create_session(scope, cart)
       other_scope = guest_scope_fixture(customer: false)
 
       assert_raise Harbor.UnauthorizedError, fn ->
@@ -192,7 +201,7 @@ defmodule Harbor.CheckoutTest do
     test "saves the customer, enqueues payment profile setup, and returns updated scope and session" do
       scope = guest_scope_fixture(customer: false)
       cart = cart_fixture(scope)
-      session = Checkout.find_or_create_active_session(scope, cart)
+      {:ok, session} = Checkout.create_session(scope, cart)
 
       params = %{
         "email" => "contact@example.com",
@@ -219,7 +228,7 @@ defmodule Harbor.CheckoutTest do
     test "returns a changeset when validation fails" do
       scope = guest_scope_fixture(customer: false)
       cart = cart_fixture(scope)
-      session = Checkout.find_or_create_active_session(scope, cart)
+      {:ok, session} = Checkout.create_session(scope, cart)
 
       assert {:error, %Ecto.Changeset{}} =
                Checkout.complete_contact_step(scope, session, %{"email" => nil})
@@ -232,10 +241,10 @@ defmodule Harbor.CheckoutTest do
     test "includes contact, shipping, and payment when required", %{scope: scope, cart: cart} do
       variant = variant_fixture()
       cart_item_fixture(cart, %{variant_id: variant.id})
-      session = Checkout.find_or_create_active_session(scope, cart)
-      pricing = Checkout.build_pricing(session)
+      {:ok, session} = Checkout.create_session(scope, cart)
+      pricing = Checkout.build_pricing(session.order)
 
-      assert Checkout.checkout_steps(scope, session, pricing) ==
+      assert Checkout.checkout_steps(scope, session.order, pricing) ==
                [:contact, :shipping, :delivery, :payment, :review]
     end
 
@@ -258,10 +267,10 @@ defmodule Harbor.CheckoutTest do
         })
 
       cart_item_fixture(cart, %{variant_id: variant.id})
-      session = Checkout.find_or_create_active_session(scope, cart)
-      pricing = Checkout.build_pricing(session)
+      {:ok, session} = Checkout.create_session(scope, cart)
+      pricing = Checkout.build_pricing(session.order)
 
-      assert Checkout.checkout_steps(scope, session, pricing) == [:review]
+      assert Checkout.checkout_steps(scope, session.order, pricing) == [:review]
     end
   end
 
@@ -269,9 +278,9 @@ defmodule Harbor.CheckoutTest do
     test "rewinds to the first incomplete step and persists it", %{scope: scope, cart: cart} do
       variant = variant_fixture()
       cart_item_fixture(cart, %{variant_id: variant.id})
-      session = Checkout.find_or_create_active_session(scope, cart)
-      pricing = Checkout.build_pricing(session)
-      steps = Checkout.checkout_steps(scope, session, pricing)
+      {:ok, session} = Checkout.create_session(scope, cart)
+      pricing = Checkout.build_pricing(session.order)
+      steps = Checkout.checkout_steps(scope, session.order, pricing)
       {:ok, session} = Checkout.update_session(scope, session, %{current_step: :review})
 
       updated = Checkout.ensure_valid_current_step!(scope, session, steps)
@@ -357,8 +366,8 @@ defmodule Harbor.CheckoutTest do
     end
   end
 
-  describe "complete_session/1" do
-    test "creates an order with items, snapshots, and links the session" do
+  describe "submit_checkout/1" do
+    test "updates the order snapshots and completes the session" do
       # Build catalog and cart
       variant = variant_fixture()
       user = user_fixture()
@@ -390,29 +399,23 @@ defmodule Harbor.CheckoutTest do
         })
 
       # Session that ties everything together
-      expires_at = DateTime.add(DateTime.utc_now(), 3600, :second)
-      payment_profile = payment_profile_fixture(scope)
-      payment_intent = payment_intent_fixture(payment_profile)
+      {:ok, session} = Checkout.create_session(scope, cart)
+      order = session.order
 
-      {:ok, session} =
-        %Session{}
-        |> Session.changeset(%{
-          cart_id: cart.id,
-          status: :active,
-          expires_at: expires_at,
-          billing_address_id: billing.id,
-          shipping_address_id: shipping.id,
-          delivery_method_id: delivery_method.id,
-          payment_intent_id: payment_intent.id
-        })
-        |> Repo.insert()
+      order
+      |> Ecto.Changeset.change(%{
+        billing_address_id: billing.id,
+        shipping_address_id: shipping.id,
+        delivery_method_id: delivery_method.id
+      })
+      |> Repo.update!()
 
       # Exercise
       expect(Harbor.Tax.TaxProviderMock, :calculate_taxes, fn _req, _key ->
         {:ok, %{id: "taxid", amount: 1000, line_items: []}}
       end)
 
-      assert {:ok, %Order{} = order} = Checkout.complete_session(session)
+      assert {:ok, %Order{} = order} = Checkout.submit_checkout(session)
 
       # Subtotal is variant.price * quantity, tax defaults to 0, total is computed column
       assert order.email == user.email
@@ -420,6 +423,7 @@ defmodule Harbor.CheckoutTest do
       assert order.subtotal == variant.price * 2
       assert order.shipping_price == delivery_method.price
       assert order.tax == 1000
+      assert order.status == :pending
       assert order.total_price == order.subtotal + order.shipping_price + order.tax
 
       # Order items snapshot
@@ -452,24 +456,23 @@ defmodule Harbor.CheckoutTest do
           phone: "555-1010"
         })
 
-      {:ok, session} =
-        %Session{}
-        |> Session.changeset(%{
-          cart_id: cart.id,
-          status: :active,
-          expires_at: DateTime.add(DateTime.utc_now(), 3600, :second),
-          billing_address_id: address.id,
-          shipping_address_id: address.id,
-          delivery_method_id: delivery_method.id
-        })
-        |> Repo.insert()
+      {:ok, session} = Checkout.create_session(scope, cart)
+      order = session.order
+
+      order
+      |> Ecto.Changeset.change(%{
+        billing_address_id: address.id,
+        shipping_address_id: address.id,
+        delivery_method_id: delivery_method.id
+      })
+      |> Repo.update!()
 
       expect(Harbor.Tax.TaxProviderMock, :calculate_taxes, fn _req, _key ->
         {:ok, %{id: "taxid", amount: 1000, line_items: []}}
       end)
 
-      assert {:ok, order1} = Checkout.complete_session(session)
-      assert {:ok, order2} = Checkout.complete_session(session)
+      assert {:ok, order1} = Checkout.submit_checkout(session)
+      assert {:ok, order2} = Checkout.submit_checkout(session)
       assert order1.id == order2.id
     end
   end

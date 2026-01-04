@@ -7,7 +7,7 @@ defmodule HarborWeb.CartComponents do
   that lists the current [CartItem](`Harbor.Checkout.CartItem`) entries.
   """
   use HarborWeb, :component
-  import Phoenix.LiveView, only: [push_navigate: 2]
+  import Phoenix.LiveView, only: [push_navigate: 2, put_flash: 3]
 
   alias Harbor.Catalog.Variant
   alias Harbor.{Checkout, Util}
@@ -321,9 +321,21 @@ defmodule HarborWeb.CartComponents do
     {:halt, socket}
   end
 
-  def hooked_event("checkout", _params, %{assigns: %{cart: %Cart{} = cart}} = socket) do
-    session = Checkout.start_checkout(socket.assigns.current_scope, cart)
-    {:halt, push_navigate(socket, to: ~p"/checkout/#{session.id}")}
+  def hooked_event("checkout", _params, socket) do
+    cart = Checkout.fetch_or_create_active_cart(socket.assigns.current_scope)
+
+    socket =
+      case Checkout.create_session(socket.assigns.current_scope, cart) do
+        {:ok, session} ->
+          push_navigate(socket, to: ~p"/checkout/#{session.id}")
+
+        {:error, _changeset} ->
+          socket
+          |> put_flash(:error, "There was an error creating a checkout session.")
+          |> push_navigate(to: ~p"/cart")
+      end
+
+    {:halt, socket}
   end
 
   def hooked_event(_event, _params, socket) do

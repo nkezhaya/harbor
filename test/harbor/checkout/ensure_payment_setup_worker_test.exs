@@ -9,16 +9,15 @@ defmodule Harbor.Checkout.EnsurePaymentSetupWorkerTest do
   alias Harbor.{Billing, Checkout, Repo}
   alias Harbor.Billing.{PaymentIntent, PaymentProviderMock}
   alias Harbor.Checkout.{EnsurePaymentSetupWorker, Session}
-  alias Harbor.Orders.Order
 
   setup :verify_on_exit!
 
-  test "creates a payment intent for the order" do
+  test "creates a payment intent for the checkout session" do
     scope = guest_scope_fixture()
     cart = cart_fixture(scope)
     variant = variant_fixture()
     cart_item_fixture(cart, %{variant_id: variant.id})
-    session = Checkout.start_checkout(scope, cart)
+    {:ok, session} = Checkout.create_session(scope, cart)
     order = session.order
     pricing = Checkout.build_pricing(order)
 
@@ -35,9 +34,12 @@ defmodule Harbor.Checkout.EnsurePaymentSetupWorkerTest do
       assert params.amount == pricing.total_price
       assert params.currency == "usd"
 
-      assert params.metadata == %{"order_id" => session.order_id}
+      assert params.metadata == %{
+               "checkout_session_id" => session.id,
+               "order_id" => session.order_id
+             }
 
-      assert opts == [idempotency_key: "order:#{session.order_id}"]
+      assert opts == [idempotency_key: "checkout-session:#{session.id}"]
 
       {:ok,
        %{
@@ -50,10 +52,10 @@ defmodule Harbor.Checkout.EnsurePaymentSetupWorkerTest do
        }}
     end)
 
-    assert :ok =
+    assert {:ok, _} =
              perform_job(EnsurePaymentSetupWorker, %{
                "customer_id" => scope.customer.id,
-               "order_id" => session.order_id
+               "checkout_session_id" => session.id
              })
 
     payment_profile = Billing.get_payment_profile(scope, scope.customer.id)
@@ -61,7 +63,6 @@ defmodule Harbor.Checkout.EnsurePaymentSetupWorkerTest do
     assert intent.payment_profile_id == payment_profile.id
 
     session = Repo.get!(Session, session.id)
-    order = Repo.get!(Order, session.order_id)
-    assert order.payment_intent_id == intent.id
+    assert session.payment_intent_id == intent.id
   end
 end

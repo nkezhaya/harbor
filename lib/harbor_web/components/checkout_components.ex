@@ -16,7 +16,7 @@ defmodule HarborWeb.CheckoutComponents do
   alias HarborWeb.CartComponents
 
   @doc """
-  Renders the desktop order summary sidebar for a checkout session.
+  Renders the desktop order summary sidebar for a checkout order.
 
   Expects an [Order](`Harbor.Orders.Order`) with items and a
   [Pricing](`Harbor.Checkout.Pricing`) summary so that totals can be displayed

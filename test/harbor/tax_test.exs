@@ -20,7 +20,7 @@ defmodule Harbor.TaxTest do
       scope = guest_scope_fixture(customer: false)
       cart = cart_fixture(scope)
       cart_item = cart_item_fixture(cart, %{variant_id: variant.id, quantity: 1})
-      session = Checkout.start_checkout(scope, cart)
+      {:ok, session} = Checkout.create_session(scope, cart)
 
       %{session: session, cart_item: cart_item}
     end

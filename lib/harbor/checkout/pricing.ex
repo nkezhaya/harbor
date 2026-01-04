@@ -1,10 +1,10 @@
 defmodule Harbor.Checkout.Pricing do
   @moduledoc """
-  Computes pricing information for a checkout `Session`.
+  Computes pricing information for a checkout [Order](`Harbor.Orders.Order`).
 
-  This module derives a lightweight pricing summary from a checkout session by:
+  This module derives a lightweight pricing summary from an order by:
 
-  - Normalizing cart items into line items with quantity and unit price
+  - Normalizing order items into line items with quantity and unit price
   - Calculating item count and subtotal
   - Carrying over shipping and tax values (if present)
   - Computing a `total_price` from the available amounts
@@ -15,8 +15,8 @@ defmodule Harbor.Checkout.Pricing do
   the UI or passing to follow‑up workflows.
   """
 
-  alias Harbor.Checkout.{CartItem, Session}
   alias Harbor.Customers.Address
+  alias Harbor.Orders.{Order, OrderItem}
   alias Harbor.Shipping.DeliveryMethod
 
   defstruct [
@@ -48,17 +48,17 @@ defmodule Harbor.Checkout.Pricing do
   @type t() :: %__MODULE__{}
 
   @doc """
-  Returns a summary map for the given session.
+  Returns a summary map for the given order.
   """
-  @spec build(Session.t()) :: t()
-  def build(%Session{} = session) do
-    %__MODULE__{items: Enum.map(session.cart.items, &normalize_item/1)}
+  @spec build(Order.t()) :: t()
+  def build(%Order{} = order) do
+    %__MODULE__{items: Enum.map(order.items, &normalize_item/1)}
     |> put_count()
     |> put_subtotal()
-    |> put_shipping(session.delivery_method)
-    |> put_tax(session.current_tax_calculation)
+    |> put_shipping(order)
+    |> put_tax(order)
     |> put_total()
-    |> put_meta(session)
+    |> put_meta(order)
   end
 
   defp put_count(%__MODULE__{items: items} = pricing) do
@@ -69,40 +69,32 @@ defmodule Harbor.Checkout.Pricing do
     %{pricing | subtotal: Enum.sum_by(items, & &1.total_price)}
   end
 
-  defp put_shipping(%__MODULE__{} = pricing, %DeliveryMethod{
-         fulfillment_type: :ship,
-         price: price
-       }) do
-    %{pricing | shipping_price: price}
+  defp put_shipping(%__MODULE__{} = pricing, %Order{} = order) do
+    shipping_price =
+      case order.delivery_method do
+        %DeliveryMethod{price: price} -> price
+        _ -> 0
+      end
+
+    %{pricing | shipping_price: shipping_price}
   end
 
-  defp put_shipping(%__MODULE__{} = pricing, _delivery_method) do
-    %{pricing | shipping_price: 0}
-  end
-
-  defp put_tax(%__MODULE__{} = pricing, nil) do
-    %{pricing | tax: 0}
-  end
-
-  defp put_tax(%__MODULE__{} = pricing, tax_calculation) do
-    %{pricing | tax: tax_calculation.amount}
+  defp put_tax(%__MODULE__{} = pricing, %Order{tax: tax}) do
+    %{pricing | tax: tax}
   end
 
   defp put_total(%__MODULE__{} = pricing) do
     total_price =
       pricing
       |> Map.take([:subtotal, :shipping_price, :tax])
-      |> Enum.reduce(0, fn
-        {_, nil}, sum -> sum
-        {_, value}, sum when is_integer(value) -> value + sum
-      end)
+      |> Enum.sum_by(fn {_key, value} -> value end)
 
     %{pricing | total_price: total_price}
   end
 
-  defp put_meta(%__MODULE__{} = pricing, %Session{} = session) do
+  defp put_meta(%__MODULE__{} = pricing, %Order{} = order) do
     shipping_address =
-      case session.shipping_address do
+      case order.shipping_address do
         %Address{} = address ->
           %{
             city: address.city,
@@ -120,13 +112,13 @@ defmodule Harbor.Checkout.Pricing do
     %{pricing | meta: meta}
   end
 
-  @spec normalize_item(CartItem.t()) :: line_item()
-  defp normalize_item(%CartItem{} = cart_item) do
-    quantity = cart_item.quantity
-    price = cart_item.variant.price
+  @spec normalize_item(OrderItem.t()) :: line_item()
+  defp normalize_item(%OrderItem{} = order_item) do
+    quantity = order_item.quantity
+    price = order_item.price
 
     %{
-      id: cart_item.variant.id,
+      id: order_item.id,
       quantity: quantity,
       price: price,
       total_price: quantity * price,

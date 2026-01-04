@@ -8,7 +8,7 @@ defmodule Harbor.Checkout do
   alias Harbor.Checkout.{Cart, CartItem, EnsurePaymentSetupWorker, Pricing, Session}
   alias Harbor.Customers.{Address, Customer}
   alias Harbor.{Customers, Orders, Repo, Tax}
-  alias Harbor.Orders.Order
+  alias Harbor.Orders.{Order, OrderItem}
   alias Harbor.Shipping.DeliveryMethod
   alias Harbor.Tax.{Calculation, Request}
 
@@ -216,44 +216,75 @@ defmodule Harbor.Checkout do
   ## Sessions
 
   @doc """
-  Ensures there is an active [Session](`Harbor.Checkout.Session`) for the cart.
+  Creates a checkout session for the cart by creating a draft order.
 
   The provided [Scope](`Harbor.Accounts.Scope`) is authorized against the cart
-  before any work is done. If an active session already exists it is touched so
-  expiration timestamps stay fresh; otherwise a new session is inserted. The
-  resulting session is preloaded with the associations required by pricing and
-  tax calculations.
+  before any work is done. The order is created from the cart items and linked
+  to a new active session. The resulting session is preloaded with the
+  associations required by pricing and tax calculations.
   """
-  def find_or_create_active_session(%Scope{} = scope, %Cart{} = cart) do
+  @spec create_session(Scope.t(), Cart.t()) ::
+          {:ok, Session.t()} | {:error, Ecto.Changeset.t()}
+  def create_session(%Scope{} = scope, %Cart{} = cart) do
     ensure_authorized!(scope, cart)
 
-    case get_active_session(cart) do
-      nil -> create_active_session!(cart)
-      session -> touch_session!(session)
-    end
-    |> preload_session()
+    cart = Repo.preload(cart, items: [:variant])
+
+    Repo.transact(fn ->
+      with {:ok, order} <- create_draft_order(cart) do
+        session =
+          %Session{order_id: order.id}
+          |> Session.changeset(%{})
+          |> Repo.insert!()
+
+        {:ok, preload_session(session)}
+      end
+    end)
   end
 
-  defp get_active_session(%Cart{} = cart) do
-    Repo.get_by(Session, cart_id: cart.id, status: :active)
+  defp create_draft_order(%Cart{} = cart) do
+    order_item_attrs =
+      Enum.map(cart.items, fn %CartItem{variant: variant, quantity: quantity} ->
+        %{variant_id: variant.id, quantity: quantity, price: variant.price}
+      end)
+
+    order_attrs = %{
+      cart_id: cart.id,
+      customer_id: cart.customer_id,
+      items: order_item_attrs
+    }
+
+    scope = Scope.for_system()
+    Orders.create_order(scope, order_attrs)
   end
 
-  defp get_active_session!(%Cart{} = cart) do
-    Repo.get_by!(Session, cart_id: cart.id, status: :active)
-  end
+  @doc """
+  Fetches a checkout session by id for the given scope.
 
-  @doc false
-  def create_active_session!(%Cart{} = cart) do
-    %Session{cart_id: cart.id}
-    |> Session.changeset(%{})
-    |> Repo.insert!(
-      returning: true,
-      on_conflict: :nothing,
-      conflict_target: {:unsafe_fragment, "(cart_id) WHERE status = 'active'"}
-    )
-    |> case do
-      %Session{id: nil} -> get_active_session!(cart)
-      session -> session
+  Returns `{:ok, session}` when the session is active and unexpired, otherwise
+  returns `{:error, reason}`.
+  """
+  @type session_error ::
+          :not_found
+          | :already_completed
+          | :session_expired
+          | :session_abandoned
+          | :missing_expiry
+
+  @spec get_session(Scope.t(), Ecto.UUID.t()) :: {:ok, Session.t()} | {:error, session_error()}
+  def get_session(%Scope{} = scope, id) do
+    case Repo.get(Session, id) do
+      nil ->
+        {:error, :not_found}
+
+      %Session{} = session ->
+        session = preload_session(session)
+        ensure_authorized!(scope, session.order.cart)
+
+        with :ok <- ensure_active(session),
+             :ok <- ensure_not_expired(session) do
+          {:ok, touch_session!(session)}
+        end
     end
   end
 
@@ -261,6 +292,7 @@ defmodule Harbor.Checkout do
     session
     |> Session.touched_changeset()
     |> Repo.update!()
+    |> preload_session()
   end
 
   defp reload_session(%Session{} = session) do
@@ -279,10 +311,19 @@ defmodule Harbor.Checkout do
   @spec complete_contact_step(Scope.t(), Session.t(), map()) ::
           {:ok, Session.t(), Scope.t()} | {:error, Ecto.Changeset.t()} | {:error, term()}
   def complete_contact_step(%Scope{} = scope, %Session{} = session, params) when is_map(params) do
+    session = Repo.preload(session, order: [:cart])
+
     Repo.transact(fn ->
+      order = session.order
+
       with {:ok, customer} <- Customers.save_customer_profile(scope, params),
            {:ok, _cart} <-
-             update_cart(Scope.for_system(), session.cart, %{customer_id: customer.id}) do
+             update_cart(Scope.for_system(), order.cart, %{customer_id: customer.id}),
+           {:ok, _order} <-
+             Orders.update_order(Scope.for_system(), order, %{
+               customer_id: customer.id,
+               email: customer.email
+             }) do
         scope = Scope.attach_customer(scope, customer)
         enqueue_payment_setup(customer.id, session.id)
 
@@ -290,7 +331,7 @@ defmodule Harbor.Checkout do
       end
     end)
     |> case do
-      {:ok, {session, scope}} -> {:ok, session, scope}
+      {:ok, {session, scope}} -> {:ok, reload_session(session), scope}
       error -> error
     end
   end
@@ -302,15 +343,15 @@ defmodule Harbor.Checkout do
   end
 
   @doc """
-  Computes the ordered checkout steps for the given scope, session, and pricing.
+  Computes the ordered checkout steps for the given scope, order, and pricing.
 
   - Adds `:contact` when the scope is not authenticated.
-  - Adds `:shipping` and `:delivery` when any cart item is a physical product.
+  - Adds `:shipping` and `:delivery` when any order item is a physical product.
   - Adds `:payment` when the order total is greater than zero.
   - Always appends `:review` as the final step.
   """
-  @spec checkout_steps(Scope.t(), Session.t(), Pricing.t()) :: [atom()]
-  def checkout_steps(%Scope{} = scope, %Session{} = session, %Pricing{} = pricing) do
+  @spec checkout_steps(Scope.t(), Order.t(), Pricing.t()) :: [atom()]
+  def checkout_steps(%Scope{} = scope, %Order{} = order, %Pricing{} = pricing) do
     steps =
       if scope.authenticated? do
         []
@@ -319,7 +360,7 @@ defmodule Harbor.Checkout do
       end
 
     steps =
-      if Enum.any?(session.cart.items, & &1.variant.product.physical_product) do
+      if Enum.any?(order.items, & &1.variant.product.physical_product) do
         steps ++ [:shipping, :delivery]
       else
         steps
@@ -354,7 +395,7 @@ defmodule Harbor.Checkout do
 
         true ->
           steps
-          |> Enum.find(&(not did_complete?(scope, session, &1)))
+          |> Enum.find(&(not did_complete?(session, &1)))
           |> case do
             nil -> List.last(steps)
             incomplete_step -> incomplete_step
@@ -370,20 +411,25 @@ defmodule Harbor.Checkout do
     end
   end
 
-  defp did_complete?(_scope, %Session{cart: %Cart{customer: %Customer{}}}, :contact), do: true
-  defp did_complete?(_scope, _session, :contact), do: false
-  defp did_complete?(_scope, _session, _step), do: false
+  defp did_complete?(%Session{} = session, :contact) do
+    case session.order.customer do
+      %Customer{email: email} -> is_binary(email)
+      _ -> false
+    end
+  end
+
+  defp did_complete?(_session, _step), do: false
 
   @doc """
-  Updates a checkout session when the given scope owns the backing cart.
+  Updates a checkout session when the given scope owns the backing order cart.
 
   Preloads associations on success and returns `{:ok, session}` or
   `{:error, changeset}`. Raises `Harbor.UnauthorizedError` when the scope does
   not own the cart.
   """
   def update_session(%Scope{} = scope, %Session{} = session, attrs) do
-    session = Repo.preload(session, :cart)
-    ensure_authorized!(scope, session.cart)
+    session = Repo.preload(session, order: [:cart])
+    ensure_authorized!(scope, session.order.cart)
 
     session
     |> Session.changeset(attrs)
@@ -395,53 +441,57 @@ defmodule Harbor.Checkout do
   end
 
   defp preload_session(%Session{} = session) do
-    Repo.preload(session, [
-      :billing_address,
-      :shipping_address,
-      :delivery_method,
-      cart: [
-        items: [variant: [:tax_code, product: [:tax_code, category: [:tax_code]]]],
-        customer: []
+    Repo.preload(session,
+      payment_intent: [],
+      order: [
+        :cart,
+        :customer,
+        :billing_address,
+        :shipping_address,
+        :delivery_method,
+        items: [
+          variant: [
+            :tax_code,
+            :option_values,
+            product: [:images, :tax_code, category: [:tax_code]]
+          ]
+        ]
       ]
-    ])
+    )
   end
 
   @doc """
-  Builds a pricing summary struct for the checkout session.
+  Builds a pricing summary struct for the checkout order.
 
   Delegates to [Pricing.build/1](`Harbor.Checkout.Pricing.build/1`) and returns
   a `%Harbor.Checkout.Pricing{}` with itemized totals ready for rendering.
   """
-  defdelegate build_pricing(session), to: Pricing, as: :build
+  defdelegate build_pricing(order), to: Pricing, as: :build
 
-  def complete_session(%Session{} = session) do
+  def submit_checkout(%Session{} = session) do
     session
     |> reload_session()
-    |> do_complete_session()
+    |> do_submit_checkout()
   end
 
-  defp do_complete_session(%Session{order_id: nil} = session) do
+  defp do_submit_checkout(%Session{status: :completed} = session) do
+    session = Repo.preload(session, [:order])
+    {:ok, session.order}
+  end
+
+  defp do_submit_checkout(%Session{} = session) do
     with :ok <- ensure_active(session),
          :ok <- ensure_not_expired(session),
          {:ok, email} <- resolve_email(session),
          {:ok, address} <- resolve_address(session),
          {:ok, delivery_method} <- resolve_delivery_method(session),
          {:ok, session} <- update_tax_calculation(session) do
-      order_item_attrs =
-        Enum.map(session.cart.items, fn %{variant: variant, quantity: quantity} ->
-          %{
-            variant_id: variant.id,
-            quantity: quantity,
-            price: variant.price
-          }
-        end)
-
-      pricing = Pricing.build(session)
+      order = session.order
+      pricing = Pricing.build(order)
 
       order_attrs = %{
+        status: :pending,
         email: email,
-        customer_id: session.cart.customer && session.cart.customer.id,
-        items: order_item_attrs,
         address_name: address.name,
         address_line1: address.line1,
         address_line2: address.line2,
@@ -459,8 +509,8 @@ defmodule Harbor.Checkout do
       scope = Scope.for_system()
 
       Repo.transact(fn ->
-        with {:ok, order} <- Orders.create_order(scope, order_attrs),
-             {:ok, _session} <- put_session_order(session, order) do
+        with {:ok, order} <- Orders.update_order(scope, order, order_attrs),
+             {:ok, _session} <- complete_session(session) do
           {:ok, order}
         else
           {:error, error} -> Repo.rollback(error)
@@ -471,14 +521,9 @@ defmodule Harbor.Checkout do
     end
   end
 
-  defp do_complete_session(%Session{} = session) do
-    session = Repo.preload(session, [:order])
-    {:ok, session.order}
-  end
-
-  defp put_session_order(%Session{} = session, %Order{} = order) do
+  defp complete_session(%Session{} = session) do
     session
-    |> Session.order_changeset(order)
+    |> Session.completed_changeset()
     |> Repo.update()
   end
 
@@ -497,74 +542,85 @@ defmodule Harbor.Checkout do
     end
   end
 
-  defp resolve_email(%Session{} = session) do
-    if session.cart && session.cart.customer && is_binary(session.cart.customer.email) do
-      {:ok, session.cart.customer.email}
-    else
-      {:error, :missing_email}
-    end
+  defp resolve_email(%Session{order: %Order{email: email}}) when is_binary(email),
+    do: {:ok, email}
+
+  defp resolve_email(%Session{order: %Order{customer: %Customer{email: email}}})
+       when is_binary(email),
+       do: {:ok, email}
+
+  defp resolve_email(%Session{}), do: {:error, :missing_email}
+
+  defp resolve_address(%Session{order: %Order{shipping_address: %Address{} = address}}) do
+    {:ok, address}
   end
 
-  defp resolve_address(%Session{} = session) do
-    case session.shipping_address do
-      %Address{} = addr -> {:ok, addr}
-      _ -> {:error, :missing_address}
-    end
-  end
+  defp resolve_address(%Session{}), do: {:error, :missing_address}
 
-  defp resolve_delivery_method(%Session{delivery_method: %DeliveryMethod{} = dm}), do: {:ok, dm}
+  defp resolve_delivery_method(%Session{order: %Order{delivery_method: %DeliveryMethod{} = dm}}),
+    do: {:ok, dm}
+
   defp resolve_delivery_method(%Session{}), do: {:error, :missing_delivery_method}
 
   @doc """
-  Returns the cart with the tax calculation preloaded. If the cart contents have
-  changed, it downloads the tax calculation from the provider, then persists it.
-  If the cart items and values are unchanged since the last calculation, it
-  preloads the last saved calculation.
+  Returns the order with the tax calculation preloaded. If the order contents
+  have changed, it downloads the tax calculation from the provider, then
+  persists it. If the order items and values are unchanged since the last
+  calculation, it preloads the last saved calculation.
   """
   def update_tax_calculation(%Session{} = session) do
     session = reload_session(session)
     request = tax_request_from_session(session)
-    hash = :erlang.phash2(%{session_id: session.id, request: request})
+    hash = :erlang.phash2(%{order_id: session.order_id, request: request})
 
-    case Repo.get_by(Calculation, checkout_session_id: session.id, hash: hash) do
+    case Repo.get_by(Calculation, order_id: session.order_id, hash: hash) do
       nil ->
-        idempotency_key = "#{session.id},#{hash}"
+        idempotency_key = "#{session.order_id},#{hash}"
 
         with {:ok, response} <- Tax.calculate_taxes(request, idempotency_key) do
           Repo.transact(fn ->
             with {:ok, calculation} <-
                    Tax.create_calculation(%{
                      provider_ref: response.id,
-                     checkout_session_id: session.id,
+                     order_id: session.order_id,
                      amount: response.amount,
                      hash: hash
+                   }),
+                 {:ok, _order} <-
+                   Orders.update_order(Scope.for_system(), session.order, %{
+                     tax: response.amount
                    }) do
               line_items =
                 for line_item <- response.line_items do
                   %{
                     provider_ref: line_item.id,
                     amount: line_item.amount,
-                    cart_item_id: line_item.reference,
+                    order_item_id: line_item.reference,
                     calculation_id: calculation.id
                   }
                 end
 
               :ok = Tax.upsert_calculation_line_items(line_items)
+              session = reload_session(session)
               {:ok, %{session | current_tax_calculation: calculation}}
             end
           end)
         end
 
       calculation ->
+        {:ok, _order} =
+          Orders.update_order(Scope.for_system(), session.order, %{tax: calculation.amount})
+
+        session = reload_session(session)
         {:ok, %{session | current_tax_calculation: calculation}}
     end
   end
 
-  defp tax_request_from_session(%Session{} = session) do
+  defp tax_request_from_session(%Session{order: %Order{} = order}) do
     %Request{
-      shipping_price: session.delivery_method.price,
-      customer_details: build_customer_details(session.shipping_address),
-      line_items: Enum.map(session.cart.items, &line_item_from_pricing/1)
+      shipping_price: shipping_price_for_order(order),
+      customer_details: build_customer_details(order.shipping_address),
+      line_items: Enum.map(order.items, &line_item_from_pricing/1)
     }
   end
 
@@ -578,10 +634,17 @@ defmodule Harbor.Checkout do
     %{address: address_params, address_source: "shipping"}
   end
 
-  @spec line_item_from_pricing(CartItem.t()) :: Request.line_item()
+  defp shipping_price_for_order(%Order{} = order) do
+    case order.delivery_method do
+      %DeliveryMethod{price: price} -> price
+      _ -> 0
+    end
+  end
+
+  @spec line_item_from_pricing(OrderItem.t()) :: Request.line_item()
   defp line_item_from_pricing(item) do
     %{
-      price: item.variant.price,
+      price: item.price,
       quantity: item.quantity,
       reference: item.id,
       tax_code_ref: variant_tax_code_ref(item.variant)

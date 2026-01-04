@@ -161,7 +161,7 @@ defmodule Harbor.Repo.Migrations.InstallV1 do
 
     create table(:product_images) do
       add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
-      add :status, :string, null: false, default: "pending"
+      add :status, :string, null: false, default: "draft"
       add :file_name, :string, null: false
       add :file_size, :integer, null: false
       add :file_type, :string, null: false
@@ -301,7 +301,7 @@ defmodule Harbor.Repo.Migrations.InstallV1 do
 
     create table(:orders) do
       add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
-      add :status, :string, null: false, default: "pending"
+      add :status, :string, null: false, default: "draft"
       add :number, :string, null: false
       add :customer_id, references(:customers)
       add :email, :string
@@ -465,10 +465,6 @@ defmodule Harbor.Repo.Migrations.InstallV1 do
     create unique_index(:payment_intents, [:provider, :provider_ref])
     create index(:payment_intents, [:payment_profile_id])
 
-    alter table(:orders) do
-      add :payment_intent_id, references(:payment_intents, on_delete: :nilify_all)
-    end
-
     ## Checkout sessions
 
     create table(:checkout_sessions) do
@@ -479,10 +475,13 @@ defmodule Harbor.Repo.Migrations.InstallV1 do
       add :last_touched_at, :timestamptz
       add :expires_at, :timestamptz, null: false
 
+      # payments
+      add :payment_intent_id, references(:payment_intents, on_delete: :nilify_all)
+
       timestamps()
     end
 
-    create unique_index(:checkout_sessions, [:order_id], where: "status = 'active'")
+    create unique_index(:checkout_sessions, [:order_id])
     create index(:checkout_sessions, [:expires_at])
 
     create constraint(:checkout_sessions, :check_status,

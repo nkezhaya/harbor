@@ -5,7 +5,6 @@ defmodule Harbor.Orders.Order do
   use Harbor.Schema
 
   alias Harbor.Accounts.Scope
-  alias Harbor.Billing.PaymentIntent
   alias Harbor.Checkout.Cart
   alias Harbor.Customers.Address
   alias Harbor.Customers.Customer
@@ -25,8 +24,6 @@ defmodule Harbor.Orders.Order do
     belongs_to :billing_address, Address
     belongs_to :shipping_address, Address
     belongs_to :delivery_method, DeliveryMethod
-    belongs_to :payment_intent, PaymentIntent
-
     # Snapshotted address fields
     field :address_name, :string
     field :address_line1, :string

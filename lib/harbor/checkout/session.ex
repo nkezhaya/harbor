@@ -4,6 +4,7 @@ defmodule Harbor.Checkout.Session do
   """
   use Harbor.Schema
 
+  alias Harbor.Billing.PaymentIntent
   alias Harbor.Orders.Order
 
   @type t() :: %__MODULE__{}
@@ -21,6 +22,7 @@ defmodule Harbor.Checkout.Session do
     field :current_tax_calculation, :map, virtual: true
 
     belongs_to :order, Order
+    belongs_to :payment_intent, PaymentIntent
 
     timestamps()
   end
@@ -28,11 +30,7 @@ defmodule Harbor.Checkout.Session do
   @doc false
   def changeset(session, attrs) do
     session
-    |> cast(attrs, [
-      :status,
-      :current_step,
-      :expires_at
-    ])
+    |> cast(attrs, [:status, :current_step, :expires_at])
     |> put_new_expiration()
     |> validate_required([:status, :order_id])
     |> check_constraint(:current_step, name: :check_current_step)
@@ -42,6 +40,11 @@ defmodule Harbor.Checkout.Session do
   def touched_changeset(session, datetime \\ DateTime.utc_now()) do
     expires_at = DateTime.add(datetime, 12, :hour)
     change(session, %{last_touched_at: datetime, expires_at: expires_at})
+  end
+
+  @doc false
+  def payment_intent_changeset(session, params) do
+    cast(session, params, [:payment_intent_id])
   end
 
   @doc false
