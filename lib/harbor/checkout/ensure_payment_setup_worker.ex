@@ -17,7 +17,7 @@ defmodule Harbor.Checkout.EnsurePaymentSetupWorker do
     customer = Customers.get_customer!(scope, customer_id)
     scope = %{scope | customer: customer}
 
-    {:ok, profile} = Billing.find_or_create_payment_profile(scope)
+    {:ok, profile} = Billing.find_or_create_payment_profile(scope, customer)
     session = fetch_session(checkout_session_id)
 
     if session.payment_intent_id do

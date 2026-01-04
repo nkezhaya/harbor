@@ -16,11 +16,14 @@ defmodule Harbor.Billing do
   Returns the payment profile record for the given scope. If one is not
   found, it is created.
   """
-  @spec find_or_create_payment_profile(Scope.t()) :: {:ok, PaymentProfile.t()} | {:error, term()}
-  def find_or_create_payment_profile(%Scope{} = scope) do
-    case get_payment_profile(scope, scope.customer.id) do
+  @spec find_or_create_payment_profile(Scope.t(), Customer.t()) ::
+          {:ok, PaymentProfile.t()} | {:error, term()}
+  def find_or_create_payment_profile(%Scope{} = scope, %Customer{} = customer) do
+    ensure_authorized!(scope, customer.id)
+
+    case get_payment_profile(scope, customer.id) do
       nil ->
-        params = %{email: scope.customer.email}
+        params = %{email: customer.email}
 
         case PaymentProvider.create_payment_profile(params) do
           {:ok, %{id: provider_ref}} ->

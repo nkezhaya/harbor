@@ -11,7 +11,7 @@ defmodule Harbor.BillingTest do
   setup :set_mox_from_context
   setup :verify_on_exit!
 
-  describe "find_or_create_payment_profile/1" do
+  describe "find_or_create_payment_profile/2" do
     test "creates a payment profile with provider information" do
       scope = user_scope_fixture()
 
@@ -20,7 +20,7 @@ defmodule Harbor.BillingTest do
         {:ok, %{id: "cust_mock"}}
       end)
 
-      {:ok, profile} = Billing.find_or_create_payment_profile(scope)
+      {:ok, profile} = Billing.find_or_create_payment_profile(scope, scope.customer)
 
       assert profile.provider == Config.payment_provider()
       assert profile.provider_ref == "cust_mock"
@@ -31,7 +31,7 @@ defmodule Harbor.BillingTest do
       scope = user_scope_fixture()
       profile = payment_profile_fixture(scope)
 
-      assert {:ok, ^profile} = Billing.find_or_create_payment_profile(scope)
+      assert {:ok, ^profile} = Billing.find_or_create_payment_profile(scope, scope.customer)
     end
   end
 
