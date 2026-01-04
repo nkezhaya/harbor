@@ -11,7 +11,13 @@ defmodule Harbor.MixProject do
       aliases: aliases(),
       deps: deps(),
       compilers: [:phoenix_live_view] ++ Mix.compilers(),
-      listeners: [Phoenix.CodeReloader]
+      listeners: [Phoenix.CodeReloader],
+
+      # Docs
+      name: "Harbor",
+      source_url: "https://github.com/nkezhaya/harbor",
+      homepage_url: "https://github.com/nkezhaya/harbor",
+      docs: &docs/0
     ]
   end
 
@@ -28,6 +34,13 @@ defmodule Harbor.MixProject do
   def cli do
     [
       preferred_envs: [precommit: :test]
+    ]
+  end
+
+  defp docs do
+    [
+      main: "Harbor",
+      extras: ["README.md"]
     ]
   end
 
@@ -70,7 +83,8 @@ defmodule Harbor.MixProject do
       {:stripity_stripe, "~> 3.2"},
       {:oban, "~> 2.20"},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
-      {:mox, "~> 1.2", only: :test}
+      {:mox, "~> 1.2", only: :test},
+      {:ex_doc, "~> 0.34", only: :dev, runtime: false, warn_if_outdated: true}
     ]
   end
 
