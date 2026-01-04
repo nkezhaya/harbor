@@ -27,8 +27,8 @@ defmodule Harbor.Billing.PaymentProfile do
     |> cast(attrs, [:provider_ref])
     |> validate_required([:provider, :provider_ref])
     |> apply_scope(scope)
-    |> unique_constraint([:provider, :customer_id])
-    |> unique_constraint([:provider, :provider_ref])
+    |> unique_constraint([:provider, :customer_id], error_key: :customer_id)
+    |> unique_constraint([:provider, :provider_ref], error_key: :provider_ref)
   end
 
   defp apply_scope(changeset, %Scope{customer: %Customer{} = customer}) do
