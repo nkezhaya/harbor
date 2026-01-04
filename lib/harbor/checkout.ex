@@ -6,7 +6,7 @@ defmodule Harbor.Checkout do
 
   alias Harbor.Accounts.{Scope, User}
   alias Harbor.Checkout.{Cart, CartItem, EnsurePaymentSetupWorker, Pricing, Session}
-  alias Harbor.Customers.{Address, Customer}
+  alias Harbor.Customers.Customer
   alias Harbor.{Customers, Orders, Repo, Tax}
   alias Harbor.Orders.{Order, OrderItem}
   alias Harbor.Shipping.DeliveryMethod
@@ -288,6 +288,23 @@ defmodule Harbor.Checkout do
     end
   end
 
+  defp ensure_active(%Session{status: status}) do
+    case status do
+      :active -> :ok
+      :completed -> {:error, :already_completed}
+      :expired -> {:error, :session_expired}
+      :abandoned -> {:error, :session_abandoned}
+    end
+  end
+
+  defp ensure_not_expired(%Session{expires_at: expires_at}) do
+    if DateTime.compare(expires_at, DateTime.utc_now()) == :lt do
+      {:error, :session_expired}
+    else
+      :ok
+    end
+  end
+
   defp touch_session!(%Session{} = session) do
     session
     |> Session.touched_changeset()
@@ -480,87 +497,35 @@ defmodule Harbor.Checkout do
   end
 
   defp do_submit_checkout(%Session{} = session) do
-    with :ok <- ensure_active(session),
-         :ok <- ensure_not_expired(session),
-         {:ok, email} <- resolve_email(session),
-         {:ok, address} <- resolve_address(session),
-         {:ok, delivery_method} <- resolve_delivery_method(session),
-         {:ok, session} <- update_tax_calculation(session) do
-      order = session.order
-      pricing = Pricing.build(order)
-
-      order_attrs = %{
-        status: :pending,
-        email: email,
-        address_name: address.name,
-        address_line1: address.line1,
-        address_line2: address.line2,
-        address_city: address.city,
-        address_region: address.region,
-        address_postal_code: address.postal_code,
-        address_country: address.country,
-        address_phone: address.phone,
-        delivery_method_name: delivery_method.name,
-        subtotal: pricing.subtotal,
-        tax: pricing.tax,
-        shipping_price: pricing.shipping_price
-      }
-
-      scope = Scope.for_system()
-
-      Repo.transact(fn ->
-        with {:ok, order} <- Orders.update_order(scope, order, order_attrs),
-             {:ok, _session} <- complete_session(session) do
-          {:ok, order}
-        else
-          {:error, error} -> Repo.rollback(error)
-        end
-      end)
-    else
-      {:error, _} = err -> err
-    end
+    Repo.transact(fn ->
+      with {:ok, session} <- complete_session(session),
+           {:ok, session} <- update_tax_calculation(session) do
+        submit_order(session)
+      end
+    end)
   end
 
   defp complete_session(%Session{} = session) do
     session
-    |> Session.completed_changeset()
+    |> Session.complete_changeset()
     |> Repo.update()
   end
 
-  defp ensure_active(%Session{status: :active}), do: :ok
-  defp ensure_active(%Session{status: :completed}), do: {:error, :already_completed}
-  defp ensure_active(%Session{status: :expired}), do: {:error, :session_expired}
-  defp ensure_active(%Session{status: :abandoned}), do: {:error, :session_abandoned}
+  defp submit_order(%Session{order: order}) do
+    pricing = Pricing.build(order)
 
-  defp ensure_not_expired(%Session{expires_at: nil}), do: {:error, :missing_expiry}
+    attrs = %{
+      status: :pending,
+      email: order.customer.email,
+      subtotal: pricing.subtotal,
+      tax: pricing.tax,
+      shipping_price: pricing.shipping_price
+    }
 
-  defp ensure_not_expired(%Session{expires_at: expires_at}) do
-    if DateTime.compare(expires_at, DateTime.utc_now()) == :lt do
-      {:error, :session_expired}
-    else
-      :ok
-    end
+    order
+    |> Order.submit_changeset(attrs, Scope.for_system())
+    |> Repo.update()
   end
-
-  defp resolve_email(%Session{order: %Order{email: email}}) when is_binary(email),
-    do: {:ok, email}
-
-  defp resolve_email(%Session{order: %Order{customer: %Customer{email: email}}})
-       when is_binary(email),
-       do: {:ok, email}
-
-  defp resolve_email(%Session{}), do: {:error, :missing_email}
-
-  defp resolve_address(%Session{order: %Order{shipping_address: %Address{} = address}}) do
-    {:ok, address}
-  end
-
-  defp resolve_address(%Session{}), do: {:error, :missing_address}
-
-  defp resolve_delivery_method(%Session{order: %Order{delivery_method: %DeliveryMethod{} = dm}}),
-    do: {:ok, dm}
-
-  defp resolve_delivery_method(%Session{}), do: {:error, :missing_delivery_method}
 
   @doc """
   Returns the order with the tax calculation preloaded. If the order contents

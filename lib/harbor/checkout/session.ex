@@ -48,8 +48,12 @@ defmodule Harbor.Checkout.Session do
   end
 
   @doc false
-  def completed_changeset(session) do
-    change(session, %{status: :completed})
+  def complete_changeset(session) do
+    session
+    |> change()
+    |> ensure_active()
+    |> ensure_not_expired()
+    |> put_change(:status, :completed)
   end
 
   defp put_new_expiration(changeset) do
@@ -59,5 +63,27 @@ defmodule Harbor.Checkout.Session do
     end
   end
 
-  def current_step_values, do: @current_step_values
+  defp ensure_active(changeset) do
+    case get_field(changeset, :status) do
+      :active -> changeset
+      :completed -> add_error(changeset, :status, "already completed")
+      :expired -> add_error(changeset, :status, "session expired")
+      :abandoned -> add_error(changeset, :status, "session abandoned")
+      _ -> add_error(changeset, :status, "is invalid")
+    end
+  end
+
+  defp ensure_not_expired(changeset) do
+    case get_field(changeset, :expires_at) do
+      nil ->
+        add_error(changeset, :expires_at, "missing expiry")
+
+      expires_at ->
+        if DateTime.compare(expires_at, DateTime.utc_now()) == :lt do
+          add_error(changeset, :expires_at, "session expired")
+        else
+          changeset
+        end
+    end
+  end
 end

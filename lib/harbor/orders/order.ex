@@ -57,6 +57,8 @@ defmodule Harbor.Orders.Order do
       :status,
       :number,
       :email,
+      :shipping_address_id,
+      :delivery_method_id,
       :address_name,
       :address_line1,
       :address_line2,
@@ -71,7 +73,6 @@ defmodule Harbor.Orders.Order do
       :shipping_price
     ])
     |> validate_required([:status, :subtotal, :tax, :shipping_price])
-    |> validate_required_unless_draft([:email])
     |> cast_assoc(:items)
     |> put_new_order_number()
     |> apply_scope(scope)
@@ -87,10 +88,49 @@ defmodule Harbor.Orders.Order do
     |> unique_constraint(:number)
   end
 
-  defp validate_required_unless_draft(changeset, fields) do
-    case get_field(changeset, :status) do
-      :draft -> changeset
-      _ -> validate_required(changeset, fields)
+  @doc false
+  def submit_changeset(order, attrs, scope) do
+    order
+    |> changeset(attrs, scope)
+    |> validate_required([:email, :delivery_method_id])
+    |> require_shipping_address()
+    |> denormalize_delivery_method()
+    |> denormalize_shipping_address()
+  end
+
+  defp denormalize_delivery_method(changeset) do
+    case get_assoc(changeset, :delivery_method, :struct) do
+      %DeliveryMethod{name: name} -> put_change(changeset, :delivery_method_name, name)
+      _ -> changeset
+    end
+  end
+
+  defp require_shipping_address(changeset) do
+    case get_assoc(changeset, :delivery_method, :struct) do
+      %DeliveryMethod{fulfillment_type: :ship} ->
+        validate_required(changeset, [:shipping_address_id])
+
+      _ ->
+        changeset
+    end
+  end
+
+  defp denormalize_shipping_address(changeset) do
+    case get_assoc(changeset, :shipping_address, :struct) do
+      %Address{} = address ->
+        change(changeset, %{
+          address_name: address.name,
+          address_line1: address.line1,
+          address_line2: address.line2,
+          address_city: address.city,
+          address_region: address.region,
+          address_postal_code: address.postal_code,
+          address_country: address.country,
+          address_phone: address.phone
+        })
+
+      _ ->
+        changeset
     end
   end
 
