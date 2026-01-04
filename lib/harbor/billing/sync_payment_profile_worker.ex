@@ -1,6 +1,6 @@
 defmodule Harbor.Billing.SyncPaymentProfileWorker do
   @moduledoc """
-  Oban worker that syncs the [Customer](`Harbor.Accounts.Customer`) emails to
+  Oban worker that syncs the [Customer](`Harbor.Customers.Customer`) emails to
   the payment provider's profile record.
   """
   use Oban.Worker, queue: :billing, unique: [period: {15, :seconds}, timestamp: :scheduled_at]
