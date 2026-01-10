@@ -14,7 +14,7 @@ defmodule Harbor.Tax.Calculation do
   schema "tax_calculations" do
     field :provider_ref, :string
     field :amount, :integer
-    field :hash, :integer
+    field :hash, :string
 
     belongs_to :order, Order
 

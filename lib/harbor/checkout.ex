@@ -531,7 +531,9 @@ defmodule Harbor.Checkout do
   def update_tax_calculation(%Session{} = session) do
     session = reload_session(session)
     request = tax_request_from_session(session)
-    hash = :erlang.phash2(%{order_id: session.order_id, request: request})
+
+    bin = :erlang.term_to_binary(%{order_id: session.order_id, request: request})
+    hash = Base.encode16(:crypto.hash(:sha256, bin), case: :lower)
 
     case Repo.get_by(Calculation, order_id: session.order_id, hash: hash) do
       nil ->
@@ -577,10 +579,15 @@ defmodule Harbor.Checkout do
   end
 
   defp tax_request_from_session(%Session{order: %Order{} = order}) do
+    line_items =
+      order.items
+      |> Enum.map(&line_item_from_pricing/1)
+      |> Enum.sort_by(& &1.reference)
+
     %Request{
       shipping_price: shipping_price_for_order(order),
       customer_details: build_customer_details(order.shipping_address),
-      line_items: Enum.map(order.items, &line_item_from_pricing/1)
+      line_items: line_items
     }
   end
 

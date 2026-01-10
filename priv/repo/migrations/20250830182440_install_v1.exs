@@ -500,7 +500,7 @@ defmodule Harbor.Repo.Migrations.InstallV1 do
       add :provider_ref, :string, null: false
       add :order_id, references(:orders, on_delete: :delete_all), null: false
       add :amount, :integer, null: false
-      add :hash, :integer, null: false
+      add :hash, :string, null: false
 
       timestamps()
     end

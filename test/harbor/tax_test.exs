@@ -30,7 +30,7 @@ defmodule Harbor.TaxTest do
         provider_ref: "calc_123",
         order_id: session.order_id,
         amount: 1_000,
-        hash: 123
+        hash: "123"
       }
 
       assert {:ok, first_calc} = Tax.create_calculation(attrs)
