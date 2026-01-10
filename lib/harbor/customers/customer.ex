@@ -10,6 +10,7 @@ defmodule Harbor.Customers.Customer do
   """
   use Harbor.Schema
 
+  alias Harbor.Authorization
   alias Harbor.Billing
 
   @type t() :: %__MODULE__{}
@@ -51,13 +52,19 @@ defmodule Harbor.Customers.Customer do
     end
   end
 
-  # Users cannot edit the email on their Customer record, since this is done on
-  # their User account.
   @fields [:first_name, :last_name, :company_name, :phone]
-  defp allowed_fields(%Scope{role: role}) when role in [:superadmin, :system] do
-    [:email, :user_id, :deleted_at, :status | @fields]
-  end
+  defp allowed_fields(%Scope{} = scope) do
+    cond do
+      Authorization.admin?(scope) ->
+        [:email, :user_id, :deleted_at, :status | @fields]
 
-  defp allowed_fields(%Scope{role: :guest}), do: [:email | @fields]
-  defp allowed_fields(%Scope{role: :user}), do: @fields
+      # Users cannot edit the email on their Customer record, since this is done
+      # on their User account.
+      scope.role == :user ->
+        @fields
+
+      scope.role == :guest ->
+        [:email | @fields]
+    end
+  end
 end
