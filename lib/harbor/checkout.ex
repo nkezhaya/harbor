@@ -175,8 +175,11 @@ defmodule Harbor.Checkout do
 
   ## Cart Items
 
-  def get_cart_item!(id) do
-    Repo.get!(CartItem, id)
+  def get_cart_item!(%Scope{} = scope, id) do
+    CartItem
+    |> Repo.get!(id)
+    |> Repo.preload(:cart)
+    |> tap(fn cart_item -> ensure_authorized!(scope, cart_item.cart) end)
   end
 
   def create_cart_item(%Cart{} = cart, attrs) do
@@ -185,13 +188,19 @@ defmodule Harbor.Checkout do
     |> Repo.insert()
   end
 
-  def update_cart_item(%CartItem{} = cart_item, attrs) do
+  def update_cart_item(%Scope{} = scope, %CartItem{} = cart_item, attrs) do
+    cart_item = Repo.preload(cart_item, :cart)
+    ensure_authorized!(scope, cart_item.cart)
+
     cart_item
     |> CartItem.changeset(attrs)
     |> Repo.update()
   end
 
-  def delete_cart_item(%CartItem{} = cart_item) do
+  def delete_cart_item(%Scope{} = scope, %CartItem{} = cart_item) do
+    cart_item = Repo.preload(cart_item, :cart)
+    ensure_authorized!(scope, cart_item.cart)
+
     Repo.delete(cart_item)
   end
 

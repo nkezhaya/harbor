@@ -290,9 +290,11 @@ defmodule Harbor.CheckoutTest do
     end
   end
 
-  describe "get_cart_item!/1" do
-    test "returns the cart_item with given id", %{cart_item: cart_item} do
-      assert Checkout.get_cart_item!(cart_item.id) == cart_item
+  describe "get_cart_item!/2" do
+    test "returns the cart_item with given id", %{scope: scope, cart_item: cart_item} do
+      fetched = Checkout.get_cart_item!(scope, cart_item.id)
+
+      assert fetched.id == cart_item.id
     end
   end
 
@@ -340,23 +342,28 @@ defmodule Harbor.CheckoutTest do
     end
   end
 
-  describe "update_cart_item/2" do
-    test "with valid data updates the cart_item", %{cart_item: cart_item} do
+  describe "update_cart_item/3" do
+    test "with valid data updates the cart_item", %{scope: scope, cart_item: cart_item} do
       update_attrs = %{quantity: 43}
-      assert {:ok, %CartItem{} = cart_item} = Checkout.update_cart_item(cart_item, update_attrs)
+
+      assert {:ok, %CartItem{} = cart_item} =
+               Checkout.update_cart_item(scope, cart_item, update_attrs)
+
       assert cart_item.quantity == 43
     end
 
-    test "with invalid data returns error changeset", %{cart_item: cart_item} do
-      assert {:error, %Ecto.Changeset{}} = Checkout.update_cart_item(cart_item, %{quantity: nil})
-      assert cart_item == Checkout.get_cart_item!(cart_item.id)
+    test "with invalid data returns error changeset", %{scope: scope, cart_item: cart_item} do
+      assert {:error, %Ecto.Changeset{}} =
+               Checkout.update_cart_item(scope, cart_item, %{quantity: nil})
+
+      assert Checkout.get_cart_item!(scope, cart_item.id).quantity == cart_item.quantity
     end
   end
 
-  describe "delete_cart_item/1" do
-    test "deletes the cart_item", %{cart_item: cart_item} do
-      assert {:ok, %CartItem{}} = Checkout.delete_cart_item(cart_item)
-      assert_raise Ecto.NoResultsError, fn -> Checkout.get_cart_item!(cart_item.id) end
+  describe "delete_cart_item/2" do
+    test "deletes the cart_item", %{scope: scope, cart_item: cart_item} do
+      assert {:ok, %CartItem{}} = Checkout.delete_cart_item(scope, cart_item)
+      assert_raise Ecto.NoResultsError, fn -> Checkout.get_cart_item!(scope, cart_item.id) end
     end
   end
 

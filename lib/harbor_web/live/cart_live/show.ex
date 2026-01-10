@@ -186,7 +186,7 @@ defmodule HarborWeb.CartLive.Show do
       ) do
     cart_item = find_cart_item!(socket.assigns.cart, cart_item_id)
 
-    case Checkout.update_cart_item(cart_item, cart_item_params) do
+    case Checkout.update_cart_item(socket.assigns.current_scope, cart_item, cart_item_params) do
       {:ok, _updated} ->
         {:noreply, reload_cart(socket)}
 
@@ -200,9 +200,9 @@ defmodule HarborWeb.CartLive.Show do
 
   @impl true
   def handle_event("remove_item", %{"cart_item_id" => cart_item_id}, socket) do
-    cart_item = Checkout.get_cart_item!(cart_item_id)
+    cart_item = Checkout.get_cart_item!(socket.assigns.current_scope, cart_item_id)
 
-    case Checkout.delete_cart_item(cart_item) do
+    case Checkout.delete_cart_item(socket.assigns.current_scope, cart_item) do
       {:ok, _deleted} ->
         {:noreply, reload_cart(socket)}
 
