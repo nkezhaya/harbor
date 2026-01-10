@@ -33,16 +33,6 @@ defmodule Harbor.Customers do
   end
 
   @doc """
-  Gets the customer for the current scope.
-  """
-  def get_current_customer!(%Scope{} = scope) do
-    Customer
-    |> where([c], is_nil(c.deleted_at))
-    |> Repo.get!(scope.user.id)
-    |> tap(&ensure_authorized!(scope, &1))
-  end
-
-  @doc """
   Gets a single customer associated with the given user.
   """
   def get_customer_for_user(%Scope{} = scope, user_id) do
