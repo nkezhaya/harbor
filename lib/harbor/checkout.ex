@@ -3,6 +3,7 @@ defmodule Harbor.Checkout do
   The Checkout context.
   """
   import Ecto.Query, warn: false
+  import Harbor.Authorization
 
   alias Harbor.Accounts.{Scope, User}
   alias Harbor.Checkout.{Cart, CartItem, EnsurePaymentSetupWorker, Pricing, Session}
@@ -171,21 +172,6 @@ defmodule Harbor.Checkout do
     |> join(:inner, [c], assoc(c, :customer), as: :customer)
     |> where([customer: customer], customer.user_id == ^user.id)
   end
-
-  defp ensure_authorized!(%Scope{role: role}, _cart) when role in [:superadmin, :system], do: :ok
-
-  defp ensure_authorized!(%Scope{customer: %Customer{id: customer_id}}, %Cart{
-         customer_id: customer_id
-       }),
-       do: :ok
-
-  defp ensure_authorized!(%Scope{session_token: session_token}, %Cart{
-         session_token: session_token
-       })
-       when is_binary(session_token),
-       do: :ok
-
-  defp ensure_authorized!(_scope, _cart), do: raise(Harbor.UnauthorizedError)
 
   ## Cart Items
 

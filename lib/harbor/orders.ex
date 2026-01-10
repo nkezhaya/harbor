@@ -3,9 +3,9 @@ defmodule Harbor.Orders do
   The Orders context.
   """
   import Ecto.Query, warn: false
+  import Harbor.Authorization
 
   alias Harbor.Accounts.Scope
-  alias Harbor.Customers.Customer
   alias Harbor.Orders.Order
   alias Harbor.Repo
 
@@ -43,15 +43,4 @@ defmodule Harbor.Orders do
     ensure_authorized!(scope, order)
     Order.changeset(order, attrs, scope)
   end
-
-  @admin_roles [:superadmin, :system]
-
-  defp ensure_authorized!(%Scope{role: role}, _order) when role in @admin_roles, do: :ok
-
-  defp ensure_authorized!(%Scope{customer: %Customer{id: customer_id}}, %Order{
-         customer_id: customer_id
-       }),
-       do: :ok
-
-  defp ensure_authorized!(%Scope{}, _order), do: raise(Harbor.UnauthorizedError)
 end

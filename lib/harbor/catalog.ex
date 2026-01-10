@@ -3,6 +3,7 @@ defmodule Harbor.Catalog do
   The Catalog context.
   """
   import Ecto.Query, warn: false
+  import Harbor.Authorization
 
   alias Harbor.Accounts.Scope
   alias Harbor.Repo
@@ -176,7 +177,7 @@ defmodule Harbor.Catalog do
   end
 
   def list_categories(%Scope{} = scope) do
-    ensure_superadmin!(scope)
+    ensure_admin!(scope)
 
     Category
     |> order_by(asc: :position)
@@ -191,7 +192,7 @@ defmodule Harbor.Catalog do
   end
 
   def create_category(%Scope{} = scope, attrs) do
-    ensure_superadmin!(scope)
+    ensure_admin!(scope)
 
     %Category{}
     |> Category.changeset(attrs)
@@ -200,7 +201,7 @@ defmodule Harbor.Catalog do
   end
 
   def update_category(%Scope{} = scope, %Category{} = category, attrs) do
-    ensure_superadmin!(scope)
+    ensure_admin!(scope)
 
     category
     |> Category.changeset(attrs)
@@ -217,15 +218,12 @@ defmodule Harbor.Catalog do
   end
 
   def delete_category(%Scope{} = scope, %Category{} = category) do
-    ensure_superadmin!(scope)
+    ensure_admin!(scope)
     Repo.delete(category)
   end
 
   def change_category(%Scope{} = scope, %Category{} = category, attrs \\ %{}) do
-    ensure_superadmin!(scope)
+    ensure_admin!(scope)
     Category.changeset(category, attrs)
   end
-
-  defp ensure_superadmin!(%Scope{role: :superadmin}), do: :ok
-  defp ensure_superadmin!(_scope), do: raise(Harbor.UnauthorizedError)
 end

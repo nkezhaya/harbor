@@ -5,6 +5,7 @@ defmodule Harbor.Orders.Order do
   use Harbor.Schema
 
   alias Harbor.Accounts.Scope
+  alias Harbor.Authorization
   alias Harbor.Checkout.Cart
   alias Harbor.Customers.Address
   alias Harbor.Customers.Customer
@@ -134,15 +135,17 @@ defmodule Harbor.Orders.Order do
     end
   end
 
-  @admin_roles [:superadmin, :system]
-  defp apply_scope(changeset, %Scope{role: role}) when role in @admin_roles, do: changeset
+  defp apply_scope(changeset, %Scope{} = scope) do
+    cond do
+      Authorization.admin?(scope) ->
+        changeset
 
-  defp apply_scope(changeset, %Scope{customer: %Customer{id: customer_id}}) do
-    change(changeset, %{customer_id: customer_id})
-  end
+      scope.customer && scope.customer.id ->
+        put_change(changeset, :customer_id, scope.customer.id)
 
-  defp apply_scope(_changeset, %Scope{}) do
-    raise Harbor.UnauthorizedError
+      true ->
+        raise Harbor.UnauthorizedError
+    end
   end
 
   defp put_new_order_number(changeset) do
