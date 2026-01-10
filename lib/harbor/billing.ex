@@ -60,7 +60,8 @@ defmodule Harbor.Billing do
     Repo.get_by!(PaymentProfile, customer_id: customer_id)
   end
 
-  defp ensure_authorized!(%Scope{role: :system}, _customer_id), do: :ok
+  @admin_roles [:superadmin, :system]
+  defp ensure_authorized!(%Scope{role: role}, _customer_id) when role in @admin_roles, do: :ok
   defp ensure_authorized!(%Scope{customer: %Customer{id: customer_id}}, customer_id), do: :ok
   defp ensure_authorized!(_scope, _customer_id), do: raise(Harbor.UnauthorizedError)
 
