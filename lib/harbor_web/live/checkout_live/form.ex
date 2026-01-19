@@ -178,7 +178,7 @@ defmodule HarborWeb.CheckoutLive.Form do
           <%= if :address in @country.required_fields do %>
             <div class="sm:col-span-2">
               <.input
-                field={@form[:address]}
+                field={@form[:line1]}
                 type="text"
                 label="Address"
                 autocomplete="street-address"
@@ -187,7 +187,7 @@ defmodule HarborWeb.CheckoutLive.Form do
 
             <div class="sm:col-span-2">
               <.input
-                field={@form[:apartment]}
+                field={@form[:line2]}
                 type="text"
                 label="Apartment, suite, etc."
               />

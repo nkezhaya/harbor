@@ -120,7 +120,7 @@ defmodule Harbor.Orders.Order do
     case get_assoc(changeset, :shipping_address, :struct) do
       %Address{} = address ->
         change(changeset, %{
-          address_name: address.name,
+          address_name: address_full_name(address),
           address_line1: address.line1,
           address_line2: address.line2,
           address_city: address.city,
@@ -134,6 +134,14 @@ defmodule Harbor.Orders.Order do
         changeset
     end
   end
+
+  defp address_full_name(%Address{first_name: first_name, last_name: last_name}) do
+    [first_name, last_name]
+    |> Enum.reject(&blank_string?/1)
+    |> Enum.join(" ")
+  end
+
+  defp blank_string?(value), do: value in [nil, ""]
 
   defp apply_scope(changeset, %Scope{} = scope) do
     cond do

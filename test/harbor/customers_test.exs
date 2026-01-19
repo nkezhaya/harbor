@@ -237,7 +237,8 @@ defmodule Harbor.CustomersTest do
       scope = guest_scope_fixture()
 
       valid_attrs = %{
-        name: "some name",
+        first_name: "some first_name",
+        last_name: "some last_name",
         line1: "some line1",
         city: "some city",
         country: "some country",
@@ -245,7 +246,8 @@ defmodule Harbor.CustomersTest do
       }
 
       assert {:ok, %Address{} = address} = Customers.create_address(scope, valid_attrs)
-      assert address.name == "some name"
+      assert address.first_name == "some first_name"
+      assert address.last_name == "some last_name"
       assert address.line1 == "some line1"
       assert address.city == "some city"
       assert address.country == "some country"
@@ -254,7 +256,17 @@ defmodule Harbor.CustomersTest do
 
     test "with invalid data returns error changeset" do
       scope = guest_scope_fixture()
-      assert {:error, %Ecto.Changeset{}} = Customers.create_address(scope, %{name: nil})
+
+      attrs = %{
+        first_name: nil,
+        last_name: "some last_name",
+        line1: "some line1",
+        city: "some city",
+        country: "some country",
+        phone: "some phone"
+      }
+
+      assert {:error, %Ecto.Changeset{}} = Customers.create_address(scope, attrs)
     end
   end
 
@@ -264,7 +276,8 @@ defmodule Harbor.CustomersTest do
       address = address_fixture(scope)
 
       update_attrs = %{
-        name: "some updated name",
+        first_name: "some updated first_name",
+        last_name: "some updated last_name",
         line1: "some updated line1",
         city: "some updated city",
         country: "some updated country",
@@ -272,7 +285,8 @@ defmodule Harbor.CustomersTest do
       }
 
       assert {:ok, %Address{} = address} = Customers.update_address(scope, address, update_attrs)
-      assert address.name == "some updated name"
+      assert address.first_name == "some updated first_name"
+      assert address.last_name == "some updated last_name"
       assert address.line1 == "some updated line1"
       assert address.city == "some updated city"
       assert address.country == "some updated country"
@@ -287,7 +301,9 @@ defmodule Harbor.CustomersTest do
                Customers.update_address(scope, address, %{
                  first_name: nil,
                  last_name: nil,
-                 email: nil,
+                 line1: nil,
+                 city: nil,
+                 country: nil,
                  phone: nil
                })
 

@@ -244,7 +244,8 @@ defmodule Harbor.CheckoutTest do
       {:ok, session} = Checkout.create_session(scope, cart)
 
       params = %{
-        "name" => "Jane Doe",
+        "first_name" => "Jane",
+        "last_name" => "Doe",
         "line1" => "1 Main St",
         "line2" => "Unit 2",
         "city" => "Portland",
@@ -258,7 +259,8 @@ defmodule Harbor.CheckoutTest do
 
       assert %Harbor.Customers.Address{} = session.order.shipping_address
       assert session.order.shipping_address_id == session.order.shipping_address.id
-      assert session.order.shipping_address.name == "Jane Doe"
+      assert session.order.shipping_address.first_name == "Jane"
+      assert session.order.shipping_address.last_name == "Doe"
       assert session.order.shipping_address.customer_id == scope.customer.id
     end
 
@@ -269,7 +271,8 @@ defmodule Harbor.CheckoutTest do
 
       address =
         address_fixture(scope, %{
-          name: "Old Name",
+          first_name: "Old",
+          last_name: "Name",
           line1: "Old Street",
           city: "Old City",
           country: "US",
@@ -282,7 +285,8 @@ defmodule Harbor.CheckoutTest do
       {:ok, session} = Checkout.get_session(scope, session.id)
 
       params = %{
-        "name" => "New Name",
+        "first_name" => "New",
+        "last_name" => "Name",
         "line1" => "New Street",
         "city" => "New City",
         "country" => "US",
@@ -292,7 +296,8 @@ defmodule Harbor.CheckoutTest do
       assert {:ok, session} = Checkout.complete_shipping_step(scope, session, params)
 
       assert session.order.shipping_address_id == address.id
-      assert session.order.shipping_address.name == "New Name"
+      assert session.order.shipping_address.first_name == "New"
+      assert session.order.shipping_address.last_name == "Name"
       assert length(Harbor.Customers.list_addresses(scope)) == 1
     end
 
@@ -302,7 +307,10 @@ defmodule Harbor.CheckoutTest do
       {:ok, session} = Checkout.create_session(scope, cart)
 
       assert {:error, %Ecto.Changeset{}} =
-               Checkout.complete_shipping_step(scope, session, %{"name" => nil})
+               Checkout.complete_shipping_step(scope, session, %{
+                 "first_name" => nil,
+                 "last_name" => "Doe"
+               })
 
       order = Repo.get!(Order, session.order.id)
       assert is_nil(order.shipping_address_id)
@@ -462,7 +470,8 @@ defmodule Harbor.CheckoutTest do
 
       billing =
         address_fixture(scope, %{
-          name: "Bilbo Baggins",
+          first_name: "Bilbo",
+          last_name: "Baggins",
           line1: "1 Bagshot Row",
           city: "Hobbiton",
           country: "Shire",
@@ -471,7 +480,8 @@ defmodule Harbor.CheckoutTest do
 
       shipping =
         address_fixture(scope, %{
-          name: "Frodo Baggins",
+          first_name: "Frodo",
+          last_name: "Baggins",
           line1: "1 Bagshot Row",
           city: "Hobbiton",
           country: "Shire",
@@ -529,7 +539,8 @@ defmodule Harbor.CheckoutTest do
 
       address =
         address_fixture(scope, %{
-          name: "Jessie",
+          first_name: "Jessie",
+          last_name: "Doe",
           line1: "Main St",
           city: "Town",
           country: "US",

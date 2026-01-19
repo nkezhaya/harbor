@@ -10,7 +10,8 @@ defmodule Harbor.Customers.Address do
   @type t() :: %__MODULE__{}
 
   schema "addresses" do
-    field :name, :string
+    field :first_name, :string
+    field :last_name, :string
     field :line1, :string
     field :line2, :string
     field :city, :string
@@ -28,11 +29,21 @@ defmodule Harbor.Customers.Address do
   def changeset(address, attrs, scope \\ nil) do
     address
     |> cast(attrs, allowed_fields(scope))
-    |> validate_required([:name, :line1, :city, :country, :phone])
+    |> validate_required([:first_name, :last_name, :line1, :city, :country, :phone])
     |> apply_scope(scope)
   end
 
-  @fields [:name, :line1, :line2, :city, :region, :postal_code, :country, :phone]
+  @fields [
+    :first_name,
+    :last_name,
+    :line1,
+    :line2,
+    :city,
+    :region,
+    :postal_code,
+    :country,
+    :phone
+  ]
   defp allowed_fields(%Scope{role: role}) when role in [:superadmin, :system] do
     [:customer_id | @fields]
   end

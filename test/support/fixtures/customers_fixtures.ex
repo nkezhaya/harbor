@@ -35,7 +35,8 @@ defmodule Harbor.CustomersFixtures do
   def address_fixture(scope, attrs \\ %{}) do
     attrs =
       Enum.into(attrs, %{
-        name: "some name",
+        first_name: "some first_name",
+        last_name: "some last_name",
         line1: "some line1",
         city: "some city",
         country: "some country",
