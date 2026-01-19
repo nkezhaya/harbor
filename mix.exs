@@ -17,7 +17,7 @@ defmodule Harbor.MixProject do
       name: "Harbor",
       source_url: "https://github.com/nkezhaya/harbor",
       homepage_url: "https://github.com/nkezhaya/harbor",
-      docs: &docs/0
+      docs: docs()
     ]
   end
 
