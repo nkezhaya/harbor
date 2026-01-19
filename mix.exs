@@ -82,6 +82,7 @@ defmodule Harbor.MixProject do
       {:ex_aws_s3, "~> 2.5"},
       {:stripity_stripe, "~> 3.2"},
       {:oban, "~> 2.20"},
+      {:address_input, "~> 0.2"},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:mox, "~> 1.2", only: :test},
       {:ex_doc, "~> 0.34", only: :dev, runtime: false, warn_if_outdated: true}
