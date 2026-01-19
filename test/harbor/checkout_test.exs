@@ -237,6 +237,79 @@ defmodule Harbor.CheckoutTest do
     end
   end
 
+  describe "complete_shipping_step/3" do
+    test "creates a shipping address and attaches it to the order" do
+      scope = guest_scope_fixture()
+      cart = cart_fixture(scope)
+      {:ok, session} = Checkout.create_session(scope, cart)
+
+      params = %{
+        "name" => "Jane Doe",
+        "line1" => "1 Main St",
+        "line2" => "Unit 2",
+        "city" => "Portland",
+        "region" => "OR",
+        "postal_code" => "97205",
+        "country" => "US",
+        "phone" => "555-0100"
+      }
+
+      assert {:ok, session} = Checkout.complete_shipping_step(scope, session, params)
+
+      assert %Harbor.Customers.Address{} = session.order.shipping_address
+      assert session.order.shipping_address_id == session.order.shipping_address.id
+      assert session.order.shipping_address.name == "Jane Doe"
+      assert session.order.shipping_address.customer_id == scope.customer.id
+    end
+
+    test "updates the existing shipping address when present" do
+      scope = guest_scope_fixture()
+      cart = cart_fixture(scope)
+      {:ok, session} = Checkout.create_session(scope, cart)
+
+      address =
+        address_fixture(scope, %{
+          name: "Old Name",
+          line1: "Old Street",
+          city: "Old City",
+          country: "US",
+          phone: "555-0000"
+        })
+
+      {:ok, _order} =
+        Harbor.Orders.update_order(scope, session.order, %{shipping_address_id: address.id})
+
+      {:ok, session} = Checkout.get_session(scope, session.id)
+
+      params = %{
+        "name" => "New Name",
+        "line1" => "New Street",
+        "city" => "New City",
+        "country" => "US",
+        "phone" => "555-1111"
+      }
+
+      assert {:ok, session} = Checkout.complete_shipping_step(scope, session, params)
+
+      assert session.order.shipping_address_id == address.id
+      assert session.order.shipping_address.name == "New Name"
+      assert length(Harbor.Customers.list_addresses(scope)) == 1
+    end
+
+    test "returns a changeset when validation fails" do
+      scope = guest_scope_fixture()
+      cart = cart_fixture(scope)
+      {:ok, session} = Checkout.create_session(scope, cart)
+
+      assert {:error, %Ecto.Changeset{}} =
+               Checkout.complete_shipping_step(scope, session, %{"name" => nil})
+
+      order = Repo.get!(Order, session.order.id)
+      assert is_nil(order.shipping_address_id)
+      assert Harbor.Customers.list_addresses(scope) == []
+    end
+  end
+
   describe "checkout_steps/3" do
     test "includes contact, shipping, and payment when required", %{scope: scope, cart: cart} do
       variant = variant_fixture()

@@ -134,10 +134,10 @@ defmodule Harbor.Customers do
   end
 
   def create_address(%Scope{} = scope, attrs) do
-    ensure_authorized!(scope, scope.customer.id)
+    ensure_customer!(scope)
 
-    %Address{customer_id: scope.customer.id}
-    |> Address.changeset(attrs)
+    %Address{}
+    |> Address.changeset(attrs, scope)
     |> Repo.insert()
   end
 
@@ -145,7 +145,7 @@ defmodule Harbor.Customers do
     ensure_authorized!(scope, address.customer_id)
 
     address
-    |> Address.changeset(attrs)
+    |> Address.changeset(attrs, scope)
     |> Repo.update()
   end
 
@@ -158,6 +158,6 @@ defmodule Harbor.Customers do
   def change_address(%Scope{} = scope, %Address{} = address, attrs \\ %{}) do
     ensure_authorized!(scope, address.customer_id)
 
-    Address.changeset(address, attrs)
+    Address.changeset(address, attrs, scope)
   end
 end

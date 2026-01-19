@@ -7,7 +7,7 @@ defmodule HarborWeb.CheckoutLive.Form do
 
   alias Harbor.Accounts.Scope
   alias Harbor.Checkout
-  alias Harbor.Customers.Customer
+  alias Harbor.Customers.{Address, Customer}
 
   @impl true
   def render(assigns) do
@@ -65,7 +65,7 @@ defmodule HarborWeb.CheckoutLive.Form do
             >
               <:summary>123 Market Street, Springfield</:summary>
               <:body>
-                <.shipping_step />
+                <.shipping_step form={@shipping_form} />
               </:body>
             </.step>
             <.step
@@ -108,7 +108,7 @@ defmodule HarborWeb.CheckoutLive.Form do
     """
   end
 
-  attr :form, :any, required: true
+  attr :form, Phoenix.HTML.Form, required: true
 
   defp contact_step(assigns) do
     ~H"""
@@ -122,10 +122,26 @@ defmodule HarborWeb.CheckoutLive.Form do
     """
   end
 
-  attr :form, :any, default: nil
+  attr :form, Phoenix.HTML.Form, required: true
 
   defp shipping_step(assigns) do
-    assigns = assign_new(assigns, :form, fn -> to_form(%{}) end)
+    countries =
+      for country <- AddressInput.countries() do
+        {country.name, country.id}
+      end
+
+    country = AddressInput.get_country(assigns.form[:country].value)
+
+    subregions =
+      for subregion <- country.subregions do
+        {subregion.name, subregion.id}
+      end
+
+    assigns =
+      assigns
+      |> assign(:country, country)
+      |> assign(:countries, countries)
+      |> assign(:subregions, subregions)
 
     ~H"""
     <div>
@@ -133,9 +149,96 @@ defmodule HarborWeb.CheckoutLive.Form do
         for={@form}
         id="shipping-form"
         class="space-y-4"
+        phx-change="shipping_change"
         phx-submit="shipping_submit"
       >
-        <p class="text-sm text-gray-700">Shipping form placeholder content.</p>
+        <div class="mt-4 grid grid-cols-1 gap-y-6 sm:grid-cols-2 sm:gap-x-4">
+          <div>
+            <.input
+              field={@form[:first_name]}
+              type="text"
+              label="First name"
+              autocomplete="given-name"
+            />
+          </div>
+
+          <div>
+            <.input
+              field={@form[:last_name]}
+              type="text"
+              label="Last name"
+              autocomplete="family-name"
+            />
+          </div>
+
+          <div class="sm:col-span-2">
+            <.input field={@form[:company]} type="text" label="Company" />
+          </div>
+
+          <%= if :address in @country.required_fields do %>
+            <div class="sm:col-span-2">
+              <.input
+                field={@form[:address]}
+                type="text"
+                label="Address"
+                autocomplete="street-address"
+              />
+            </div>
+
+            <div class="sm:col-span-2">
+              <.input
+                field={@form[:apartment]}
+                type="text"
+                label="Apartment, suite, etc."
+              />
+            </div>
+          <% end %>
+
+          <div>
+            <.input
+              :if={:sublocality in @country.required_fields}
+              field={@form[:city]}
+              type="text"
+              label="City"
+              autocomplete="address-level2"
+            />
+          </div>
+
+          <div>
+            <.input
+              field={@form[:country]}
+              type="select"
+              label="Country"
+              options={@countries}
+              autocomplete="country"
+            />
+          </div>
+
+          <div>
+            <.input
+              :if={:region in @country.required_fields}
+              field={@form[:region]}
+              type="select"
+              label="State / Province"
+              options={@subregions}
+              autocomplete="address-level1"
+            />
+          </div>
+
+          <div>
+            <.input
+              :if={:postal_code in @country.required_fields}
+              field={@form[:postal_code]}
+              type="text"
+              label="Postal code"
+              autocomplete="postal-code"
+            />
+          </div>
+
+          <div class="sm:col-span-2">
+            <.input field={@form[:phone]} type="text" label="Phone" autocomplete="tel" />
+          </div>
+        </div>
 
         <.continue_button id="shipping-continue">Continue to delivery</.continue_button>
       </.form>
@@ -215,6 +318,7 @@ defmodule HarborWeb.CheckoutLive.Form do
         steps = Checkout.checkout_steps(current_scope, session.order, pricing)
         session = Checkout.ensure_valid_current_step!(current_scope, session, steps)
         contact_form = contact_form(current_scope)
+        shipping_form = shipping_form()
 
         {:ok,
          assign(socket,
@@ -223,7 +327,8 @@ defmodule HarborWeb.CheckoutLive.Form do
            order: session.order,
            pricing: pricing,
            steps: steps,
-           contact_form: contact_form
+           contact_form: contact_form,
+           shipping_form: shipping_form
          )}
 
       {:error, error} ->
@@ -269,8 +374,26 @@ defmodule HarborWeb.CheckoutLive.Form do
     end
   end
 
-  def handle_event("shipping_submit", _params, socket) do
-    {:noreply, put_next_step(socket, :shipping)}
+  def handle_event("shipping_change", %{"address" => address_params}, socket) do
+    {:noreply,
+     socket
+     |> assign(:shipping_form, shipping_form(address_params))}
+  end
+
+  def handle_event("shipping_submit", %{"address" => address_params}, socket) do
+    scope = socket.assigns.current_scope
+
+    case Checkout.complete_shipping_step(scope, socket.assigns.session, address_params) do
+      {:ok, session} ->
+        {:noreply,
+         socket
+         |> assign(:session, session)
+         |> assign(:order, session.order)
+         |> put_next_step(:shipping)}
+
+      {:error, changeset} ->
+        {:noreply, assign(socket, :shipping_form, to_form(changeset))}
+    end
   end
 
   def handle_event("delivery_submit", _params, socket) do
@@ -332,6 +455,12 @@ defmodule HarborWeb.CheckoutLive.Form do
 
     customer
     |> Customer.changeset(%{}, scope)
+    |> to_form()
+  end
+
+  defp shipping_form(params \\ %{}) do
+    %Address{country: "US"}
+    |> Address.changeset(params)
     |> to_form()
   end
 end

@@ -30,6 +30,19 @@ defmodule Harbor.Authorization do
   def ensure_admin!(_scope), do: raise(Harbor.UnauthorizedError)
 
   @doc """
+  Ensures the scope has an attached customer or belongs to a non-guest role.
+
+  Returns `:ok` when authorized, otherwise raises `Harbor.UnauthorizedError`.
+  """
+  def ensure_customer!(%Scope{} = scope) do
+    if scope.customer || scope.role != :guest do
+      :ok
+    else
+      raise Harbor.UnauthorizedError
+    end
+  end
+
+  @doc """
   Ensures the scope is authorized to access the given resource.
 
   Returns `:ok` when authorized, otherwise raises `Harbor.UnauthorizedError`.

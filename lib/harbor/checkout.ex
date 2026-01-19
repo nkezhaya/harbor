@@ -7,7 +7,7 @@ defmodule Harbor.Checkout do
 
   alias Harbor.Accounts.{Scope, User}
   alias Harbor.Checkout.{Cart, CartItem, EnsurePaymentSetupWorker, Pricing, Session}
-  alias Harbor.Customers.Customer
+  alias Harbor.Customers.{Address, Customer}
   alias Harbor.{Customers, Orders, Repo, Tax}
   alias Harbor.Orders.{Order, OrderItem}
   alias Harbor.Shipping.DeliveryMethod
@@ -322,7 +322,7 @@ defmodule Harbor.Checkout do
   """
   @spec complete_contact_step(Scope.t(), Session.t(), map()) ::
           {:ok, Session.t(), Scope.t()} | {:error, Ecto.Changeset.t()} | {:error, term()}
-  def complete_contact_step(%Scope{} = scope, %Session{} = session, params) when is_map(params) do
+  def complete_contact_step(%Scope{} = scope, %Session{} = session, params) do
     session = Repo.preload(session, order: [:cart])
 
     Repo.transact(fn ->
@@ -352,6 +352,39 @@ defmodule Harbor.Checkout do
     %{"customer_id" => customer_id, "checkout_session_id" => checkout_session_id}
     |> EnsurePaymentSetupWorker.new()
     |> Oban.insert()
+  end
+
+  @doc """
+  Completes the shipping step by upserting a shipping address for the current
+  scope's customer and attaching it to the order.
+
+  Returns `{:ok, session}` with the updated order on success, or
+  `{:error, changeset}` when validation fails.
+  """
+  @spec complete_shipping_step(Scope.t(), Session.t(), map()) ::
+          {:ok, Session.t()} | {:error, Ecto.Changeset.t()} | {:error, term()}
+  def complete_shipping_step(%Scope{} = scope, %Session{} = session, params) do
+    session = Repo.preload(session, order: [:cart, :shipping_address])
+    ensure_authorized!(scope, session.order.cart)
+
+    Repo.transact(fn ->
+      with {:ok, address} <- upsert_shipping_address(scope, session.order, params),
+           {:ok, _order} <-
+             Orders.update_order(scope, session.order, %{shipping_address_id: address.id}) do
+        {:ok, session}
+      end
+    end)
+    |> case do
+      {:ok, session} -> {:ok, reload_session(session)}
+      error -> error
+    end
+  end
+
+  defp upsert_shipping_address(%Scope{} = scope, %Order{} = order, params) do
+    case order.shipping_address do
+      %Address{} = address -> Customers.update_address(scope, address, params)
+      _ -> Customers.create_address(scope, params)
+    end
   end
 
   @doc """
