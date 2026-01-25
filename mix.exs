@@ -12,6 +12,7 @@ defmodule Harbor.MixProject do
       deps: deps(),
       compilers: [:phoenix_live_view] ++ Mix.compilers(),
       listeners: [Phoenix.CodeReloader],
+      test_coverage: [ignore_modules: [~r/Mix\.Tasks\.Harbor/, ~r/\.Stripe/]],
 
       # Docs
       name: "Harbor",
