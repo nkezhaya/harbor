@@ -2,8 +2,8 @@ defmodule Harbor.Checkout do
   @moduledoc """
   The Checkout context.
   """
-  import Ecto.Query, warn: false
-  import Harbor.Authorization
+  import Ecto.Query
+  import Harbor.{Authorization, QueryMacros}
 
   alias Harbor.Accounts.{Scope, User}
   alias Harbor.Checkout.{Cart, CartItem, EnsurePaymentSetupWorker, Pricing, Session}
@@ -108,6 +108,21 @@ defmodule Harbor.Checkout do
     scope
     |> active_cart_query_by_scope()
     |> preload([:customer, items: [variant: [:option_values, product: [:images]]]])
+    |> Repo.one()
+  end
+
+  @doc """
+  Returns the customer for the most recent unexpired cart tied to the session token.
+  """
+  @spec fetch_customer_from_active_cart(String.t()) :: Customer.t() | nil
+  def fetch_customer_from_active_cart(session_token) do
+    Cart
+    |> where([c], c.session_token == ^session_token and c.expires_at > now())
+    |> join(:inner, [c], customer in assoc(c, :customer), as: :customer)
+    |> where([customer: customer], is_nil(customer.deleted_at))
+    |> order_by([c], desc: c.inserted_at)
+    |> select([customer: customer], customer)
+    |> limit(1)
     |> Repo.one()
   end
 

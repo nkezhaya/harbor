@@ -8,7 +8,7 @@ defmodule HarborWeb.UserAuth do
   import Phoenix.Controller
 
   alias Harbor.Accounts.{Scope, User}
-  alias Harbor.Auth
+  alias Harbor.{Auth, Checkout}
 
   # Make the remember me cookie valid for 14 days. This should match
   # the session validity setting in UserToken.
@@ -76,7 +76,13 @@ defmodule HarborWeb.UserAuth do
     else
       nil ->
         {guest_session_token, conn} = put_new_guest_session_token(conn)
-        assign(conn, :current_scope, Scope.for_guest(guest_session_token))
+
+        scope =
+          guest_session_token
+          |> Scope.for_guest()
+          |> attach_guest_customer()
+
+        assign(conn, :current_scope, scope)
     end
   end
 
@@ -294,10 +300,23 @@ defmodule HarborWeb.UserAuth do
            {user, _} <- Auth.get_user_by_session_token(user_token) do
         Scope.for_user(user)
       else
-        _ -> Scope.for_guest(session["guest_session_token"])
+        _ ->
+          session["guest_session_token"]
+          |> Scope.for_guest()
+          |> attach_guest_customer()
       end
     end)
   end
+
+  defp attach_guest_customer(%Scope{session_token: session_token} = scope)
+       when is_binary(session_token) do
+    case Checkout.fetch_customer_from_active_cart(session_token) do
+      nil -> scope
+      customer -> Scope.attach_customer(scope, customer)
+    end
+  end
+
+  defp attach_guest_customer(scope), do: scope
 
   @doc "Returns the path to redirect to after log in."
   # the user was already logged in, redirect to settings

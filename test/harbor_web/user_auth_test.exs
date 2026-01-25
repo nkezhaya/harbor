@@ -211,10 +211,6 @@ defmodule HarborWeb.UserAuthTest do
   end
 
   describe "on_mount :mount_current_scope" do
-    setup %{conn: conn} do
-      %{conn: UserAuth.fetch_current_scope_for_user(conn, [])}
-    end
-
     test "assigns current_scope based on a valid user_token", %{conn: conn, user: user} do
       user_token = Auth.generate_user_session_token(user)
       session = conn |> put_session(:user_token, user_token) |> get_session()
@@ -246,6 +242,10 @@ defmodule HarborWeb.UserAuthTest do
   end
 
   describe "on_mount :require_authenticated" do
+    setup %{conn: conn} do
+      %{conn: UserAuth.fetch_current_scope_for_user(conn, [])}
+    end
+
     test "authenticates current_scope based on a valid user_token", %{conn: conn, user: user} do
       user_token = Auth.generate_user_session_token(user)
       session = conn |> put_session(:user_token, user_token) |> get_session()
