@@ -386,13 +386,9 @@ defmodule Harbor.Checkout do
       with {:ok, address} <- upsert_shipping_address(scope, session.order, params),
            {:ok, _order} <-
              Orders.update_order(scope, session.order, %{shipping_address_id: address.id}) do
-        {:ok, session}
+        {:ok, reload_session(session)}
       end
     end)
-    |> case do
-      {:ok, session} -> {:ok, reload_session(session)}
-      error -> error
-    end
   end
 
   defp upsert_shipping_address(%Scope{} = scope, %Order{} = order, params) do
