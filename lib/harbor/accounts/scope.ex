@@ -56,6 +56,10 @@ defmodule Harbor.Accounts.Scope do
     %{scope | customer: customer}
   end
 
+  def attach_customer(%__MODULE__{customer: %Customer{id: id}} = scope, %Customer{id: id}) do
+    scope
+  end
+
   @doc false
   def for_system do
     %__MODULE__{role: :system}
