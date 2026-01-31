@@ -6,9 +6,9 @@ defmodule Harbor.Catalog do
   import Harbor.Authorization
 
   alias Harbor.Accounts.Scope
-  alias Harbor.Repo
   alias Harbor.Catalog.{Category, Product, ProductImage}
   alias Harbor.Catalog.Forms.{MediaUpload, MediaUploadPromotionWorker}
+  alias Harbor.Repo
 
   ## Products
 

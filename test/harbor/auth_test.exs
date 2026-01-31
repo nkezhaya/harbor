@@ -3,9 +3,11 @@ defmodule Harbor.AuthTest do
 
   import Harbor.AccountsFixtures
 
+  alias Harbor.Accounts
   alias Harbor.Accounts.{Scope, User}
-  alias Harbor.{Accounts, Auth, Customers}
+  alias Harbor.Auth
   alias Harbor.Auth.UserToken
+  alias Harbor.Customers
 
   setup do
     user = user_fixture()

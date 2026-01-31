@@ -5,8 +5,9 @@ defmodule Harbor.BillingTest do
   import Harbor.BillingFixtures
   import Mox
 
+  alias Harbor.Billing
   alias Harbor.Billing.PaymentIntent
-  alias Harbor.{Billing, Config}
+  alias Harbor.Config
 
   setup :set_mox_from_context
   setup :verify_on_exit!

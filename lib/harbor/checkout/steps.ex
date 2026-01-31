@@ -3,10 +3,13 @@ defmodule Harbor.Checkout.Steps do
   import Harbor.Authorization
 
   alias Harbor.Accounts.Scope
+  alias Harbor.Checkout
   alias Harbor.Checkout.{EnsurePaymentSetupWorker, Pricing, Session}
+  alias Harbor.Customers
   alias Harbor.Customers.{Address, Customer}
+  alias Harbor.Orders
   alias Harbor.Orders.Order
-  alias Harbor.{Checkout, Customers, Orders, Repo}
+  alias Harbor.Repo
 
   @spec complete_contact_step(Scope.t(), Session.t(), map()) ::
           {:ok, Session.t(), Scope.t()} | {:error, Ecto.Changeset.t()} | {:error, term()}
