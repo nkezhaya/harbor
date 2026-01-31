@@ -471,50 +471,67 @@ defmodule Harbor.Checkout do
   def update_tax_calculation(%Session{} = session) do
     session = reload_session(session)
     request = tax_request_from_session(session)
-
-    bin = :erlang.term_to_binary(%{order_id: session.order_id, request: request})
-    hash = Base.encode16(:crypto.hash(:sha256, bin), case: :lower)
+    hash = tax_request_hash(session, request)
 
     case Repo.get_by(Calculation, order_id: session.order_id, hash: hash) do
-      nil ->
-        idempotency_key = "#{session.order_id},#{hash}"
+      nil -> create_tax_calculation(session, request, hash)
+      calculation -> apply_tax_calculation(session, calculation)
+    end
+  end
 
-        with {:ok, response} <- Tax.calculate_taxes(request, idempotency_key) do
-          Repo.transact(fn ->
-            with {:ok, calculation} <-
-                   Tax.create_calculation(%{
-                     provider_ref: response.id,
-                     order_id: session.order_id,
-                     amount: response.amount,
-                     hash: hash
-                   }),
-                 {:ok, _order} <-
-                   Orders.update_order(Scope.for_system(), session.order, %{
-                     tax: response.amount
-                   }) do
-              line_items =
-                for line_item <- response.line_items do
-                  %{
-                    provider_ref: line_item.id,
-                    amount: line_item.amount,
-                    order_item_id: line_item.reference,
-                    calculation_id: calculation.id
-                  }
-                end
+  defp tax_request_hash(%Session{} = session, %Request{} = request) do
+    bin = :erlang.term_to_binary(%{order_id: session.order_id, request: request})
+    Base.encode16(:crypto.hash(:sha256, bin), case: :lower)
+  end
 
-              :ok = Tax.upsert_calculation_line_items(line_items)
-              session = reload_session(session)
-              {:ok, %{session | current_tax_calculation: calculation}}
-            end
-          end)
-        end
+  defp create_tax_calculation(%Session{} = session, %Request{} = request, hash) do
+    idempotency_key = "#{session.order_id},#{hash}"
 
-      calculation ->
-        {:ok, _order} =
-          Orders.update_order(Scope.for_system(), session.order, %{tax: calculation.amount})
+    with {:ok, response} <- Tax.calculate_taxes(request, idempotency_key) do
+      persist_tax_calculation(session, response, hash)
+    end
+  end
 
+  defp persist_tax_calculation(%Session{} = session, response, hash) do
+    Repo.transact(fn ->
+      with {:ok, calculation} <-
+             Tax.create_calculation(%{
+               provider_ref: response.id,
+               order_id: session.order_id,
+               amount: response.amount,
+               hash: hash
+             }),
+           {:ok, _order} <-
+             Orders.update_order(Scope.for_system(), session.order, %{tax: response.amount}),
+           :ok <- upsert_tax_line_items(response, calculation) do
         session = reload_session(session)
         {:ok, %{session | current_tax_calculation: calculation}}
+      end
+    end)
+  end
+
+  defp upsert_tax_line_items(response, calculation) do
+    line_items =
+      for line_item <- response.line_items do
+        %{
+          provider_ref: line_item.id,
+          amount: line_item.amount,
+          order_item_id: line_item.reference,
+          calculation_id: calculation.id
+        }
+      end
+
+    Tax.upsert_calculation_line_items(line_items)
+  end
+
+  defp apply_tax_calculation(%Session{} = session, %Calculation{} = calculation) do
+    case Orders.update_order(Scope.for_system(), session.order, %{tax: calculation.amount}) do
+      {:ok, _order} ->
+        session = reload_session(session)
+        {:ok, %{session | current_tax_calculation: calculation}}
+
+      error ->
+        error
     end
   end
 
