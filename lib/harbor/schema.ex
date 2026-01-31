@@ -25,6 +25,17 @@ defmodule Harbor.Schema do
     end
   end
 
+  def trim_fields(changeset, fields) when is_list(fields) do
+    Enum.reduce(fields, changeset, &trim_fields(&2, &1))
+  end
+
+  def trim_fields(changeset, field) when is_atom(field) do
+    case get_field(changeset, field) do
+      string when is_binary(string) -> put_change(changeset, field, String.trim(string))
+      _ -> changeset
+    end
+  end
+
   def put_delete_if_set(changeset) do
     case get_change(changeset, :delete) do
       true -> %{changeset | action: :delete}
