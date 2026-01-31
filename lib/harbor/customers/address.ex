@@ -67,7 +67,10 @@ defmodule Harbor.Customers.Address do
     case AddressInput.get_country(country) do
       %Country{} = country ->
         required_fields = required_fields_for_country(country)
-        validate_required(changeset, required_fields)
+
+        changeset
+        |> validate_required(required_fields)
+        |> validate_region(country)
 
       _ ->
         add_error(changeset, :country, "is invalid")
@@ -78,10 +81,22 @@ defmodule Harbor.Customers.Address do
     changeset
   end
 
+  defp validate_region(changeset, %Country{subregions: regions}) do
+    case get_field(changeset, :region) do
+      nil ->
+        changeset
+
+      region ->
+        if Enum.any?(regions, &(&1.id == region)) do
+          changeset
+        else
+          add_error(changeset, :region, "is invalid")
+        end
+    end
+  end
+
   defp required_fields_for_country(%Country{required_fields: required_fields}) do
-    required_fields
-    |> Enum.flat_map(&required_fields_for_component/1)
-    |> Enum.uniq()
+    Enum.flat_map(required_fields, &required_fields_for_component/1)
   end
 
   defp required_fields_for_component(:name), do: [:first_name, :last_name]
