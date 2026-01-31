@@ -241,7 +241,9 @@ defmodule Harbor.CustomersTest do
         last_name: "some last_name",
         line1: "some line1",
         city: "some city",
-        country: "some country",
+        region: "OR",
+        postal_code: "97205",
+        country: "US",
         phone: "some phone"
       }
 
@@ -250,7 +252,9 @@ defmodule Harbor.CustomersTest do
       assert address.last_name == "some last_name"
       assert address.line1 == "some line1"
       assert address.city == "some city"
-      assert address.country == "some country"
+      assert address.region == "OR"
+      assert address.postal_code == "97205"
+      assert address.country == "US"
       assert address.phone == "some phone"
     end
 
@@ -258,11 +262,13 @@ defmodule Harbor.CustomersTest do
       scope = guest_scope_fixture()
 
       attrs = %{
-        first_name: nil,
+        first_name: "some first_name",
         last_name: "some last_name",
         line1: "some line1",
         city: "some city",
-        country: "some country",
+        region: "OR",
+        postal_code: nil,
+        country: "US",
         phone: "some phone"
       }
 
@@ -280,7 +286,9 @@ defmodule Harbor.CustomersTest do
         last_name: "some updated last_name",
         line1: "some updated line1",
         city: "some updated city",
-        country: "some updated country",
+        region: "WA",
+        postal_code: "98101",
+        country: "US",
         phone: "some updated phone"
       }
 
@@ -289,7 +297,9 @@ defmodule Harbor.CustomersTest do
       assert address.last_name == "some updated last_name"
       assert address.line1 == "some updated line1"
       assert address.city == "some updated city"
-      assert address.country == "some updated country"
+      assert address.region == "WA"
+      assert address.postal_code == "98101"
+      assert address.country == "US"
       assert address.phone == "some updated phone"
     end
 
@@ -299,12 +309,14 @@ defmodule Harbor.CustomersTest do
 
       assert {:error, %Ecto.Changeset{}} =
                Customers.update_address(scope, address, %{
-                 first_name: nil,
-                 last_name: nil,
-                 line1: nil,
-                 city: nil,
-                 country: nil,
-                 phone: nil
+                 first_name: "some first_name",
+                 last_name: "some last_name",
+                 line1: "some line1",
+                 city: "some city",
+                 region: "OR",
+                 postal_code: nil,
+                 country: "US",
+                 phone: "some phone"
                })
 
       assert address == Customers.get_address!(scope, address.id)

@@ -275,6 +275,8 @@ defmodule Harbor.CheckoutTest do
           last_name: "Name",
           line1: "Old Street",
           city: "Old City",
+          region: "OR",
+          postal_code: "97205",
           country: "US",
           phone: "555-0000"
         })
@@ -289,6 +291,8 @@ defmodule Harbor.CheckoutTest do
         "last_name" => "Name",
         "line1" => "New Street",
         "city" => "New City",
+        "region" => "OR",
+        "postal_code" => "97205",
         "country" => "US",
         "phone" => "555-1111"
       }
@@ -474,7 +478,9 @@ defmodule Harbor.CheckoutTest do
           last_name: "Baggins",
           line1: "1 Bagshot Row",
           city: "Hobbiton",
-          country: "Shire",
+          region: "OR",
+          postal_code: "97205",
+          country: "US",
           phone: "+1-555-0001"
         })
 
@@ -484,7 +490,9 @@ defmodule Harbor.CheckoutTest do
           last_name: "Baggins",
           line1: "1 Bagshot Row",
           city: "Hobbiton",
-          country: "Shire",
+          region: "OR",
+          postal_code: "97205",
+          country: "US",
           phone: "+1-555-0002"
         })
 
@@ -543,6 +551,8 @@ defmodule Harbor.CheckoutTest do
           last_name: "Doe",
           line1: "Main St",
           city: "Town",
+          region: "OR",
+          postal_code: "97205",
           country: "US",
           phone: "555-1010"
         })

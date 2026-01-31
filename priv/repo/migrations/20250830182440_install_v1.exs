@@ -260,11 +260,11 @@ defmodule Harbor.Repo.Migrations.InstallV1 do
       add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
       add :customer_id, references(:customers, on_delete: :delete_all), null: false
 
-      add :first_name, :string, null: false
-      add :last_name, :string, null: false
-      add :line1, :string, null: false
+      add :first_name, :string
+      add :last_name, :string
+      add :line1, :string
       add :line2, :string
-      add :city, :string, null: false
+      add :city, :string
       add :region, :string
       add :postal_code, :string
       add :country, :string, null: false

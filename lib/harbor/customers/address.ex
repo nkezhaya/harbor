@@ -4,6 +4,7 @@ defmodule Harbor.Customers.Address do
   """
   use Harbor.Schema
 
+  alias AddressInput.Country
   alias Harbor.Accounts.Scope
   alias Harbor.Customers.Customer
 
@@ -25,14 +26,6 @@ defmodule Harbor.Customers.Address do
     timestamps()
   end
 
-  @doc false
-  def changeset(address, attrs, scope \\ nil) do
-    address
-    |> cast(attrs, allowed_fields(scope))
-    |> validate_required([:first_name, :last_name, :line1, :city, :country, :phone])
-    |> apply_scope(scope)
-  end
-
   @fields [
     :first_name,
     :last_name,
@@ -44,6 +37,17 @@ defmodule Harbor.Customers.Address do
     :country,
     :phone
   ]
+
+  @doc false
+  def changeset(address, attrs, scope \\ nil) do
+    address
+    |> cast(attrs, allowed_fields(scope))
+    |> trim_fields(@fields)
+    |> validate_required([:country, :phone])
+    |> validate_country_required_fields()
+    |> apply_scope(scope)
+  end
+
   defp allowed_fields(%Scope{role: role}) when role in [:superadmin, :system] do
     [:customer_id | @fields]
   end
@@ -56,4 +60,34 @@ defmodule Harbor.Customers.Address do
   end
 
   defp apply_scope(changeset, _scope), do: changeset
+
+  defp validate_country_required_fields(%{valid?: true} = changeset) do
+    country = get_field(changeset, :country)
+
+    case AddressInput.get_country(country) do
+      %Country{} = country ->
+        required_fields = required_fields_for_country(country)
+        validate_required(changeset, required_fields)
+
+      _ ->
+        add_error(changeset, :country, "is invalid")
+    end
+  end
+
+  defp validate_country_required_fields(changeset) do
+    changeset
+  end
+
+  defp required_fields_for_country(%Country{required_fields: required_fields}) do
+    required_fields
+    |> Enum.flat_map(&required_fields_for_component/1)
+    |> Enum.uniq()
+  end
+
+  defp required_fields_for_component(:name), do: [:first_name, :last_name]
+  defp required_fields_for_component(:address), do: [:line1]
+  defp required_fields_for_component(:sublocality), do: [:city]
+  defp required_fields_for_component(:region), do: [:region]
+  defp required_fields_for_component(:postal_code), do: [:postal_code]
+  defp required_fields_for_component(_field), do: []
 end

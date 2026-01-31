@@ -39,7 +39,9 @@ defmodule Harbor.CustomersFixtures do
         last_name: "some last_name",
         line1: "some line1",
         city: "some city",
-        country: "some country",
+        region: "OR",
+        postal_code: "97205",
+        country: "US",
         phone: "some phone"
       })
 
