@@ -63,7 +63,12 @@ defmodule HarborWeb.CheckoutLive.Form do
               label="Shipping address"
               status={step_status(@steps, @session.current_step, :shipping)}
             >
-              <:summary>123 Market Street, Springfield</:summary>
+              <:summary>
+                <.address_summary
+                  :if={@session.order.shipping_address}
+                  address={@session.order.shipping_address}
+                />
+              </:summary>
               <:body>
                 <.shipping_step form={@shipping_form} />
               </:body>

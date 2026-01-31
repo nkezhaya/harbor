@@ -12,6 +12,7 @@ defmodule HarborWeb.CheckoutComponents do
 
   alias Harbor.Catalog.Variant
   alias Harbor.Checkout.Pricing
+  alias Harbor.Customers.Address
   alias Harbor.Orders.{Order, OrderItem}
   alias HarborWeb.CartComponents
 
@@ -160,5 +161,83 @@ defmodule HarborWeb.CheckoutComponents do
       {render_slot(@inner_block)}
     </button>
     """
+  end
+
+  @doc """
+  Renders a compact, multi-line address summary for checkout steps.
+  """
+  attr :address, Address, required: true
+
+  def address_summary(assigns) do
+    ~H"""
+    <span :for={line <- address_summary_lines(@address)} class="block">
+      {line}
+    </span>
+    """
+  end
+
+  defp address_summary_lines(%Address{} = address) do
+    country = AddressInput.get_country(address.country)
+    format = country.local_address_format || country.address_format
+    format = format || AddressInput.get_country("US").address_format
+    fields = address_field_values(address, country)
+    lines = format_address_lines(format, fields)
+    lines ++ [country.name]
+  end
+
+  defp address_field_values(%Address{} = address, country) do
+    %{
+      name: address_name(address),
+      organization: nil,
+      address: address_street(address),
+      dependent_locality: nil,
+      sublocality: address.city,
+      region: address_region(address, country),
+      postal_code: address.postal_code,
+      sorting_code: nil
+    }
+  end
+
+  defp address_name(%Address{} = address) do
+    case Enum.filter([address.first_name, address.last_name], & &1) do
+      [] -> nil
+      parts -> Enum.join(parts, " ")
+    end
+  end
+
+  defp address_street(%Address{} = address) do
+    case Enum.filter([address.line1, address.line2], & &1) do
+      [] -> nil
+      lines -> Enum.join(lines, "\n")
+    end
+  end
+
+  defp address_region(%Address{region: region}, %AddressInput.Country{subregions: subregions}) do
+    case Enum.find(subregions, &(&1.id == region)) do
+      %AddressInput.Subregion{} = subregion -> subregion.name
+      _ -> nil
+    end
+  end
+
+  defp format_address_lines(tokens, fields) do
+    {lines, current} =
+      Enum.reduce(tokens, {[], []}, fn
+        :newline, {lines, current} ->
+          {[Enum.reverse(current) | lines], []}
+
+        {:text, text}, {lines, current} ->
+          {lines, [text | current]}
+
+        {:field, field}, {lines, current} ->
+          case Map.get(fields, field) do
+            value when is_binary(value) -> {lines, [value | current]}
+            _ -> {lines, current}
+          end
+      end)
+
+    [Enum.reverse(current) | lines]
+    |> Enum.reverse()
+    |> Enum.map(&IO.iodata_to_binary/1)
+    |> Enum.flat_map(&String.split(&1, "\n", trim: true))
   end
 end
