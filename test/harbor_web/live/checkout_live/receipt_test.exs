@@ -1,5 +1,5 @@
-defmodule HarborWeb.CheckoutLive.ReceiptTest do
-  use HarborWeb.ConnCase, async: true
+defmodule Harbor.Web.CheckoutLive.ReceiptTest do
+  use Harbor.Web.ConnCase, async: true
 
   import Harbor.{CatalogFixtures, CheckoutFixtures, CustomersFixtures, ShippingFixtures}
   import Mox

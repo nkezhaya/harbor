@@ -1,4 +1,4 @@
-defmodule HarborWeb.CheckoutComponents do
+defmodule Harbor.Web.CheckoutComponents do
   @moduledoc """
   Function components that support the checkout experience.
 
@@ -7,14 +7,14 @@ defmodule HarborWeb.CheckoutComponents do
   without issuing additional database queries.
   """
 
-  use HarborWeb, :component
+  use Harbor.Web, :component
   import Harbor.Util, only: [formatted_price: 1]
 
   alias Harbor.Catalog.Variant
   alias Harbor.Checkout.Pricing
   alias Harbor.Customers.Address
   alias Harbor.Orders.{Order, OrderItem}
-  alias HarborWeb.CartComponents
+  alias Harbor.Web.CartComponents
 
   @doc """
   Renders the desktop order summary sidebar for a checkout order.

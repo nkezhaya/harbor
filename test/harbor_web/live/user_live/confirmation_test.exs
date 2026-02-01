@@ -1,5 +1,5 @@
-defmodule HarborWeb.UserLive.ConfirmationTest do
-  use HarborWeb.ConnCase, async: true
+defmodule Harbor.Web.UserLive.ConfirmationTest do
+  use Harbor.Web.ConnCase, async: true
 
   import Phoenix.LiveViewTest
   import Harbor.AccountsFixtures

@@ -1,5 +1,5 @@
-defmodule HarborWeb.Admin.CustomerLive.Index do
-  use HarborWeb, :live_view
+defmodule Harbor.Web.Admin.CustomerLive.Index do
+  use Harbor.Web, :live_view
 
   alias Harbor.Customers
 

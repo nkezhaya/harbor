@@ -1,5 +1,5 @@
-defmodule HarborWeb.Admin.CategoryLive.Index do
-  use HarborWeb, :live_view
+defmodule Harbor.Web.Admin.CategoryLive.Index do
+  use Harbor.Web, :live_view
 
   alias Harbor.Catalog
 

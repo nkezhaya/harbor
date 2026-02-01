@@ -1,4 +1,4 @@
-defmodule HarborWeb.Endpoint do
+defmodule Harbor.Web.Endpoint do
   @moduledoc """
   Phoenix endpoint configuring sockets, plugs, and static assets.
   """
@@ -27,7 +27,7 @@ defmodule HarborWeb.Endpoint do
     at: "/",
     from: :harbor,
     gzip: not code_reloading?,
-    only: HarborWeb.static_paths()
+    only: Harbor.Web.static_paths()
 
   # Code reloading can be explicitly enabled under the
   # :code_reloader configuration of your endpoint.
@@ -49,5 +49,5 @@ defmodule HarborWeb.Endpoint do
   plug Plug.MethodOverride
   plug Plug.Head
   plug Plug.Session, @session_options
-  plug HarborWeb.Router
+  plug Harbor.Web.Router
 end

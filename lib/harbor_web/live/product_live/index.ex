@@ -1,8 +1,8 @@
-defmodule HarborWeb.ProductLive.Index do
+defmodule Harbor.Web.ProductLive.Index do
   @moduledoc """
   Storefront product listing page.
   """
-  use HarborWeb, :live_view
+  use Harbor.Web, :live_view
 
   alias Harbor.Catalog
 

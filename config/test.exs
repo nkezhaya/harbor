@@ -18,7 +18,7 @@ config :harbor, Harbor.Repo,
 
 # We don't run a server during test. If one is required,
 # you can enable the server option below.
-config :harbor, HarborWeb.Endpoint,
+config :harbor, Harbor.Web.Endpoint,
   http: [ip: {127, 0, 0, 1}, port: 4002],
   secret_key_base: "DJPDxwrcfSImvJWlye0yth5ho+epQUDvdo2WmrGvRKNeMs0wS7jOBPgITMVIjphl",
   server: false

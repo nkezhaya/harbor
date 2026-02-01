@@ -1,23 +1,23 @@
-defmodule HarborWeb.Router do
+defmodule Harbor.Web.Router do
   @moduledoc """
   Defines application routes, pipelines, and LiveView sessions.
   """
-  use HarborWeb, :router
+  use Harbor.Web, :router
 
-  import HarborWeb.UserAuth
+  import Harbor.Web.UserAuth
 
   pipeline :browser do
     plug :accepts, ["html"]
     plug :fetch_session
     plug :fetch_live_flash
-    plug :put_root_layout, html: {HarborWeb.Layouts, :root}
+    plug :put_root_layout, html: {Harbor.Web.Layouts, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
     plug :fetch_current_scope_for_user
   end
 
   pipeline :admin_layout do
-    plug :put_root_layout, html: {HarborWeb.AdminLayouts, :root}
+    plug :put_root_layout, html: {Harbor.Web.AdminLayouts, :root}
   end
 
   # Enable Swoosh mailbox preview in development
@@ -31,11 +31,11 @@ defmodule HarborWeb.Router do
 
   ## Authentication routes
 
-  scope "/", HarborWeb do
+  scope "/", Harbor.Web do
     pipe_through [:browser, :require_authenticated_user]
 
     live_session :require_authenticated_user,
-      on_mount: [{HarborWeb.UserAuth, :require_authenticated}] do
+      on_mount: [{Harbor.Web.UserAuth, :require_authenticated}] do
       live "/users/settings", UserLive.Settings, :edit
       live "/users/settings/confirm-email/:token", UserLive.Settings, :confirm_email
     end
@@ -48,8 +48,8 @@ defmodule HarborWeb.Router do
 
       live_session :require_authenticated_admin,
         on_mount: [
-          {HarborWeb.UserAuth, :require_admin},
-          {HarborWeb.LiveHooks, :global}
+          {Harbor.Web.UserAuth, :require_admin},
+          {Harbor.Web.LiveHooks, :global}
         ] do
         live "/", ProductLive.Index, :index
         live "/products", ProductLive.Index, :index
@@ -72,14 +72,14 @@ defmodule HarborWeb.Router do
 
   ## Public routes
 
-  scope "/", HarborWeb do
+  scope "/", Harbor.Web do
     pipe_through [:browser]
 
     live_session :current_user,
       on_mount: [
-        {HarborWeb.UserAuth, :mount_current_scope},
-        {HarborWeb.LiveHooks, :global},
-        {HarborWeb.LiveHooks, :storefront}
+        {Harbor.Web.UserAuth, :mount_current_scope},
+        {Harbor.Web.LiveHooks, :global},
+        {Harbor.Web.LiveHooks, :storefront}
       ] do
       live "/", HomeLive, :index
       live "/products", ProductLive.Index, :index

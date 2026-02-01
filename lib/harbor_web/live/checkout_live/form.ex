@@ -1,9 +1,9 @@
-defmodule HarborWeb.CheckoutLive.Form do
+defmodule Harbor.Web.CheckoutLive.Form do
   @moduledoc """
   Placeholder view for the checkout page.
   """
-  use HarborWeb, :live_view
-  import HarborWeb.CheckoutComponents
+  use Harbor.Web, :live_view
+  import Harbor.Web.CheckoutComponents
 
   alias Harbor.{Checkout, Customers}
   alias Harbor.Customers.Customer

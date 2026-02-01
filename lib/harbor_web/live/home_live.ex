@@ -1,8 +1,8 @@
-defmodule HarborWeb.HomeLive do
+defmodule Harbor.Web.HomeLive do
   @moduledoc """
   Provides the root LiveView for the storefront.
   """
-  use HarborWeb, :live_view
+  use Harbor.Web, :live_view
 
   @impl true
   def mount(_params, _session, socket) do

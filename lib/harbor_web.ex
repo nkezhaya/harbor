@@ -1,12 +1,12 @@
-defmodule HarborWeb do
+defmodule Harbor.Web do
   @moduledoc """
   The entrypoint for defining your web interface, such
   as controllers, components, channels, and so on.
 
   This can be used in your application as:
 
-      use HarborWeb, :controller
-      use HarborWeb, :html
+      use Harbor.Web, :controller
+      use Harbor.Web, :html
 
   The definitions below will be executed for every controller,
   component, etc, so keep them short and clean, focused
@@ -39,7 +39,7 @@ defmodule HarborWeb do
     quote do
       use Phoenix.Controller, formats: [:html, :json]
 
-      use Gettext, backend: HarborWeb.Gettext
+      use Gettext, backend: Harbor.Web.Gettext
 
       import Plug.Conn
 
@@ -88,17 +88,17 @@ defmodule HarborWeb do
   defp html_helpers do
     quote do
       # Translation
-      use Gettext, backend: HarborWeb.Gettext
+      use Gettext, backend: Harbor.Web.Gettext
 
       # HTML escaping functionality
       import Phoenix.HTML
       # Core UI components
-      import HarborWeb.CoreComponents
+      import Harbor.Web.CoreComponents
 
       # Common modules used in templates
-      alias HarborWeb.{AdminLayouts, Layouts}
-      alias HarborWeb.{CartComponents, CheckoutComponents, StoreComponents}
-      alias HarborWeb.ImageHelpers
+      alias Harbor.Web.{AdminLayouts, Layouts}
+      alias Harbor.Web.{CartComponents, CheckoutComponents, StoreComponents}
+      alias Harbor.Web.ImageHelpers
       alias Phoenix.LiveView.JS
 
       # Routes generation with the ~p sigil
@@ -109,9 +109,9 @@ defmodule HarborWeb do
   def verified_routes do
     quote do
       use Phoenix.VerifiedRoutes,
-        endpoint: HarborWeb.Endpoint,
-        router: HarborWeb.Router,
-        statics: HarborWeb.static_paths()
+        endpoint: Harbor.Web.Endpoint,
+        router: Harbor.Web.Router,
+        statics: Harbor.Web.static_paths()
     end
   end
 

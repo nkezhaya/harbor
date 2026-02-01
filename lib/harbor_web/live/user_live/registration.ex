@@ -1,8 +1,8 @@
-defmodule HarborWeb.UserLive.Registration do
+defmodule Harbor.Web.UserLive.Registration do
   @moduledoc """
   LiveView for user registration and account creation.
   """
-  use HarborWeb, :live_view
+  use Harbor.Web, :live_view
 
   alias Harbor.{Accounts, Auth}
   alias Harbor.Accounts.User
@@ -59,7 +59,7 @@ defmodule HarborWeb.UserLive.Registration do
 
   @impl true
   def mount(_params, _session, %{assigns: %{current_scope: %{authenticated?: true}}} = socket) do
-    {:ok, redirect(socket, to: HarborWeb.UserAuth.signed_in_path(socket))}
+    {:ok, redirect(socket, to: Harbor.Web.UserAuth.signed_in_path(socket))}
   end
 
   def mount(_params, _session, socket) do

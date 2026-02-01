@@ -1,8 +1,8 @@
-defmodule HarborWeb.UserLive.Confirmation do
+defmodule Harbor.Web.UserLive.Confirmation do
   @moduledoc """
   LiveView to confirm login via magic link and proceed to sign-in.
   """
-  use HarborWeb, :live_view
+  use Harbor.Web, :live_view
 
   alias Harbor.Auth
 

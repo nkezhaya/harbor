@@ -1,5 +1,5 @@
-defmodule HarborWeb.CartLive.ShowTest do
-  use HarborWeb.ConnCase, async: true
+defmodule Harbor.Web.CartLive.ShowTest do
+  use Harbor.Web.ConnCase, async: true
 
   import Phoenix.LiveViewTest
   import Harbor.{CatalogFixtures, CheckoutFixtures, CustomersFixtures}

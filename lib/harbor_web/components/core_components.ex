@@ -1,9 +1,9 @@
-defmodule HarborWeb.CoreComponents do
+defmodule Harbor.Web.CoreComponents do
   @moduledoc """
   Provides core UI components.
   """
   use Phoenix.Component
-  use Gettext, backend: HarborWeb.Gettext
+  use Gettext, backend: Harbor.Web.Gettext
 
   alias Phoenix.LiveView.JS
 
@@ -659,9 +659,9 @@ defmodule HarborWeb.CoreComponents do
     # with our gettext backend as first argument. Translations are
     # available in the errors.po file (as we use the "errors" domain).
     if count = opts[:count] do
-      Gettext.dngettext(HarborWeb.Gettext, "errors", msg, msg, count, opts)
+      Gettext.dngettext(Harbor.Web.Gettext, "errors", msg, msg, count, opts)
     else
-      Gettext.dgettext(HarborWeb.Gettext, "errors", msg, opts)
+      Gettext.dgettext(Harbor.Web.Gettext, "errors", msg, opts)
     end
   end
 

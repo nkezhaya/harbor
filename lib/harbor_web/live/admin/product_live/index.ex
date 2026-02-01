@@ -1,8 +1,8 @@
-defmodule HarborWeb.Admin.ProductLive.Index do
+defmodule Harbor.Web.Admin.ProductLive.Index do
   @moduledoc """
   Admin LiveView for listing and managing products.
   """
-  use HarborWeb, :live_view
+  use Harbor.Web, :live_view
 
   alias Harbor.Catalog
 

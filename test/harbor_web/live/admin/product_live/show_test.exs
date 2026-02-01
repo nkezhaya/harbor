@@ -1,5 +1,5 @@
-defmodule HarborWeb.Admin.ProductLiveTest do
-  use HarborWeb.ConnCase, async: true
+defmodule Harbor.Web.Admin.ProductLiveTest do
+  use Harbor.Web.ConnCase, async: true
 
   import Phoenix.LiveViewTest
   import Harbor.CatalogFixtures

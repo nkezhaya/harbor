@@ -1,8 +1,8 @@
-defmodule HarborWeb.UserAuth do
+defmodule Harbor.Web.UserAuth do
   @moduledoc """
   Authentication helpers, plugs, and LiveView on_mount hooks.
   """
-  use HarborWeb, :verified_routes
+  use Harbor.Web, :verified_routes
 
   import Plug.Conn
   import Phoenix.Controller
@@ -53,7 +53,7 @@ defmodule HarborWeb.UserAuth do
     user_token && Auth.delete_user_session_token(user_token)
 
     if live_socket_id = get_session(conn, :live_socket_id) do
-      HarborWeb.Endpoint.broadcast(live_socket_id, "disconnect", %{})
+      Harbor.Web.Endpoint.broadcast(live_socket_id, "disconnect", %{})
     end
 
     conn
@@ -199,7 +199,7 @@ defmodule HarborWeb.UserAuth do
   """
   def disconnect_sessions(tokens) do
     Enum.each(tokens, fn %{token: token} ->
-      HarborWeb.Endpoint.broadcast(user_session_topic(token), "disconnect", %{})
+      Harbor.Web.Endpoint.broadcast(user_session_topic(token), "disconnect", %{})
     end)
   end
 
@@ -224,16 +224,16 @@ defmodule HarborWeb.UserAuth do
   Use the `on_mount` lifecycle macro in LiveViews to mount or authenticate
   the `current_scope`:
 
-      defmodule HarborWeb.PageLive do
-        use HarborWeb, :live_view
+      defmodule Harbor.Web.PageLive do
+        use Harbor.Web, :live_view
 
-        on_mount {HarborWeb.UserAuth, :mount_current_scope}
+        on_mount {Harbor.Web.UserAuth, :mount_current_scope}
         ...
       end
 
   Or use the `live_session` of your router to invoke the on_mount callback:
 
-      live_session :authenticated, on_mount: [{HarborWeb.UserAuth, :require_authenticated}] do
+      live_session :authenticated, on_mount: [{Harbor.Web.UserAuth, :require_authenticated}] do
         live "/profile", ProfileLive, :index
       end
   """

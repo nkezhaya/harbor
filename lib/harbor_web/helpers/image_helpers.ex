@@ -1,4 +1,4 @@
-defmodule HarborWeb.ImageHelpers do
+defmodule Harbor.Web.ImageHelpers do
   @moduledoc """
   Convenience helpers for rendering media hosted on the CDN.
   """

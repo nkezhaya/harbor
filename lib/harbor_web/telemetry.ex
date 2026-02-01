@@ -1,4 +1,4 @@
-defmodule HarborWeb.Telemetry do
+defmodule Harbor.Web.Telemetry do
   @moduledoc """
   Supervisor defining telemetry metrics and pollers for the app and VM.
   """
@@ -90,7 +90,7 @@ defmodule HarborWeb.Telemetry do
     [
       # A module, function and arguments to be invoked periodically.
       # This function must call :telemetry.execute/3 and a metric must be added above.
-      # {HarborWeb, :count_users, []}
+      # {Harbor.Web, :count_users, []}
     ]
   end
 end

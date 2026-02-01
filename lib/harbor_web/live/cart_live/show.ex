@@ -1,8 +1,8 @@
-defmodule HarborWeb.CartLive.Show do
+defmodule Harbor.Web.CartLive.Show do
   @moduledoc """
   Storefront cart page that lets shoppers review and adjust their order.
   """
-  use HarborWeb, :live_view
+  use Harbor.Web, :live_view
 
   alias Harbor.Catalog.Variant
   alias Harbor.{Checkout, Util}

@@ -1,8 +1,8 @@
-defmodule HarborWeb.CheckoutLive.Receipt do
+defmodule Harbor.Web.CheckoutLive.Receipt do
   @moduledoc """
   Receipt page for completed checkout sessions.
   """
-  use HarborWeb, :live_view
+  use Harbor.Web, :live_view
 
   alias Harbor.Catalog.Variant
   alias Harbor.Checkout

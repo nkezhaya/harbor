@@ -1,11 +1,11 @@
-defmodule HarborWeb.UserSessionController do
+defmodule Harbor.Web.UserSessionController do
   @moduledoc """
   Manages user sessions: login, logout, and password updates.
   """
-  use HarborWeb, :controller
+  use Harbor.Web, :controller
 
   alias Harbor.{Accounts, Auth}
-  alias HarborWeb.UserAuth
+  alias Harbor.Web.UserAuth
 
   def create(conn, %{"_action" => "confirmed"} = params) do
     create(conn, params, "User confirmed successfully.")

@@ -1,8 +1,8 @@
-defmodule HarborWeb.Admin.ProductLive.Form do
+defmodule Harbor.Web.Admin.ProductLive.Form do
   @moduledoc """
   Admin LiveView for creating and editing products.
   """
-  use HarborWeb, :live_view
+  use Harbor.Web, :live_view
   import Phoenix.HTML.Form, only: [input_name: 2, normalize_value: 2]
 
   alias Ecto.Changeset

@@ -1,11 +1,11 @@
-defmodule HarborWeb.UserLive.Settings do
+defmodule Harbor.Web.UserLive.Settings do
   @moduledoc """
   LiveView for managing account email and password settings.
   """
-  use HarborWeb, :live_view
+  use Harbor.Web, :live_view
   alias Harbor.Auth
 
-  on_mount {HarborWeb.UserAuth, :require_sudo_mode}
+  on_mount {Harbor.Web.UserAuth, :require_sudo_mode}
 
   @impl true
   def render(assigns) do

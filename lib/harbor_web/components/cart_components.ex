@@ -1,4 +1,4 @@
-defmodule HarborWeb.CartComponents do
+defmodule Harbor.Web.CartComponents do
   @moduledoc """
   Component helpers that render the cart toggle popover and related UI.
 
@@ -6,13 +6,13 @@ defmodule HarborWeb.CartComponents do
   button with an accessible item count notification and an expandable popover
   that lists the current [CartItem](`Harbor.Checkout.CartItem`) entries.
   """
-  use HarborWeb, :component
+  use Harbor.Web, :component
   import Phoenix.LiveView, only: [push_navigate: 2, put_flash: 3]
 
   alias Harbor.Catalog.Variant
   alias Harbor.{Checkout, Util}
   alias Harbor.Checkout.{Cart, CartItem}
-  alias HarborWeb.ImageHelpers
+  alias Harbor.Web.ImageHelpers
 
   @doc """
   Renders the variant's primary image or a placeholder when no image is

@@ -1,8 +1,8 @@
-defmodule HarborWeb.AdminLayouts do
+defmodule Harbor.Web.AdminLayouts do
   @moduledoc """
   Admin layout components and helpers for the admin panel.
   """
-  use HarborWeb, :html
+  use Harbor.Web, :html
 
   embed_templates "admin_layouts/*"
 

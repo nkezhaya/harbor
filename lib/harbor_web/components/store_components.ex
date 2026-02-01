@@ -1,12 +1,12 @@
-defmodule HarborWeb.StoreComponents do
+defmodule Harbor.Web.StoreComponents do
   @moduledoc """
   Storefront product components.
   """
-  use HarborWeb, :component
+  use Harbor.Web, :component
 
   alias Harbor.Catalog.Product
   alias Harbor.Util
-  alias HarborWeb.ImageHelpers
+  alias Harbor.Web.ImageHelpers
 
   @doc """
   Renders a product card that would appear in the PLP grid.

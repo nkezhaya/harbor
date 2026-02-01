@@ -6,12 +6,12 @@ defmodule Harbor.Application do
   @impl Application
   def start(_type, _args) do
     children = [
-      HarborWeb.Telemetry,
+      Harbor.Web.Telemetry,
       Harbor.Repo,
       Harbor.Oban,
       {DNSCluster, query: Application.get_env(:harbor, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Harbor.PubSub},
-      HarborWeb.Endpoint
+      Harbor.Web.Endpoint
     ]
 
     opts = [strategy: :one_for_one, name: Harbor.Supervisor]
@@ -20,7 +20,7 @@ defmodule Harbor.Application do
 
   @impl Application
   def config_change(changed, _new, removed) do
-    HarborWeb.Endpoint.config_change(changed, removed)
+    Harbor.Web.Endpoint.config_change(changed, removed)
     :ok
   end
 end

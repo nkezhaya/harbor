@@ -17,7 +17,7 @@ import Config
 # Alternatively, you can use `mix phx.gen.release` to generate a `bin/server`
 # script that automatically sets the env var above.
 if System.get_env("PHX_SERVER") do
-  config :harbor, HarborWeb.Endpoint, server: true
+  config :harbor, Harbor.Web.Endpoint, server: true
 end
 
 if config_env() == :prod do
@@ -55,7 +55,7 @@ if config_env() == :prod do
 
   config :harbor, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 
-  config :harbor, HarborWeb.Endpoint,
+  config :harbor, Harbor.Web.Endpoint,
     url: [host: host, port: 443, scheme: "https"],
     http: [
       # Enable IPv6 and bind on all interfaces.

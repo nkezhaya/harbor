@@ -1,4 +1,4 @@
-defmodule HarborWeb.LiveHooks do
+defmodule Harbor.Web.LiveHooks do
   @moduledoc """
   Shared LiveView hooks that populate assigns used by multiple views.
   """
@@ -6,7 +6,7 @@ defmodule HarborWeb.LiveHooks do
   import Phoenix.LiveView, only: [attach_hook: 4]
 
   alias Harbor.{Catalog, Checkout}
-  alias HarborWeb.CartComponents
+  alias Harbor.Web.CartComponents
 
   def on_mount(:global, _params, _session, socket) do
     {:cont, attach_hook(socket, :assign_current_path, :handle_params, &assign_current_path/3)}

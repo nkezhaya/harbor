@@ -1,8 +1,8 @@
-defmodule HarborWeb.UserLive.Login do
+defmodule Harbor.Web.UserLive.Login do
   @moduledoc """
   LiveView for user login via magic link or password.
   """
-  use HarborWeb, :live_view
+  use Harbor.Web, :live_view
 
   alias Harbor.{Accounts, Auth}
 

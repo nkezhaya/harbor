@@ -37,11 +37,11 @@ config :harbor, Harbor.Repo,
 config :harbor, Harbor.Repo, after_connect: {Postgrex, :query!, ["SET TIME ZONE 'UTC'", []]}
 
 # Configures the endpoint
-config :harbor, HarborWeb.Endpoint,
+config :harbor, Harbor.Web.Endpoint,
   url: [host: "localhost"],
   adapter: Bandit.PhoenixAdapter,
   render_errors: [
-    formats: [html: HarborWeb.ErrorHTML, json: HarborWeb.ErrorJSON],
+    formats: [html: Harbor.Web.ErrorHTML, json: Harbor.Web.ErrorJSON],
     layout: false
   ],
   pubsub_server: Harbor.PubSub,

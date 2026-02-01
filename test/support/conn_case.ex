@@ -1,4 +1,4 @@
-defmodule HarborWeb.ConnCase do
+defmodule Harbor.Web.ConnCase do
   @moduledoc """
   This module defines the test case to be used by
   tests that require setting up a connection.
@@ -11,7 +11,7 @@ defmodule HarborWeb.ConnCase do
   we enable the SQL sandbox, so changes done to the database
   are reverted at the end of every test. If you are using
   PostgreSQL, you can even run database tests asynchronously
-  by setting `use HarborWeb.ConnCase, async: true`, although
+  by setting `use Harbor.Web.ConnCase, async: true`, although
   this option is not recommended for other databases.
   """
   use ExUnit.CaseTemplate
@@ -22,15 +22,15 @@ defmodule HarborWeb.ConnCase do
   using do
     quote do
       # The default endpoint for testing
-      @endpoint HarborWeb.Endpoint
+      @endpoint Harbor.Web.Endpoint
 
-      use HarborWeb, :verified_routes
+      use Harbor.Web, :verified_routes
 
       # Import conveniences for testing with connections
       import Ecto.Query
       import Plug.Conn
       import Phoenix.ConnTest
-      import HarborWeb.ConnCase
+      import Harbor.Web.ConnCase
 
       alias Harbor.Repo
     end
