@@ -10,8 +10,8 @@ defmodule Harbor.Web.ErrorHTML do
   # uncomment the embed_templates/1 call below
   # and add pages to the error directory:
   #
-  #   * lib/harbor_web/controllers/error_html/404.html.heex
-  #   * lib/harbor_web/controllers/error_html/500.html.heex
+  #   * lib/harbor/web/controllers/error_html/404.html.heex
+  #   * lib/harbor/web/controllers/error_html/500.html.heex
   #
   # embed_templates "error_html/*"
 

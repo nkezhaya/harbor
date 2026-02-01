@@ -40,7 +40,7 @@ defmodule Harbor.Web.UserSessionControllerTest do
           }
         })
 
-      assert conn.resp_cookies["_harbor_web_user_remember_me"]
+      assert conn.resp_cookies["_harbor_user_remember_me"]
       assert redirected_to(conn) == ~p"/"
     end
 

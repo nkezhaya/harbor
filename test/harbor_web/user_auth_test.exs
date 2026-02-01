@@ -7,7 +7,7 @@ defmodule Harbor.Web.UserAuthTest do
   alias Harbor.Web.UserAuth
   alias Phoenix.LiveView
 
-  @remember_me_cookie "_harbor_web_user_remember_me"
+  @remember_me_cookie "_harbor_user_remember_me"
   @remember_me_cookie_max_age 60 * 60 * 24 * 14
 
   setup %{conn: conn} do

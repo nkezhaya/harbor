@@ -59,7 +59,7 @@ config :harbor, Harbor.Web.Endpoint,
     patterns: [
       ~r"priv/static/(?!uploads/).*(js|css|png|jpeg|jpg|gif|svg)$",
       ~r"priv/gettext/.*(po)$",
-      ~r"lib/harbor_web/(?:controllers|live|components|router)/?.*\.(ex|heex)$"
+      ~r"lib/harbor/web/(?:controllers|live|components|router)/?.*\.(ex|heex)$"
     ]
   ]
 

@@ -89,7 +89,7 @@
           {Credo.Check.Readability.AliasAs, []},
           {Credo.Check.Readability.AliasOrder, []},
           {Credo.Check.Readability.FunctionNames, []},
-          {Credo.Check.Readability.ImplTrue, files: %{excluded: ["lib/harbor_web/live/**/*.ex"]}},
+          {Credo.Check.Readability.ImplTrue, files: %{excluded: ["lib/harbor/web/live/**/*.ex"]}},
           {Credo.Check.Readability.LargeNumbers, []},
           {Credo.Check.Readability.MaxLineLength, [priority: :low, max_length: 120]},
           # {Credo.Check.Readability.MultiAlias, []},

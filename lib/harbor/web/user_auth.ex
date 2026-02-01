@@ -13,7 +13,7 @@ defmodule Harbor.Web.UserAuth do
   # Make the remember me cookie valid for 14 days. This should match
   # the session validity setting in UserToken.
   @max_cookie_age_in_days 14
-  @remember_me_cookie "_harbor_web_user_remember_me"
+  @remember_me_cookie "_harbor_user_remember_me"
   @remember_me_options [
     sign: true,
     max_age: @max_cookie_age_in_days * 24 * 60 * 60,
