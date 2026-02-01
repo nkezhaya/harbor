@@ -5,9 +5,8 @@ defmodule HarborWeb.CheckoutLive.Form do
   use HarborWeb, :live_view
   import HarborWeb.CheckoutComponents
 
-  alias Harbor.Accounts.Scope
-  alias Harbor.Checkout
-  alias Harbor.Customers.{Address, Customer}
+  alias Harbor.{Checkout, Customers}
+  alias Harbor.Customers.Customer
 
   @impl true
   def render(assigns) do
@@ -322,19 +321,16 @@ defmodule HarborWeb.CheckoutLive.Form do
         pricing = Checkout.build_pricing(session.order)
         steps = Checkout.checkout_steps(current_scope, session.order, pricing)
         session = Checkout.ensure_valid_current_step!(current_scope, session, steps)
-        contact_form = contact_form(current_scope)
-        shipping_form = shipping_form()
 
         {:ok,
-         assign(socket,
-           current_scope: current_scope,
-           session: session,
-           order: session.order,
-           pricing: pricing,
-           steps: steps,
-           contact_form: contact_form,
-           shipping_form: shipping_form
-         )}
+         socket
+         |> assign(:session, session)
+         |> assign(:order, session.order)
+         |> assign(:current_scope, current_scope)
+         |> assign(:pricing, pricing)
+         |> assign(:steps, steps)
+         |> then(&assign(&1, :contact_form, contact_form(&1)))
+         |> then(&assign(&1, :shipping_form, shipping_form(&1)))}
 
       {:error, error} ->
         {:ok, redirect_with_error(socket, error)}
@@ -371,7 +367,7 @@ defmodule HarborWeb.CheckoutLive.Form do
          |> assign(:session, session)
          |> assign(:order, session.order)
          |> assign(:current_scope, scope)
-         |> assign(:contact_form, contact_form(scope))
+         |> then(&assign(&1, :contact_form, contact_form(&1)))
          |> put_next_step(:contact)}
 
       {:error, changeset} ->
@@ -380,9 +376,7 @@ defmodule HarborWeb.CheckoutLive.Form do
   end
 
   def handle_event("shipping_change", %{"address" => address_params}, socket) do
-    {:noreply,
-     socket
-     |> assign(:shipping_form, shipping_form(address_params))}
+    {:noreply, assign(socket, :shipping_form, shipping_form(socket, address_params))}
   end
 
   def handle_event("shipping_submit", %{"address" => address_params}, socket) do
@@ -455,17 +449,31 @@ defmodule HarborWeb.CheckoutLive.Form do
     end
   end
 
-  defp contact_form(%Scope{} = scope) do
+  defp contact_form(socket) do
+    scope = socket.assigns.current_scope
     customer = scope.customer || %Customer{}
 
-    customer
-    |> Customer.changeset(%{}, scope)
+    scope
+    |> Customers.change_customer(customer, %{})
     |> to_form()
   end
 
-  defp shipping_form(params \\ %{}) do
-    %Address{country: "US"}
-    |> Address.changeset(params)
+  defp shipping_form(socket, params \\ %{}) do
+    scope = socket.assigns.current_scope
+    order = socket.assigns.order
+
+    address =
+      if order.shipping_address do
+        order.shipping_address
+      else
+        case Customers.list_addresses(scope) do
+          [] -> Ecto.build_assoc(scope.customer, :addresses, %{country: "US"})
+          [address | _] -> address
+        end
+      end
+
+    scope
+    |> Customers.change_address(address, params)
     |> to_form()
   end
 end

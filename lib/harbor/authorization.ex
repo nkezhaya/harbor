@@ -7,9 +7,7 @@ defmodule Harbor.Authorization do
   """
 
   alias Harbor.Accounts.Scope
-  alias Harbor.Checkout.Cart
   alias Harbor.Customers.Customer
-  alias Harbor.Orders.Order
 
   @admin_roles [:superadmin, :system]
   defguardp is_admin(role) when role in @admin_roles
@@ -49,19 +47,10 @@ defmodule Harbor.Authorization do
   """
   def ensure_authorized!(%Scope{role: role}, _resource) when is_admin(role), do: :ok
 
-  def ensure_authorized!(%Scope{customer: %Customer{id: customer_id}}, %Order{
-        customer_id: customer_id
-      }),
+  def ensure_authorized!(%Scope{customer: %Customer{id: customer_id}}, %{customer_id: customer_id}),
       do: :ok
 
-  def ensure_authorized!(%Scope{customer: %Customer{id: customer_id}}, %Cart{
-        customer_id: customer_id
-      }),
-      do: :ok
-
-  def ensure_authorized!(%Scope{session_token: session_token}, %Cart{
-        session_token: session_token
-      })
+  def ensure_authorized!(%Scope{session_token: session_token}, %{session_token: session_token})
       when is_binary(session_token),
       do: :ok
 

@@ -10,8 +10,8 @@ defmodule Harbor.Customers.Customer do
   """
   use Harbor.Schema
 
-  alias Harbor.Authorization
-  alias Harbor.Billing
+  alias Harbor.{Authorization, Billing}
+  alias Harbor.Customers.Address
 
   @type t() :: %__MODULE__{}
 
@@ -25,6 +25,8 @@ defmodule Harbor.Customers.Customer do
     field :default_shipping_address_id, :id
     field :user_id, :binary_id
     field :deleted_at, :utc_datetime_usec
+
+    has_many :addresses, Address
 
     timestamps()
   end
