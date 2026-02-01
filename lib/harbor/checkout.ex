@@ -298,6 +298,28 @@ defmodule Harbor.Checkout do
     end
   end
 
+  @type receipt_error :: :not_found
+
+  @doc """
+  Fetches a completed checkout session for receipt display.
+
+  Returns `{:ok, session}` when the session is completed and authorized for the
+  given scope, otherwise returns `{:error, reason}`.
+  """
+  @spec get_completed_session(Scope.t(), Ecto.UUID.t()) ::
+          {:ok, Session.t()} | {:error, receipt_error()}
+  def get_completed_session(%Scope{} = scope, id) do
+    case Repo.get_by(Session, id: id, status: :completed) do
+      nil ->
+        {:error, :not_found}
+
+      %Session{} = session ->
+        session = preload_session(session)
+        ensure_authorized!(scope, session.order.cart)
+        {:ok, session}
+    end
+  end
+
   defp ensure_active(%Session{status: status}) do
     case status do
       :active -> :ok

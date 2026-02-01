@@ -406,15 +406,10 @@ defmodule HarborWeb.CheckoutLive.Form do
   def handle_event("review_submit", _params, socket) do
     case Checkout.submit_checkout(socket.assigns.current_scope, socket.assigns.session) do
       {:ok, _order} ->
-        session = Checkout.reload_session(socket.assigns.session)
-        pricing = Checkout.build_pricing(session.order)
-
         {:noreply,
          socket
-         |> assign(:session, session)
-         |> assign(:order, session.order)
-         |> assign(:pricing, pricing)
-         |> put_flash(:info, "Order placed successfully.")}
+         |> put_flash(:info, "Order placed successfully.")
+         |> push_navigate(to: ~p"/checkout/#{socket.assigns.session.id}/receipt")}
 
       {:error, %Ecto.Changeset{}} ->
         {:noreply,
