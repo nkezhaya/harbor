@@ -84,7 +84,7 @@ config :logger, :default_formatter,
 
 config :phoenix, :json_library, JSON
 
-config :harbor, Oban,
+config :harbor, Harbor.Oban,
   engine: Oban.Engines.Basic,
   queues: [media_uploads: 10, billing: 10],
   repo: Harbor.Repo

@@ -34,6 +34,6 @@ defmodule Harbor.Catalog.Forms.MediaUploadPromotionWorker do
   def enqueue(%ProductImage{} = product_image) do
     %{product_image_id: product_image.id}
     |> new()
-    |> Oban.insert()
+    |> Harbor.Oban.insert()
   end
 end

@@ -105,6 +105,6 @@ defmodule Harbor.Billing do
   def enqueue_payment_profile_email_sync(customer_id) do
     %{customer_id: customer_id}
     |> SyncPaymentProfileWorker.new(schedule_in: 15, replace: [scheduled: [:scheduled_at]])
-    |> Oban.insert()
+    |> Harbor.Oban.insert()
   end
 end

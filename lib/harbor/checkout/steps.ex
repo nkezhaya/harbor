@@ -42,7 +42,7 @@ defmodule Harbor.Checkout.Steps do
   defp enqueue_payment_setup(customer_id, checkout_session_id) do
     %{"customer_id" => customer_id, "checkout_session_id" => checkout_session_id}
     |> EnsurePaymentSetupWorker.new()
-    |> Oban.insert()
+    |> Harbor.Oban.insert()
   end
 
   @spec complete_shipping_step(Scope.t(), Session.t(), map()) ::

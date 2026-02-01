@@ -8,8 +8,8 @@ defmodule Harbor.Application do
     children = [
       HarborWeb.Telemetry,
       Harbor.Repo,
+      Harbor.Oban,
       {DNSCluster, query: Application.get_env(:harbor, :dns_cluster_query) || :ignore},
-      {Oban, Application.fetch_env!(:harbor, Oban)},
       {Phoenix.PubSub, name: Harbor.PubSub},
       HarborWeb.Endpoint
     ]
