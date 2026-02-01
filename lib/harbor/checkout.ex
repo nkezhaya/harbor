@@ -420,21 +420,27 @@ defmodule Harbor.Checkout do
   """
   defdelegate build_pricing(order), to: Pricing, as: :build
 
-  def submit_checkout(%Session{} = session) do
-    session
-    |> reload_session()
-    |> do_submit_checkout()
-  end
+  def submit_checkout(%Scope{} = scope, %Session{} = session) do
+    session = reload_session(session)
+    ensure_authorized!(scope, session.order.cart)
 
-  defp do_submit_checkout(%Session{status: :completed} = session) do
-    session = Repo.preload(session, [:order])
-    {:ok, session.order}
+    if session.status == :completed do
+      {:ok, session.order}
+    else
+      do_submit_checkout(session)
+    end
   end
 
   defp do_submit_checkout(%Session{} = session) do
+    case update_tax_calculation(session) do
+      {:ok, session} -> do_complete_and_submit(session)
+      error -> error
+    end
+  end
+
+  defp do_complete_and_submit(%Session{} = session) do
     Repo.transact(fn ->
-      with {:ok, session} <- complete_session(session),
-           {:ok, session} <- update_tax_calculation(session) do
+      with {:ok, session} <- complete_session(session) do
         submit_order(session)
       end
     end)

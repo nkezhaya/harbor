@@ -93,10 +93,17 @@ defmodule Harbor.Orders.Order do
   def submit_changeset(order, attrs, scope) do
     order
     |> changeset(attrs, scope)
-    |> validate_required([:email, :delivery_method_id])
+    |> denormalize_email()
     |> require_shipping_address()
     |> denormalize_delivery_method()
     |> denormalize_shipping_address()
+  end
+
+  defp denormalize_email(changeset) do
+    case get_assoc(changeset, :customer, :struct) do
+      %Customer{email: email} -> put_change(changeset, :email, email)
+      _ -> changeset
+    end
   end
 
   defp denormalize_delivery_method(changeset) do

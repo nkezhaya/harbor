@@ -458,7 +458,7 @@ defmodule Harbor.CheckoutTest do
     end
   end
 
-  describe "submit_checkout/1" do
+  describe "submit_checkout/2" do
     test "updates the order snapshots and completes the session" do
       # Build catalog and cart
       variant = variant_fixture()
@@ -513,7 +513,7 @@ defmodule Harbor.CheckoutTest do
         {:ok, %{id: "taxid", amount: 1000, line_items: []}}
       end)
 
-      assert {:ok, %Order{} = order} = Checkout.submit_checkout(session)
+      assert {:ok, %Order{} = order} = Checkout.submit_checkout(scope, session)
 
       # Subtotal is variant.price * quantity, tax defaults to 0, total is computed column
       assert order.email == user.email
@@ -572,8 +572,8 @@ defmodule Harbor.CheckoutTest do
         {:ok, %{id: "taxid", amount: 1000, line_items: []}}
       end)
 
-      assert {:ok, order1} = Checkout.submit_checkout(session)
-      assert {:ok, order2} = Checkout.submit_checkout(session)
+      assert {:ok, order1} = Checkout.submit_checkout(scope, session)
+      assert {:ok, order2} = Checkout.submit_checkout(scope, session)
       assert order1.id == order2.id
     end
   end

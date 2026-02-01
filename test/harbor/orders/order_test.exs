@@ -10,12 +10,13 @@ defmodule Harbor.Orders.OrderTest do
     test "does not require an address for pickup fulfillment" do
       delivery_method = delivery_method_fixture(%{fulfillment_type: :pickup})
       order = order_fixture()
+      scope = Scope.for_system()
 
       order =
         order
-        |> Ecto.Changeset.change(%{delivery_method_id: delivery_method.id})
+        |> Order.changeset(%{delivery_method_id: delivery_method.id}, scope)
         |> Repo.update!()
-        |> Repo.preload([:shipping_address, :delivery_method])
+        |> Repo.preload([:customer, :shipping_address, :delivery_method])
 
       attrs = %{
         status: :pending,
@@ -25,7 +26,7 @@ defmodule Harbor.Orders.OrderTest do
         shipping_price: 0
       }
 
-      changeset = Order.submit_changeset(order, attrs, Scope.for_system())
+      changeset = Order.submit_changeset(order, attrs, scope)
 
       assert changeset.valid?
     end

@@ -404,7 +404,25 @@ defmodule HarborWeb.CheckoutLive.Form do
   end
 
   def handle_event("review_submit", _params, socket) do
-    {:noreply, socket}
+    case Checkout.submit_checkout(socket.assigns.current_scope, socket.assigns.session) do
+      {:ok, _order} ->
+        session = Checkout.reload_session(socket.assigns.session)
+        pricing = Checkout.build_pricing(session.order)
+
+        {:noreply,
+         socket
+         |> assign(:session, session)
+         |> assign(:order, session.order)
+         |> assign(:pricing, pricing)
+         |> put_flash(:info, "Order placed successfully.")}
+
+      {:error, %Ecto.Changeset{}} ->
+        {:noreply,
+         put_flash(socket, :error, "We couldn't place your order. Please review the details.")}
+
+      {:error, _reason} ->
+        {:noreply, put_flash(socket, :error, "We couldn't place your order. Please try again.")}
+    end
   end
 
   defp step_status(steps, current_step, target_step) do
