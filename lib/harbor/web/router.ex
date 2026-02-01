@@ -20,13 +20,60 @@ defmodule Harbor.Web.Router do
     plug :put_root_layout, html: {Harbor.Web.AdminLayouts, :root}
   end
 
-  # Enable Swoosh mailbox preview in development
-  if Application.compile_env(:harbor, :dev_routes) do
-    scope "/dev" do
-      pipe_through :browser
+  @doc """
+  Defines Harbor routes for host apps.
 
-      forward "/mailbox", Plug.Swoosh.MailboxPreview
+  The caller is responsible for placing these routes inside the appropriate
+  pipelines and LiveView sessions.
+  """
+  defmacro harbor_routes(:authenticated) do
+    quote do
+      live "/users/settings", Harbor.Web.UserLive.Settings, :edit
+      live "/users/settings/confirm-email/:token", Harbor.Web.UserLive.Settings, :confirm_email
+      post "/users/update-password", Harbor.Web.UserSessionController, :update_password
     end
+  end
+
+  defmacro harbor_routes(:admin) do
+    quote do
+      live "/", Harbor.Web.Admin.ProductLive.Index, :index
+      live "/products", Harbor.Web.Admin.ProductLive.Index, :index
+      live "/products/new", Harbor.Web.Admin.ProductLive.Form, :new
+      live "/products/:id", Harbor.Web.Admin.ProductLive.Show, :show
+      live "/products/:id/edit", Harbor.Web.Admin.ProductLive.Form, :edit
+
+      live "/customers", Harbor.Web.Admin.CustomerLive.Index, :index
+      live "/customers/new", Harbor.Web.Admin.CustomerLive.Form, :new
+      live "/customers/:id", Harbor.Web.Admin.CustomerLive.Show, :show
+      live "/customers/:id/edit", Harbor.Web.Admin.CustomerLive.Form, :edit
+
+      live "/categories", Harbor.Web.Admin.CategoryLive.Index, :index
+      live "/categories/new", Harbor.Web.Admin.CategoryLive.Form, :new
+      live "/categories/:id", Harbor.Web.Admin.CategoryLive.Show, :show
+      live "/categories/:id/edit", Harbor.Web.Admin.CategoryLive.Form, :edit
+    end
+  end
+
+  defmacro harbor_routes(:public) do
+    quote do
+      live "/", Harbor.Web.HomeLive, :index
+      live "/products", Harbor.Web.ProductLive.Index, :index
+      live "/shop/:slug", Harbor.Web.ProductLive.Index, :index
+      live "/products/:slug", Harbor.Web.ProductLive.Show, :show
+      live "/cart", Harbor.Web.CartLive.Show, :show
+      live "/checkout/:id", Harbor.Web.CheckoutLive.Form, :form
+      live "/checkout/:id/receipt", Harbor.Web.CheckoutLive.Receipt, :receipt
+      live "/users/register", Harbor.Web.UserLive.Registration, :new
+      live "/users/log-in", Harbor.Web.UserLive.Login, :new
+      live "/users/log-in/:token", Harbor.Web.UserLive.Confirmation, :new
+      post "/users/log-in", Harbor.Web.UserSessionController, :create
+      delete "/users/log-out", Harbor.Web.UserSessionController, :delete
+    end
+  end
+
+  defmacro harbor_routes(other) do
+    raise ArgumentError,
+          "unknown Harbor.Web.Router.harbor_routes/1 section: #{inspect(other)}"
   end
 
   ## Authentication routes

@@ -109,10 +109,18 @@ defmodule Harbor.Web do
   def verified_routes do
     quote do
       use Phoenix.VerifiedRoutes,
-        endpoint: Harbor.Web.Endpoint,
-        router: Harbor.Web.Router,
+        endpoint: Harbor.Web.verified_routes_endpoint(),
+        router: Harbor.Web.verified_routes_router(),
         statics: Harbor.Web.static_paths()
     end
+  end
+
+  def verified_routes_endpoint do
+    Application.get_env(:harbor, :verified_routes_endpoint, Harbor.Web.Endpoint)
+  end
+
+  def verified_routes_router do
+    Application.get_env(:harbor, :verified_routes_router, Harbor.Web.Router)
   end
 
   @doc """
