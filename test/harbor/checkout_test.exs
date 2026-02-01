@@ -501,11 +501,14 @@ defmodule Harbor.CheckoutTest do
       order = session.order
 
       order
-      |> Ecto.Changeset.change(%{
-        billing_address_id: billing.id,
-        shipping_address_id: shipping.id,
-        delivery_method_id: delivery_method.id
-      })
+      |> Order.changeset(
+        %{
+          billing_address_id: billing.id,
+          shipping_address_id: shipping.id,
+          delivery_method_id: delivery_method.id
+        },
+        scope
+      )
       |> Repo.update!()
 
       # Exercise
@@ -561,11 +564,14 @@ defmodule Harbor.CheckoutTest do
       order = session.order
 
       order
-      |> Ecto.Changeset.change(%{
-        billing_address_id: address.id,
-        shipping_address_id: address.id,
-        delivery_method_id: delivery_method.id
-      })
+      |> Order.changeset(
+        %{
+          billing_address_id: address.id,
+          shipping_address_id: address.id,
+          delivery_method_id: delivery_method.id
+        },
+        scope
+      )
       |> Repo.update!()
 
       expect(Harbor.Tax.TaxProviderMock, :calculate_taxes, fn _req, _key ->

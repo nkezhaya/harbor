@@ -8,6 +8,7 @@ defmodule HarborWeb.CheckoutLive.ReceiptTest do
   alias Harbor.Accounts.Scope
   alias Harbor.{Checkout, Repo}
   alias Harbor.Checkout.Session
+  alias Harbor.Orders.Order
 
   setup :register_and_log_in_user
 
@@ -59,10 +60,10 @@ defmodule HarborWeb.CheckoutLive.ReceiptTest do
     {:ok, session} = Checkout.create_session(scope, cart)
 
     session.order
-    |> Ecto.Changeset.change(%{
-      shipping_address_id: address.id,
-      delivery_method_id: delivery_method.id
-    })
+    |> Order.changeset(
+      %{shipping_address_id: address.id, delivery_method_id: delivery_method.id},
+      scope
+    )
     |> Repo.update!()
 
     expect(Harbor.Tax.TaxProviderMock, :calculate_taxes, fn _req, _key ->

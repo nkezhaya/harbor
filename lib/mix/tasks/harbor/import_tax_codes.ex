@@ -15,7 +15,9 @@ defmodule Mix.Tasks.Harbor.ImportTaxCodes do
     {:ok, tax_codes} = TaxProvider.list_tax_codes()
 
     for tc <- tax_codes do
-      Repo.insert!(Ecto.Changeset.change(%TaxCode{provider: provider}, tc))
+      %TaxCode{provider: provider}
+      |> TaxCode.changeset(tc)
+      |> Repo.insert!(on_conflict: :nothing, conflict_target: [:provider, :provider_ref])
     end
   end
 end
