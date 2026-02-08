@@ -69,8 +69,6 @@ endpoint_config = [
   ]
 ]
 
-Application.put_env(:harbor, Harbor.Web.Endpoint, endpoint_config ++ [server: false])
-
 Application.put_env(:harbor, DemoWeb.Endpoint, endpoint_config ++ [server: true])
 
 defmodule DemoWeb.Router do
@@ -79,13 +77,21 @@ defmodule DemoWeb.Router do
   import Plug.Conn
   import Phoenix.Controller
   import Phoenix.LiveView.Router
+  import Harbor.Web.UserAuth
+  import Harbor.Web.Router
 
   pipeline :browser do
     plug :accepts, ["html"]
     plug :fetch_session
     plug :fetch_live_flash
+    plug :put_root_layout, html: {Harbor.Web.Layouts, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
+    plug :fetch_current_scope_for_user
+  end
+
+  pipeline :admin_layout do
+    plug :put_root_layout, html: {Harbor.Web.AdminLayouts, :root}
   end
 
   scope "/dev" do
@@ -94,7 +100,39 @@ defmodule DemoWeb.Router do
     forward "/mailbox", Plug.Swoosh.MailboxPreview
   end
 
-  forward "/", Harbor.Web.Router
+  scope "/" do
+    pipe_through [:browser, :require_authenticated_user]
+
+    live_session :require_authenticated_user,
+      on_mount: [{Harbor.Web.UserAuth, :require_authenticated}] do
+      harbor_routes(:authenticated)
+    end
+
+    scope "/admin" do
+      pipe_through [:admin_layout]
+
+      live_session :require_authenticated_admin,
+        on_mount: [
+          {Harbor.Web.UserAuth, :require_admin},
+          {Harbor.Web.LiveHooks, :global}
+        ] do
+        harbor_routes(:admin)
+      end
+    end
+  end
+
+  scope "/" do
+    pipe_through [:browser]
+
+    live_session :current_user,
+      on_mount: [
+        {Harbor.Web.UserAuth, :mount_current_scope},
+        {Harbor.Web.LiveHooks, :global},
+        {Harbor.Web.LiveHooks, :storefront}
+      ] do
+      harbor_routes(:public)
+    end
+  end
 end
 
 defmodule DemoWeb.Endpoint do

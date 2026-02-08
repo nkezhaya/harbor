@@ -6,5 +6,7 @@ Application.put_env(:harbor, :payment_provider, {:mock, Harbor.Billing.PaymentPr
 
 Harbor.Seeds.run()
 
+{:ok, _} = Harbor.Web.TestEndpoint.start_link()
+
 ExUnit.start()
 Ecto.Adapters.SQL.Sandbox.mode(Harbor.Repo, :manual)

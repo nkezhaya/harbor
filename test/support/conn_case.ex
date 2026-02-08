@@ -22,7 +22,7 @@ defmodule Harbor.Web.ConnCase do
   using do
     quote do
       # The default endpoint for testing
-      @endpoint Harbor.Web.Endpoint
+      @endpoint Harbor.Web.TestEndpoint
 
       use Harbor.Web, :verified_routes
 

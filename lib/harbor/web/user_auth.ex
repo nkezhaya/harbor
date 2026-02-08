@@ -53,7 +53,11 @@ defmodule Harbor.Web.UserAuth do
     user_token && Auth.delete_user_session_token(user_token)
 
     if live_socket_id = get_session(conn, :live_socket_id) do
-      Harbor.Web.Endpoint.broadcast(live_socket_id, "disconnect", %{})
+      Phoenix.PubSub.broadcast(Harbor.PubSub, live_socket_id, %Phoenix.Socket.Broadcast{
+        topic: live_socket_id,
+        event: "disconnect",
+        payload: %{}
+      })
     end
 
     conn
@@ -199,7 +203,13 @@ defmodule Harbor.Web.UserAuth do
   """
   def disconnect_sessions(tokens) do
     Enum.each(tokens, fn %{token: token} ->
-      Harbor.Web.Endpoint.broadcast(user_session_topic(token), "disconnect", %{})
+      topic = user_session_topic(token)
+
+      Phoenix.PubSub.broadcast(Harbor.PubSub, topic, %Phoenix.Socket.Broadcast{
+        topic: topic,
+        event: "disconnect",
+        payload: %{}
+      })
     end)
   end
 

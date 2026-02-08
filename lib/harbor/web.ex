@@ -116,7 +116,12 @@ defmodule Harbor.Web do
   end
 
   def verified_routes_endpoint do
-    Application.get_env(:harbor, :verified_routes_endpoint, Harbor.Web.Endpoint)
+    Application.get_env(:harbor, :verified_routes_endpoint) ||
+      raise """
+      Harbor requires :verified_routes_endpoint to be configured.
+
+          config :harbor, :verified_routes_endpoint, MyAppWeb.Endpoint
+      """
   end
 
   def verified_routes_router do

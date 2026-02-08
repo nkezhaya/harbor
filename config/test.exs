@@ -16,11 +16,21 @@ config :harbor, Harbor.Repo,
   pool: Ecto.Adapters.SQL.Sandbox,
   pool_size: System.schedulers_online() * 2
 
-# We don't run a server during test. If one is required,
-# you can enable the server option below.
-config :harbor, Harbor.Web.Endpoint,
+# Point Harbor's VerifiedRoutes at the test endpoint
+config :harbor, :verified_routes_endpoint, Harbor.Web.TestEndpoint
+
+# Test endpoint configuration (Harbor.Web.TestEndpoint defined in test/support/)
+config :harbor, Harbor.Web.TestEndpoint,
+  url: [host: "localhost"],
+  adapter: Bandit.PhoenixAdapter,
   http: [ip: {127, 0, 0, 1}, port: 4002],
   secret_key_base: "DJPDxwrcfSImvJWlye0yth5ho+epQUDvdo2WmrGvRKNeMs0wS7jOBPgITMVIjphl",
+  render_errors: [
+    formats: [html: Harbor.Web.ErrorHTML, json: Harbor.Web.ErrorJSON],
+    layout: false
+  ],
+  pubsub_server: Harbor.PubSub,
+  live_view: [signing_salt: "mzGS68aG"],
   server: false
 
 # In test we don't send emails

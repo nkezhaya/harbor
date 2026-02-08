@@ -36,17 +36,6 @@ config :harbor, Harbor.Repo,
 # test.
 config :harbor, Harbor.Repo, after_connect: {Postgrex, :query!, ["SET TIME ZONE 'UTC'", []]}
 
-# Configures the endpoint
-config :harbor, Harbor.Web.Endpoint,
-  url: [host: "localhost"],
-  adapter: Bandit.PhoenixAdapter,
-  render_errors: [
-    formats: [html: Harbor.Web.ErrorHTML, json: Harbor.Web.ErrorJSON],
-    layout: false
-  ],
-  pubsub_server: Harbor.PubSub,
-  live_view: [signing_salt: "mzGS68aG"]
-
 # Configures the mailer
 #
 # By default it uses the "Local" adapter which stores the emails

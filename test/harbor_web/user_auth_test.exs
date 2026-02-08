@@ -13,7 +13,7 @@ defmodule Harbor.Web.UserAuthTest do
   setup %{conn: conn} do
     conn =
       conn
-      |> Map.replace!(:secret_key_base, Harbor.Web.Endpoint.config(:secret_key_base))
+      |> Map.replace!(:secret_key_base, Harbor.Web.TestEndpoint.config(:secret_key_base))
       |> init_test_session(%{})
 
     %{user: %{user_fixture() | authenticated_at: DateTime.utc_now()}, conn: conn}
@@ -90,7 +90,7 @@ defmodule Harbor.Web.UserAuthTest do
       conn =
         conn
         |> recycle()
-        |> Map.replace!(:secret_key_base, Harbor.Web.Endpoint.config(:secret_key_base))
+        |> Map.replace!(:secret_key_base, Harbor.Web.TestEndpoint.config(:secret_key_base))
         |> fetch_cookies()
         |> init_test_session(%{user_remember_me: true})
 
@@ -125,7 +125,7 @@ defmodule Harbor.Web.UserAuthTest do
 
     test "broadcasts to the given live_socket_id", %{conn: conn} do
       live_socket_id = "users_sessions:abcdef-token"
-      Harbor.Web.Endpoint.subscribe(live_socket_id)
+      Phoenix.PubSub.subscribe(Harbor.PubSub, live_socket_id)
 
       conn
       |> put_session(:live_socket_id, live_socket_id)
@@ -261,7 +261,7 @@ defmodule Harbor.Web.UserAuthTest do
       session = conn |> put_session(:user_token, user_token) |> get_session()
 
       socket = %LiveView.Socket{
-        endpoint: Harbor.Web.Endpoint,
+        endpoint: Harbor.Web.TestEndpoint,
         assigns: %{__changed__: %{}, flash: %{}}
       }
 
@@ -273,7 +273,7 @@ defmodule Harbor.Web.UserAuthTest do
       session = conn |> get_session()
 
       socket = %LiveView.Socket{
-        endpoint: Harbor.Web.Endpoint,
+        endpoint: Harbor.Web.TestEndpoint,
         assigns: %{__changed__: %{}, flash: %{}}
       }
 
@@ -288,7 +288,7 @@ defmodule Harbor.Web.UserAuthTest do
       session = conn |> put_session(:user_token, user_token) |> get_session()
 
       socket = %LiveView.Socket{
-        endpoint: Harbor.Web.Endpoint,
+        endpoint: Harbor.Web.TestEndpoint,
         assigns: %{__changed__: %{}, flash: %{}}
       }
 
@@ -305,7 +305,7 @@ defmodule Harbor.Web.UserAuthTest do
       session = conn |> put_session(:user_token, user_token) |> get_session()
 
       socket = %LiveView.Socket{
-        endpoint: Harbor.Web.Endpoint,
+        endpoint: Harbor.Web.TestEndpoint,
         assigns: %{__changed__: %{}, flash: %{}}
       }
 
@@ -371,7 +371,7 @@ defmodule Harbor.Web.UserAuthTest do
       tokens = [%{token: "token1"}, %{token: "token2"}]
 
       for %{token: token} <- tokens do
-        Harbor.Web.Endpoint.subscribe("users_sessions:#{Base.url_encode64(token)}")
+        Phoenix.PubSub.subscribe(Harbor.PubSub, "users_sessions:#{Base.url_encode64(token)}")
       end
 
       UserAuth.disconnect_sessions(tokens)

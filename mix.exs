@@ -77,7 +77,6 @@ defmodule Harbor.MixProject do
       {:telemetry_metrics, "~> 1.0"},
       {:telemetry_poller, "~> 1.0"},
       {:gettext, "~> 0.26"},
-      {:dns_cluster, "~> 0.2.0"},
       {:bandit, "~> 1.5"},
       {:ex_aws, "~> 2.5"},
       {:ex_aws_s3, "~> 2.5"},
