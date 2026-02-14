@@ -34,8 +34,7 @@ Application.put_env(:harbor, Harbor.Repo,
   url: pg_url,
   pool_size: System.schedulers_online() * 2,
   stacktrace: true,
-  show_sensitive_data_on_connection_error: true,
-  after_connect: {Postgrex, :query!, ["SET TIME ZONE 'UTC'", []]}
+  show_sensitive_data_on_connection_error: true
 )
 
 port = String.to_integer(System.get_env("PORT") || "4000")
