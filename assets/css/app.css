@@ -10,17 +10,4 @@
    The heroicons installation itself is managed by your mix.exs */
 @plugin "../vendor/heroicons";
 
-/* Add variants based on LiveView classes */
-@custom-variant phx-click-loading (.phx-click-loading&, .phx-click-loading &);
-@custom-variant phx-submit-loading (.phx-submit-loading&, .phx-submit-loading &);
-@custom-variant phx-change-loading (.phx-change-loading&, .phx-change-loading &);
-
-/* Use the data attribute for dark mode  */
-@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
-
-/* Make LiveView wrapper divs transparent for layout */
-[data-phx-session], [data-phx-teleported-src] { display: contents }
-
-/* This file is for your main application CSS */
-@custom-variant drag-item (.drag-item&, .drag-item &)
-@custom-variant drag-ghost (.drag-ghost&, .drag-ghost &)
+@import "./harbor.css";

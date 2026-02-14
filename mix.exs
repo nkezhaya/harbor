@@ -10,6 +10,7 @@ defmodule Harbor.MixProject do
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
       deps: deps(),
+      package: package(),
       compilers: [:phoenix_live_view] ++ Mix.compilers(),
       listeners: [Phoenix.CodeReloader],
       test_coverage: [ignore_modules: [~r/Mix\.Tasks\.Harbor/, ~r/\.Stripe/]],
@@ -35,6 +36,14 @@ defmodule Harbor.MixProject do
   def cli do
     [
       preferred_envs: [precommit: :test]
+    ]
+  end
+
+  defp package do
+    [
+      files: ~w(lib assets priv mix.exs README.md LICENSE.md CHANGELOG.md),
+      licenses: ["MIT"],
+      links: %{"GitHub" => "https://github.com/nkezhaya/harbor"}
     ]
   end
 
