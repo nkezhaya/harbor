@@ -42,8 +42,7 @@ defmodule Harbor.Web do
       use Gettext, backend: Harbor.Web.Gettext
 
       import Plug.Conn
-
-      unquote(verified_routes())
+      import Harbor.Web.PathHelpers
     end
   end
 
@@ -94,38 +93,14 @@ defmodule Harbor.Web do
       import Phoenix.HTML
       # Core UI components
       import Harbor.Web.CoreComponents
+      import Harbor.Web.PathHelpers
 
       # Common modules used in templates
       alias Harbor.Web.{AdminLayouts, Layouts}
       alias Harbor.Web.{CartComponents, CheckoutComponents, StoreComponents}
       alias Harbor.Web.ImageHelpers
       alias Phoenix.LiveView.JS
-
-      # Routes generation with the ~p sigil
-      unquote(verified_routes())
     end
-  end
-
-  def verified_routes do
-    quote do
-      use Phoenix.VerifiedRoutes,
-        endpoint: Harbor.Web.verified_routes_endpoint(),
-        router: Harbor.Web.verified_routes_router(),
-        statics: Harbor.Web.static_paths()
-    end
-  end
-
-  def verified_routes_endpoint do
-    Application.get_env(:harbor, :verified_routes_endpoint) ||
-      raise """
-      Harbor requires :verified_routes_endpoint to be configured.
-
-          config :harbor, :verified_routes_endpoint, MyAppWeb.Endpoint
-      """
-  end
-
-  def verified_routes_router do
-    Application.get_env(:harbor, :verified_routes_router, Harbor.Web.Router)
   end
 
   @doc """

@@ -15,20 +15,20 @@ defmodule Harbor.Web.Admin.CategoryLive.IndexTest do
   end
 
   test "lists all categories", %{conn: conn, category: category} do
-    {:ok, _index_live, html} = live(conn, ~p"/admin/categories")
+    {:ok, _index_live, html} = live(conn, "/admin/categories")
 
     assert html =~ "Listing Categories"
     assert html =~ category.name
   end
 
   test "saves new category", %{conn: conn} do
-    {:ok, index_live, _html} = live(conn, ~p"/admin/categories")
+    {:ok, index_live, _html} = live(conn, "/admin/categories")
 
     assert {:ok, form_live, _} =
              index_live
              |> element("a", "New Category")
              |> render_click()
-             |> follow_redirect(conn, ~p"/admin/categories/new")
+             |> follow_redirect(conn, "/admin/categories/new")
 
     assert render(form_live) =~ "New Category"
 
@@ -40,7 +40,7 @@ defmodule Harbor.Web.Admin.CategoryLive.IndexTest do
              form_live
              |> form("#category-form", category: create_attrs())
              |> render_submit()
-             |> follow_redirect(conn, ~p"/admin/categories")
+             |> follow_redirect(conn, "/admin/categories")
 
     html = render(index_live)
     assert html =~ "Category created successfully"
@@ -48,13 +48,13 @@ defmodule Harbor.Web.Admin.CategoryLive.IndexTest do
   end
 
   test "updates category in listing", %{conn: conn, category: category} do
-    {:ok, index_live, _html} = live(conn, ~p"/admin/categories")
+    {:ok, index_live, _html} = live(conn, "/admin/categories")
 
     assert {:ok, form_live, _html} =
              index_live
              |> element("#categories-#{category.id} a", "Edit")
              |> render_click()
-             |> follow_redirect(conn, ~p"/admin/categories/#{category}/edit")
+             |> follow_redirect(conn, "/admin/categories/#{category.id}/edit")
 
     assert render(form_live) =~ "Edit Category"
 
@@ -66,7 +66,7 @@ defmodule Harbor.Web.Admin.CategoryLive.IndexTest do
              form_live
              |> form("#category-form", category: update_attrs())
              |> render_submit()
-             |> follow_redirect(conn, ~p"/admin/categories")
+             |> follow_redirect(conn, "/admin/categories")
 
     html = render(index_live)
     assert html =~ "Category updated successfully"
@@ -74,7 +74,7 @@ defmodule Harbor.Web.Admin.CategoryLive.IndexTest do
   end
 
   test "deletes category in listing", %{conn: conn, category: category} do
-    {:ok, index_live, _html} = live(conn, ~p"/admin/categories")
+    {:ok, index_live, _html} = live(conn, "/admin/categories")
 
     assert index_live |> element("#categories-#{category.id} a", "Delete") |> render_click()
     refute has_element?(index_live, "#categories-#{category.id}")

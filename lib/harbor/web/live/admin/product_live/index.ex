@@ -14,11 +14,12 @@ defmodule Harbor.Web.Admin.ProductLive.Index do
       current_scope={@current_scope}
       page_title={@page_title}
       current_path={@current_path}
+      socket={@socket}
     >
       <.header :if={not @products_empty?}>
         Listing Products
         <:actions>
-          <.button variant="primary" navigate={~p"/admin/products/new"}>
+          <.button variant="primary" navigate={admin_path(@socket, "/products/new")}>
             <.icon name="hero-plus" /> New Product
           </.button>
         </:actions>
@@ -28,7 +29,7 @@ defmodule Harbor.Web.Admin.ProductLive.Index do
         <.empty_state
           icon="hero-shopping-bag"
           action_label="New Product"
-          navigate={~p"/admin/products/new"}
+          navigate={admin_path(@socket, "/products/new")}
         >
           <:header>No products</:header>
           <:subheader>Add your first product to start building your catalog.</:subheader>
@@ -39,17 +40,19 @@ defmodule Harbor.Web.Admin.ProductLive.Index do
         :if={!@products_empty?}
         id="products"
         rows={@streams.products}
-        row_click={fn {_id, product} -> JS.navigate(~p"/admin/products/#{product}") end}
+        row_click={
+          fn {_id, product} -> JS.navigate(admin_path(@socket, "/products/#{product.id}")) end
+        }
       >
         <:col :let={{_id, product}} label="Name">{product.name}</:col>
         <:col :let={{_id, product}} label="Description">{product.description}</:col>
         <:col :let={{_id, product}} label="Status">{product.status}</:col>
         <:action :let={{_id, product}}>
           <div class="sr-only">
-            <.link navigate={~p"/admin/products/#{product}"}>Show</.link>
+            <.link navigate={admin_path(@socket, "/products/#{product.id}")}>Show</.link>
           </div>
           <.link
-            navigate={~p"/admin/products/#{product}/edit"}
+            navigate={admin_path(@socket, "/products/#{product.id}/edit")}
             class="text-indigo-600 transition hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
           >
             Edit

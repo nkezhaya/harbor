@@ -19,7 +19,7 @@ defmodule Harbor.Web.UserLive.Login do
                 You need to reauthenticate to perform sensitive actions on your account.
               <% else %>
                 Don't have an account? <.link
-                  navigate={~p"/users/register"}
+                  navigate="/users/register"
                   class="font-semibold text-indigo-600 underline-offset-4 hover:text-indigo-500 hover:underline dark:text-indigo-400 dark:hover:text-indigo-300"
                   phx-no-format
                 >Sign up</.link> for an account now.
@@ -52,7 +52,7 @@ defmodule Harbor.Web.UserLive.Login do
           :let={f}
           for={@form}
           id="login_form_magic"
-          action={~p"/users/log-in"}
+          action="/users/log-in"
           phx-submit="submit_magic"
           class="space-y-5"
         >
@@ -80,7 +80,7 @@ defmodule Harbor.Web.UserLive.Login do
           :let={f}
           for={@form}
           id="login_form_password"
-          action={~p"/users/log-in"}
+          action="/users/log-in"
           phx-submit="submit_password"
           phx-trigger-action={@trigger_submit}
           class="space-y-5"
@@ -136,7 +136,7 @@ defmodule Harbor.Web.UserLive.Login do
     if user = Accounts.get_user_by_email(email) do
       Auth.deliver_login_instructions(
         user,
-        &url(~p"/users/log-in/#{&1}")
+        &url(socket, "/users/log-in/#{&1}")
       )
     end
 
@@ -146,7 +146,7 @@ defmodule Harbor.Web.UserLive.Login do
     {:noreply,
      socket
      |> put_flash(:info, info)
-     |> push_navigate(to: ~p"/users/log-in")}
+     |> push_navigate(to: "/users/log-in")}
   end
 
   defp local_mail_adapter? do

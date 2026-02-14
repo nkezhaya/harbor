@@ -24,8 +24,6 @@ defmodule Harbor.Web.ConnCase do
       # The default endpoint for testing
       @endpoint Harbor.Web.TestEndpoint
 
-      use Harbor.Web, :verified_routes
-
       # Import conveniences for testing with connections
       import Ecto.Query
       import Plug.Conn

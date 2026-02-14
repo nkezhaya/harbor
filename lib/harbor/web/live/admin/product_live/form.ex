@@ -19,6 +19,7 @@ defmodule Harbor.Web.Admin.ProductLive.Form do
       current_scope={@current_scope}
       page_title={@page_title}
       current_path={@current_path}
+      socket={@socket}
     >
       <.header>
         {@page_title}
@@ -109,7 +110,7 @@ defmodule Harbor.Web.Admin.ProductLive.Form do
         <.variants_card form={@form} />
         <footer class="flex flex-wrap items-center gap-3 pt-4">
           <.button phx-disable-with="Saving..." variant="primary">Save Product</.button>
-          <.button navigate={return_path(@return_to, @product)}>Cancel</.button>
+          <.button navigate={return_path(@socket, @return_to, @product)}>Cancel</.button>
         </footer>
       </.form>
     </AdminLayouts.app>
@@ -429,7 +430,7 @@ defmodule Harbor.Web.Admin.ProductLive.Form do
         {:noreply,
          socket
          |> put_success_flash(live_action)
-         |> push_navigate(to: return_path(socket.assigns.return_to, product))}
+         |> push_navigate(to: return_path(socket, socket.assigns.return_to, product))}
 
       {:error, %Changeset{} = changeset} ->
         {:noreply, assign_form(socket, changeset)}
@@ -452,6 +453,6 @@ defmodule Harbor.Web.Admin.ProductLive.Form do
     assign(socket, has_variants?: has_variants?, form: to_form(changeset, as: :product))
   end
 
-  defp return_path("index", _product), do: ~p"/admin/products"
-  defp return_path("show", product), do: ~p"/admin/products/#{product}"
+  defp return_path(socket, "index", _product), do: admin_path(socket, "/products")
+  defp return_path(socket, "show", product), do: admin_path(socket, "/products/#{product.id}")
 end

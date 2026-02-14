@@ -12,7 +12,7 @@ defmodule Harbor.Web.ProductLive.ShowTest do
         variants: [%{sku: "sku-#{System.unique_integer()}", price: 5400, enabled: true}]
       })
 
-    {:ok, _view, html} = live(conn, ~p"/products/#{product.slug}")
+    {:ok, _view, html} = live(conn, "/products/#{product.slug}")
 
     assert html =~ "Wool Blanket"
     assert html =~ "Cozy throw blanket."

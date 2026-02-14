@@ -11,11 +11,12 @@ defmodule Harbor.Web.Admin.CategoryLive.Index do
       current_scope={@current_scope}
       page_title={@page_title}
       current_path={@current_path}
+      socket={@socket}
     >
       <.header :if={not @categories_empty?}>
         Listing Categories
         <:actions>
-          <.button variant="primary" navigate={~p"/admin/categories/new"}>
+          <.button variant="primary" navigate={admin_path(@socket, "/categories/new")}>
             <.icon name="hero-plus" /> New Category
           </.button>
         </:actions>
@@ -25,7 +26,7 @@ defmodule Harbor.Web.Admin.CategoryLive.Index do
         <.empty_state
           icon="hero-rectangle-group"
           action_label="New Category"
-          navigate={~p"/admin/categories/new"}
+          navigate={admin_path(@socket, "/categories/new")}
         >
           <:header>No categories</:header>
           <:subheader>Get started by creating your first category.</:subheader>
@@ -36,7 +37,9 @@ defmodule Harbor.Web.Admin.CategoryLive.Index do
         :if={not @categories_empty?}
         id="categories"
         rows={@streams.categories}
-        row_click={fn {_id, category} -> JS.navigate(~p"/admin/categories/#{category}") end}
+        row_click={
+          fn {_id, category} -> JS.navigate(admin_path(@socket, "/categories/#{category.id}")) end
+        }
       >
         <:col :let={{_id, category}} label="Name">{category.name}</:col>
         <:col :let={{_id, category}} label="Parent">
@@ -47,10 +50,10 @@ defmodule Harbor.Web.Admin.CategoryLive.Index do
         <:col :let={{_id, category}} label="Tax code">{category.tax_code.name}</:col>
         <:action :let={{_id, category}}>
           <div class="sr-only">
-            <.link navigate={~p"/admin/categories/#{category}"}>Show</.link>
+            <.link navigate={admin_path(@socket, "/categories/#{category.id}")}>Show</.link>
           </div>
           <.link
-            navigate={~p"/admin/categories/#{category}/edit"}
+            navigate={admin_path(@socket, "/categories/#{category.id}/edit")}
             class="text-indigo-600 transition hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
           >
             Edit

@@ -12,6 +12,7 @@ defmodule Harbor.Web.Admin.CustomerLive.Form do
       current_scope={@current_scope}
       page_title={@page_title}
       current_path={@current_path}
+      socket={@socket}
     >
       <.header>
         {@page_title}
@@ -34,7 +35,7 @@ defmodule Harbor.Web.Admin.CustomerLive.Form do
         <.input field={@form[:deleted_at]} type="text" label="Deleted at" />
         <footer>
           <.button phx-disable-with="Saving..." variant="primary">Save Customer</.button>
-          <.button navigate={return_path(@return_to, @customer)}>Cancel</.button>
+          <.button navigate={return_path(@socket, @return_to, @customer)}>Cancel</.button>
         </footer>
       </.form>
     </AdminLayouts.app>
@@ -96,7 +97,7 @@ defmodule Harbor.Web.Admin.CustomerLive.Form do
         {:noreply,
          socket
          |> put_flash(:info, "Customer updated successfully")
-         |> push_navigate(to: return_path(socket.assigns.return_to, customer))}
+         |> push_navigate(to: return_path(socket, socket.assigns.return_to, customer))}
 
       {:error, %Ecto.Changeset{} = changeset} ->
         {:noreply, assign(socket, form: to_form(changeset))}
@@ -109,13 +110,13 @@ defmodule Harbor.Web.Admin.CustomerLive.Form do
         {:noreply,
          socket
          |> put_flash(:info, "Customer created successfully")
-         |> push_navigate(to: return_path(socket.assigns.return_to, customer))}
+         |> push_navigate(to: return_path(socket, socket.assigns.return_to, customer))}
 
       {:error, %Ecto.Changeset{} = changeset} ->
         {:noreply, assign(socket, form: to_form(changeset))}
     end
   end
 
-  defp return_path("index", _customer), do: ~p"/admin/customers"
-  defp return_path("show", customer), do: ~p"/admin/customers/#{customer}"
+  defp return_path(socket, "index", _customer), do: admin_path(socket, "/customers")
+  defp return_path(socket, "show", customer), do: admin_path(socket, "/customers/#{customer.id}")
 end

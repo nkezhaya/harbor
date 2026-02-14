@@ -15,7 +15,7 @@ defmodule Harbor.Web.StoreComponents do
 
   def product_card(assigns) do
     ~H"""
-    <a href={~p"/products/#{@product.slug}"} class="group">
+    <a href={"/products/#{@product.slug}"} class="group">
       <.product_image product={@product} />
 
       <h3 class="mt-4 text-sm text-gray-700">{@product.name}</h3>

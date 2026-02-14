@@ -219,7 +219,7 @@ defmodule Harbor.Web.CartComponents do
 
             <p class="mt-6 text-center">
               <.link
-                navigate={~p"/cart"}
+                navigate="/cart"
                 class="text-sm font-medium text-indigo-600 hover:text-indigo-500"
               >
                 View Shopping Bag
@@ -246,7 +246,7 @@ defmodule Harbor.Web.CartComponents do
       <div class="flex-auto">
         <h3 class="font-medium text-gray-900">
           <.link
-            navigate={~p"/products/#{@cart_item.variant.product.slug}"}
+            navigate={"/products/#{@cart_item.variant.product.slug}"}
             class="hover:text-indigo-600 hover:underline"
           >
             {@cart_item.variant.product.name}
@@ -327,12 +327,12 @@ defmodule Harbor.Web.CartComponents do
     socket =
       case Checkout.create_session(socket.assigns.current_scope, cart) do
         {:ok, session} ->
-          push_navigate(socket, to: ~p"/checkout/#{session.id}")
+          push_navigate(socket, to: "/checkout/#{session.id}")
 
         {:error, _changeset} ->
           socket
           |> put_flash(:error, "There was an error creating a checkout session.")
-          |> push_navigate(to: ~p"/cart")
+          |> push_navigate(to: "/cart")
       end
 
     {:halt, socket}

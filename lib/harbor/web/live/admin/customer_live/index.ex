@@ -11,11 +11,12 @@ defmodule Harbor.Web.Admin.CustomerLive.Index do
       current_scope={@current_scope}
       page_title={@page_title}
       current_path={@current_path}
+      socket={@socket}
     >
       <.header :if={not @customers_empty?}>
         Listing Customers
         <:actions>
-          <.button variant="primary" navigate={~p"/admin/customers/new"}>
+          <.button variant="primary" navigate={admin_path(@socket, "/customers/new")}>
             <.icon name="hero-plus" /> New Customer
           </.button>
         </:actions>
@@ -25,7 +26,7 @@ defmodule Harbor.Web.Admin.CustomerLive.Index do
         <.empty_state
           icon="hero-user-group"
           action_label="New Customer"
-          navigate={~p"/admin/customers/new"}
+          navigate={admin_path(@socket, "/customers/new")}
         >
           <:header>No customers</:header>
           <:subheader>Get started by creating your first customer.</:subheader>
@@ -36,7 +37,9 @@ defmodule Harbor.Web.Admin.CustomerLive.Index do
         :if={not @customers_empty?}
         id="customers"
         rows={@streams.customers}
-        row_click={fn {_id, customer} -> JS.navigate(~p"/admin/customers/#{customer}") end}
+        row_click={
+          fn {_id, customer} -> JS.navigate(admin_path(@socket, "/customers/#{customer.id}")) end
+        }
       >
         <:col :let={{_id, customer}} label="First name">{customer.first_name}</:col>
         <:col :let={{_id, customer}} label="Last name">{customer.last_name}</:col>
@@ -46,10 +49,10 @@ defmodule Harbor.Web.Admin.CustomerLive.Index do
         <:col :let={{_id, customer}} label="Status">{customer.status}</:col>
         <:action :let={{_id, customer}}>
           <div class="sr-only">
-            <.link navigate={~p"/admin/customers/#{customer}"}>Show</.link>
+            <.link navigate={admin_path(@socket, "/customers/#{customer.id}")}>Show</.link>
           </div>
           <.link
-            navigate={~p"/admin/customers/#{customer}/edit"}
+            navigate={admin_path(@socket, "/customers/#{customer.id}/edit")}
             class="text-indigo-600 transition hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
           >
             Edit

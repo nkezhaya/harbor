@@ -12,15 +12,19 @@ defmodule Harbor.Web.Admin.CategoryLive.Show do
       current_scope={@current_scope}
       page_title={@page_title}
       current_path={@current_path}
+      socket={@socket}
     >
       <.header>
         Category {@category.name}
         <:subtitle>This is a category record from your database.</:subtitle>
         <:actions>
-          <.button navigate={~p"/admin/categories"}>
+          <.button navigate={admin_path(@socket, "/categories")}>
             <.icon name="hero-arrow-left" />
           </.button>
-          <.button variant="primary" navigate={~p"/admin/categories/#{@category}/edit?return_to=show"}>
+          <.button
+            variant="primary"
+            navigate={admin_path(@socket, "/categories/#{@category.id}/edit?return_to=show")}
+          >
             <.icon name="hero-pencil-square" /> Edit category
           </.button>
         </:actions>

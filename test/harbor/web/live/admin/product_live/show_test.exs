@@ -12,7 +12,7 @@ defmodule Harbor.Web.Admin.ProductLiveTest do
   end
 
   test "displays product", %{conn: conn, product: product} do
-    {:ok, _show_live, html} = live(conn, ~p"/admin/products/#{product}")
+    {:ok, _show_live, html} = live(conn, "/admin/products/#{product.id}")
 
     assert html =~ product.name
   end

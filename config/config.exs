@@ -1,10 +1,3 @@
-# This file is responsible for configuring your application
-# and its dependencies with the aid of the Config module.
-#
-# This configuration file is loaded before any dependency and
-# is restricted to this project.
-
-# General application configuration
 import Config
 
 config :harbor, :scopes,
@@ -28,56 +21,51 @@ config :harbor,
 config :harbor, Harbor.Repo,
   migration_primary_key: false,
   migration_foreign_key: [type: :binary_id],
-  migration_timestamps: [type: :timestamptz]
+  migration_timestamps: [type: :timestamptz],
+  # Postgrex casts DateTime objects to timestamp, instead of timestamptz, which
+  # causes comparisons to fail when the connection is set to a non-UTC time zone.
+  # Setting it to UTC immediately after connecting prevents errors in dev and
+  # test.
+  after_connect: {Postgrex, :query!, ["SET TIME ZONE 'UTC'", []]}
 
-# Postgrex casts DateTime objects to timestamp, instead of timestamptz, which
-# causes comparisons to fail when the connection is set to a non-UTC time zone.
-# Setting it to UTC immediately after connecting prevents errors in dev and
-# test.
-config :harbor, Harbor.Repo, after_connect: {Postgrex, :query!, ["SET TIME ZONE 'UTC'", []]}
-
-# Configures the mailer
-#
-# By default it uses the "Local" adapter which stores the emails
-# locally. You can see the emails in your browser, at "/dev/mailbox".
-#
-# For production it's recommended to configure a different adapter
-# at the `config/runtime.exs`.
 config :harbor, Harbor.Mailer, adapter: Swoosh.Adapters.Local
-
-# Configure esbuild (the version is required)
-config :esbuild,
-  version: "0.25.4",
-  harbor: [
-    args:
-      ~w(js/app.js --bundle --target=es2022 --outdir=../priv/static/assets/js --external:/fonts/* --external:/images/* --alias:@=.),
-    cd: Path.expand("../assets", __DIR__),
-    env: %{"NODE_PATH" => [Path.expand("../deps", __DIR__), Mix.Project.build_path()]}
-  ]
-
-# Configure tailwind (the version is required)
-config :tailwind,
-  version: "4.1.7",
-  harbor: [
-    args: ~w(
-      --input=assets/css/app.css
-      --output=priv/static/assets/css/app.css
-    ),
-    cd: Path.expand("..", __DIR__)
-  ]
-
-# Configures Elixir's Logger
-config :logger, :default_formatter,
-  format: "$time $metadata[$level] $message\n",
-  metadata: [:request_id]
-
-config :phoenix, :json_library, JSON
 
 config :harbor, Harbor.Oban,
   engine: Oban.Engines.Basic,
   queues: [media_uploads: 10, billing: 10],
   repo: Harbor.Repo
 
-# Import environment specific config. This must remain at the bottom
-# of this file so it overrides the configuration defined above.
-import_config "#{config_env()}.exs"
+config :logger, :default_formatter,
+  format: "$time $metadata[$level] $message\n",
+  metadata: [:request_id]
+
+if config_env() == :dev do
+  config :phoenix, :json_library, JSON
+  config :ex_aws, json_codec: JSON
+
+  config :esbuild,
+    version: "0.25.4",
+    harbor: [
+      args:
+        ~w(js/app.js --bundle --target=es2022 --outdir=../priv/static/assets/js --external:/fonts/* --external:/images/* --alias:@=.),
+      cd: Path.expand("../assets", __DIR__),
+      env: %{"NODE_PATH" => [Path.expand("../deps", __DIR__), Mix.Project.build_path()]}
+    ]
+
+  config :tailwind,
+    version: "4.1.7",
+    harbor: [
+      args: ~w(
+        --input=assets/css/app.css
+        --output=priv/static/assets/css/app.css
+      ),
+      cd: Path.expand("..", __DIR__)
+    ]
+
+  config :harbor, :tax_provider, {:stripe, Harbor.Tax.TaxProvider.Stripe}
+  config :harbor, :payment_provider, {:stripe, Harbor.Billing.PaymentProvider.Stripe}
+end
+
+if config_env() == :test do
+  import_config("test.exs")
+end

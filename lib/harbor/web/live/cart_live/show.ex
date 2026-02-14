@@ -33,7 +33,7 @@ defmodule Harbor.Web.CartLive.Show do
               </div>
 
               <.link
-                navigate={~p"/products"}
+                navigate="/products"
                 class="inline-flex items-center gap-2 rounded-md border border-transparent bg-indigo-600 px-4 py-3 text-sm font-medium text-white shadow-xs transition hover:bg-indigo-700 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-white"
               >
                 Continue shopping
@@ -101,7 +101,7 @@ defmodule Harbor.Web.CartLive.Show do
             <div class="flex justify-between">
               <h3 class="text-sm">
                 <.link
-                  navigate={~p"/products/#{@cart_item.variant.product.slug}"}
+                  navigate={"/products/#{@cart_item.variant.product.slug}"}
                   class="font-medium text-gray-700 hover:text-gray-800"
                 >
                   {@cart_item.variant.product.name}

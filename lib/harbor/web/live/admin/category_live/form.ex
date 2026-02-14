@@ -13,6 +13,7 @@ defmodule Harbor.Web.Admin.CategoryLive.Form do
       current_scope={@current_scope}
       page_title={@page_title}
       current_path={@current_path}
+      socket={@socket}
     >
       <.header>
         {@page_title}
@@ -32,7 +33,7 @@ defmodule Harbor.Web.Admin.CategoryLive.Form do
         />
         <footer>
           <.button phx-disable-with="Saving..." variant="primary">Save Category</.button>
-          <.button navigate={return_path(@return_to, @category)}>Cancel</.button>
+          <.button navigate={return_path(@socket, @return_to, @category)}>Cancel</.button>
         </footer>
       </.form>
     </AdminLayouts.app>
@@ -92,7 +93,7 @@ defmodule Harbor.Web.Admin.CategoryLive.Form do
         {:noreply,
          socket
          |> put_flash(:info, "Category updated successfully")
-         |> push_navigate(to: return_path(socket.assigns.return_to, category))}
+         |> push_navigate(to: return_path(socket, socket.assigns.return_to, category))}
 
       {:error, %Ecto.Changeset{} = changeset} ->
         {:noreply, assign(socket, form: to_form(changeset))}
@@ -105,7 +106,7 @@ defmodule Harbor.Web.Admin.CategoryLive.Form do
         {:noreply,
          socket
          |> put_flash(:info, "Category created successfully")
-         |> push_navigate(to: return_path(socket.assigns.return_to, category))}
+         |> push_navigate(to: return_path(socket, socket.assigns.return_to, category))}
 
       {:error, %Ecto.Changeset{} = changeset} ->
         {:noreply, assign(socket, form: to_form(changeset))}
@@ -121,6 +122,6 @@ defmodule Harbor.Web.Admin.CategoryLive.Form do
   defp return_to("show"), do: "show"
   defp return_to(_), do: "index"
 
-  defp return_path("index", _category), do: ~p"/admin/categories"
-  defp return_path("show", category), do: ~p"/admin/categories/#{category}"
+  defp return_path(socket, "index", _category), do: admin_path(socket, "/categories")
+  defp return_path(socket, "show", category), do: admin_path(socket, "/categories/#{category.id}")
 end

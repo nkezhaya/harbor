@@ -25,7 +25,7 @@ defmodule Harbor.Web.Admin.ProductLive.FormTest do
     persisted_ids = image_ids_by_position(product)
     assert persisted_ids == ids
 
-    {:ok, view, _html} = live(conn, ~p"/admin/products/#{product}/edit")
+    {:ok, view, _html} = live(conn, "/admin/products/#{product.id}/edit")
     view |> render_hook("sortable:reposition", %{"ids" => reordered_ids})
 
     attrs = %{
@@ -39,7 +39,7 @@ defmodule Harbor.Web.Admin.ProductLive.FormTest do
              view
              |> form("#product-form", product: attrs)
              |> render_submit()
-             |> follow_redirect(conn, ~p"/admin/products")
+             |> follow_redirect(conn, "/admin/products")
 
     persisted_ids = image_ids_by_position(product)
 
@@ -53,7 +53,7 @@ defmodule Harbor.Web.Admin.ProductLive.FormTest do
     persisted_ids = image_ids_by_position(product)
     assert persisted_ids == [i0.id, i1.id]
 
-    {:ok, view, _html} = live(conn, ~p"/admin/products/#{product}/edit")
+    {:ok, view, _html} = live(conn, "/admin/products/#{product.id}/edit")
     view |> render_hook("remove_media_upload", %{"id" => i0.id})
 
     attrs = %{
@@ -67,20 +67,20 @@ defmodule Harbor.Web.Admin.ProductLive.FormTest do
              view
              |> form("#product-form", product: attrs)
              |> render_submit()
-             |> follow_redirect(conn, ~p"/admin/products")
+             |> follow_redirect(conn, "/admin/products")
 
     persisted_ids = image_ids_by_position(product)
     assert persisted_ids == [i1.id]
   end
 
   test "updates product and returns to show", %{conn: conn, product: product} do
-    {:ok, show_live, _html} = live(conn, ~p"/admin/products/#{product}")
+    {:ok, show_live, _html} = live(conn, "/admin/products/#{product.id}")
 
     assert {:ok, form_live, _} =
              show_live
              |> element("a", "Edit")
              |> render_click()
-             |> follow_redirect(conn, ~p"/admin/products/#{product}/edit?return_to=show")
+             |> follow_redirect(conn, "/admin/products/#{product.id}/edit?return_to=show")
 
     assert render(form_live) =~ "Edit Product"
 
@@ -92,7 +92,7 @@ defmodule Harbor.Web.Admin.ProductLive.FormTest do
              form_live
              |> form("#product-form", product: %{name: "new name"})
              |> render_submit()
-             |> follow_redirect(conn, ~p"/admin/products/#{product}")
+             |> follow_redirect(conn, "/admin/products/#{product.id}")
 
     html = render(show_live)
     assert html =~ "Product updated successfully"

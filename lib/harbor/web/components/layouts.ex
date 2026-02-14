@@ -54,7 +54,7 @@ defmodule Harbor.Web.Layouts do
       >
         <div class="flex items-center justify-between">
           <a href="/" class="flex items-center gap-3">
-            <img src={~p"/images/logo.svg"} alt="Harbor logo" class="h-10 w-10" />
+            <img src="/images/logo.svg" alt="Harbor logo" class="h-10 w-10" />
             <span class="text-lg font-semibold text-gray-900">Harbor</span>
           </a>
           <button
@@ -70,7 +70,7 @@ defmodule Harbor.Web.Layouts do
         <nav class="mt-8 space-y-6 text-base font-medium text-gray-900">
           <a
             :for={category <- @root_categories}
-            href={~p"/shop/#{category.slug}"}
+            href={"/shop/#{category.slug}"}
             class="block"
           >
             {category.name}
@@ -82,17 +82,17 @@ defmodule Harbor.Web.Layouts do
             <p class="text-gray-500">
               Signed in as {@current_scope.user.email}
             </p>
-            <.link href={~p"/users/settings"} class="block hover:text-gray-900">
+            <.link href="/users/settings" class="block hover:text-gray-900">
               Account settings
             </.link>
-            <.link href={~p"/users/log-out"} method="delete" class="block hover:text-gray-900">
+            <.link href="/users/log-out" method="delete" class="block hover:text-gray-900">
               Log out
             </.link>
           <% else %>
-            <.link href={~p"/users/register"} class="block hover:text-gray-900">
+            <.link href="/users/register" class="block hover:text-gray-900">
               Register
             </.link>
-            <.link href={~p"/users/log-in"} class="block hover:text-gray-900">
+            <.link href="/users/log-in" class="block hover:text-gray-900">
               Log in
             </.link>
           <% end %>
@@ -113,7 +113,7 @@ defmodule Harbor.Web.Layouts do
               </button>
 
               <a href="/" class="flex items-center gap-3">
-                <img src={~p"/images/logo.svg"} alt="Harbor logo" class="h-10 w-10" />
+                <img src="/images/logo.svg" alt="Harbor logo" class="h-10 w-10" />
                 <span class="hidden text-lg font-semibold text-gray-900 sm:block">Harbor</span>
               </a>
             </div>
@@ -122,7 +122,7 @@ defmodule Harbor.Web.Layouts do
               <div class="flex gap-10 text-sm font-medium text-gray-700">
                 <a
                   :for={category <- @root_categories}
-                  href={~p"/shop/#{category.slug}"}
+                  href={"/shop/#{category.slug}"}
                   class="transition hover:text-gray-900"
                 >
                   {category.name}
@@ -142,21 +142,21 @@ defmodule Harbor.Web.Layouts do
               <div class="hidden gap-4 text-sm font-medium text-gray-700 lg:flex lg:items-center">
                 <%= if @current_scope.authenticated? do %>
                   <span class="text-gray-500">{@current_scope.user.email}</span>
-                  <.link href={~p"/users/settings"} class="transition hover:text-gray-900">
+                  <.link href="/users/settings" class="transition hover:text-gray-900">
                     Settings
                   </.link>
                   <.link
-                    href={~p"/users/log-out"}
+                    href="/users/log-out"
                     method="delete"
                     class="transition hover:text-gray-900"
                   >
                     Log out
                   </.link>
                 <% else %>
-                  <.link href={~p"/users/register"} class="transition hover:text-gray-900">
+                  <.link href="/users/register" class="transition hover:text-gray-900">
                     Register
                   </.link>
-                  <.link href={~p"/users/log-in"} class="transition hover:text-gray-900">
+                  <.link href="/users/log-in" class="transition hover:text-gray-900">
                     Log in
                   </.link>
                 <% end %>
@@ -177,7 +177,7 @@ defmodule Harbor.Web.Layouts do
       <footer class="border-t border-gray-200">
         <div class="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-10 text-sm text-gray-500 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
           <a href="/" class="flex items-center gap-3 text-gray-900">
-            <img src={~p"/images/logo.svg"} alt="Harbor logo" class="h-9 w-9" />
+            <img src="/images/logo.svg" alt="Harbor logo" class="h-9 w-9" />
             <span class="text-base font-semibold">Harbor</span>
           </a>
           <p class="text-sm text-gray-500">

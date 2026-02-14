@@ -11,15 +11,19 @@ defmodule Harbor.Web.Admin.CustomerLive.Show do
       current_scope={@current_scope}
       page_title={@page_title}
       current_path={@current_path}
+      socket={@socket}
     >
       <.header>
         Customer {@customer.id}
         <:subtitle>This is a customer record from your database.</:subtitle>
         <:actions>
-          <.button navigate={~p"/admin/customers"}>
+          <.button navigate={admin_path(@socket, "/customers")}>
             <.icon name="hero-arrow-left" />
           </.button>
-          <.button variant="primary" navigate={~p"/admin/customers/#{@customer}/edit?return_to=show"}>
+          <.button
+            variant="primary"
+            navigate={admin_path(@socket, "/customers/#{@customer.id}/edit?return_to=show")}
+          >
             <.icon name="hero-pencil-square" /> Edit customer
           </.button>
         </:actions>

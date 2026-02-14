@@ -21,7 +21,7 @@ defmodule Harbor.Web.CartLive.ShowTest do
     cart = cart_fixture(scope)
     cart_item = cart_item_fixture(cart, %{variant_id: variant.id, quantity: 2})
 
-    {:ok, view, _html} = live(conn, ~p"/cart")
+    {:ok, view, _html} = live(conn, "/cart")
 
     assert has_element?(view, "#cart-item-#{cart_item.id}", product_name)
     assert render(view) =~ Util.formatted_price(variant.price)
@@ -36,7 +36,7 @@ defmodule Harbor.Web.CartLive.ShowTest do
     cart = cart_fixture(scope)
     cart_item = cart_item_fixture(cart, %{variant_id: variant.id, quantity: 1})
 
-    {:ok, view, _html} = live(conn, ~p"/cart")
+    {:ok, view, _html} = live(conn, "/cart")
 
     qty_form = element(view, "#cart-item-quantity-#{cart_item.id}")
 
@@ -54,7 +54,7 @@ defmodule Harbor.Web.CartLive.ShowTest do
     cart = cart_fixture(scope)
     cart_item = cart_item_fixture(cart, %{variant_id: variant.id, quantity: 1})
 
-    {:ok, view, _html} = live(conn, ~p"/cart")
+    {:ok, view, _html} = live(conn, "/cart")
 
     view
     |> element(~s(button[phx-click="remove_item"][phx-value-cart_item_id="#{cart_item.id}"]))

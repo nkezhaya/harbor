@@ -13,20 +13,20 @@ defmodule Harbor.Web.Admin.CustomerLive.IndexTest do
   end
 
   test "lists all customers", %{conn: conn, customer: customer} do
-    {:ok, _index_live, html} = live(conn, ~p"/admin/customers")
+    {:ok, _index_live, html} = live(conn, "/admin/customers")
 
     assert html =~ "Listing Customers"
     assert html =~ customer.first_name
   end
 
   test "saves new customer", %{conn: conn} do
-    {:ok, index_live, _html} = live(conn, ~p"/admin/customers")
+    {:ok, index_live, _html} = live(conn, "/admin/customers")
 
     assert {:ok, form_live, _} =
              index_live
              |> element("a", "New Customer")
              |> render_click()
-             |> follow_redirect(conn, ~p"/admin/customers/new")
+             |> follow_redirect(conn, "/admin/customers/new")
 
     assert render(form_live) =~ "New Customer"
 
@@ -38,7 +38,7 @@ defmodule Harbor.Web.Admin.CustomerLive.IndexTest do
              form_live
              |> form("#customer-form", customer: create_attrs())
              |> render_submit()
-             |> follow_redirect(conn, ~p"/admin/customers")
+             |> follow_redirect(conn, "/admin/customers")
 
     html = render(index_live)
     assert html =~ "Customer created successfully"
@@ -46,13 +46,13 @@ defmodule Harbor.Web.Admin.CustomerLive.IndexTest do
   end
 
   test "updates customer in listing", %{conn: conn, customer: customer} do
-    {:ok, index_live, _html} = live(conn, ~p"/admin/customers")
+    {:ok, index_live, _html} = live(conn, "/admin/customers")
 
     assert {:ok, form_live, _html} =
              index_live
              |> element("#customers-#{customer.id} a", "Edit")
              |> render_click()
-             |> follow_redirect(conn, ~p"/admin/customers/#{customer}/edit")
+             |> follow_redirect(conn, "/admin/customers/#{customer.id}/edit")
 
     assert render(form_live) =~ "Edit Customer"
 
@@ -64,7 +64,7 @@ defmodule Harbor.Web.Admin.CustomerLive.IndexTest do
              form_live
              |> form("#customer-form", customer: update_attrs())
              |> render_submit()
-             |> follow_redirect(conn, ~p"/admin/customers")
+             |> follow_redirect(conn, "/admin/customers")
 
     html = render(index_live)
     assert html =~ "Customer updated successfully"
@@ -72,7 +72,7 @@ defmodule Harbor.Web.Admin.CustomerLive.IndexTest do
   end
 
   test "deletes customer in listing", %{conn: conn, customer: customer} do
-    {:ok, index_live, _html} = live(conn, ~p"/admin/customers")
+    {:ok, index_live, _html} = live(conn, "/admin/customers")
 
     assert index_live |> element("#customers-#{customer.id} a", "Delete") |> render_click()
     refute has_element?(index_live, "#customers-#{customer.id}")

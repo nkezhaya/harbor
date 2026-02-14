@@ -19,7 +19,7 @@ defmodule Harbor.Web.CheckoutLive.ReceiptTest do
 
     {session, order} = completed_checkout(scope)
 
-    {:ok, view, _html} = live(conn, ~p"/checkout/#{session.id}/receipt")
+    {:ok, view, _html} = live(conn, "/checkout/#{session.id}/receipt")
 
     assert has_element?(view, "#checkout-receipt")
     assert has_element?(view, "#receipt-order-number", order.number)
@@ -36,7 +36,7 @@ defmodule Harbor.Web.CheckoutLive.ReceiptTest do
     missing_id = Ecto.UUID.generate()
 
     assert {:error, {:live_redirect, %{to: "/cart"}}} =
-             live(conn, ~p"/checkout/#{missing_id}/receipt")
+             live(conn, "/checkout/#{missing_id}/receipt")
   end
 
   defp completed_checkout(scope) do

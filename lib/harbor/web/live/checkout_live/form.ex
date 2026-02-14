@@ -347,7 +347,7 @@ defmodule Harbor.Web.CheckoutLive.Form do
 
     socket
     |> put_flash(:error, message)
-    |> push_navigate(to: ~p"/cart")
+    |> push_navigate(to: "/cart")
   end
 
   @impl true
@@ -409,7 +409,7 @@ defmodule Harbor.Web.CheckoutLive.Form do
         {:noreply,
          socket
          |> put_flash(:info, "Order placed successfully.")
-         |> push_navigate(to: ~p"/checkout/#{socket.assigns.session.id}/receipt")}
+         |> push_navigate(to: "/checkout/#{socket.assigns.session.id}/receipt")}
 
       {:error, %Ecto.Changeset{}} ->
         {:noreply,

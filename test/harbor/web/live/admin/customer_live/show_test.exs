@@ -13,20 +13,20 @@ defmodule Harbor.Web.Admin.CustomerLive.ShowTest do
   end
 
   test "displays customer", %{conn: conn, customer: customer} do
-    {:ok, _show_live, html} = live(conn, ~p"/admin/customers/#{customer}")
+    {:ok, _show_live, html} = live(conn, "/admin/customers/#{customer.id}")
 
     assert html =~ "Show Customer"
     assert html =~ customer.first_name
   end
 
   test "updates customer and returns to show", %{conn: conn, customer: customer} do
-    {:ok, show_live, _html} = live(conn, ~p"/admin/customers/#{customer}")
+    {:ok, show_live, _html} = live(conn, "/admin/customers/#{customer.id}")
 
     assert {:ok, form_live, _} =
              show_live
              |> element("a", "Edit")
              |> render_click()
-             |> follow_redirect(conn, ~p"/admin/customers/#{customer}/edit?return_to=show")
+             |> follow_redirect(conn, "/admin/customers/#{customer.id}/edit?return_to=show")
 
     assert render(form_live) =~ "Edit Customer"
 
@@ -40,7 +40,7 @@ defmodule Harbor.Web.Admin.CustomerLive.ShowTest do
                customer: %{first_name: "New First", email: customer.email}
              )
              |> render_submit()
-             |> follow_redirect(conn, ~p"/admin/customers/#{customer}")
+             |> follow_redirect(conn, "/admin/customers/#{customer.id}")
 
     html = render(show_live)
     assert html =~ "Customer updated successfully"

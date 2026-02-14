@@ -4,6 +4,17 @@ Application.put_env(:harbor, :tax_provider, {:mock, Harbor.Tax.TaxProviderMock})
 Mox.defmock(Harbor.Billing.PaymentProviderMock, for: Harbor.Billing.PaymentProvider)
 Application.put_env(:harbor, :payment_provider, {:mock, Harbor.Billing.PaymentProviderMock})
 
+Supervisor.start_link(
+  [
+    Harbor.Web.Telemetry,
+    Harbor.Repo,
+    Harbor.Oban,
+    {Phoenix.PubSub, name: Harbor.PubSub}
+  ],
+  strategy: :one_for_one
+)
+
+_ = Ecto.Adapters.Postgres.storage_up(Harbor.Repo.config())
 Harbor.Seeds.run()
 
 {:ok, _} = Harbor.Web.TestEndpoint.start_link()

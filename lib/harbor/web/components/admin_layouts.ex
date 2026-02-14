@@ -13,6 +13,7 @@ defmodule Harbor.Web.AdminLayouts do
   attr :current_scope, Harbor.Accounts.Scope, required: true
   attr :page_title, :string, default: nil
   attr :current_path, :string, required: true
+  attr :socket, Phoenix.LiveView.Socket, required: true
   slot :inner_block, required: true
 
   def app(assigns) do
@@ -20,17 +21,17 @@ defmodule Harbor.Web.AdminLayouts do
       [
         %{
           label: "Products",
-          href: ~p"/admin/products",
+          href: admin_path(assigns.socket, "/products"),
           icon: "hero-tag-solid"
         },
         %{
           label: "Categories",
-          href: ~p"/admin/categories",
+          href: admin_path(assigns.socket, "/categories"),
           icon: "hero-squares-2x2"
         },
         %{
           label: "Customers",
-          href: ~p"/admin/customers",
+          href: admin_path(assigns.socket, "/customers"),
           icon: "hero-user-group"
         }
       ]
@@ -162,7 +163,7 @@ defmodule Harbor.Web.AdminLayouts do
     ~H"""
     <div class="mt-auto -mx-3">
       <.link
-        navigate={~p"/users/settings"}
+        navigate="/users/settings"
         class="flex items-center gap-x-3 rounded-md px-3 py-3 text-sm font-semibold leading-6 text-gray-900 transition hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-white/10"
       >
         <span class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-base font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-100">

@@ -2,8 +2,6 @@ defmodule Harbor.Web.UserAuth do
   @moduledoc """
   Authentication helpers, plugs, and LiveView on_mount hooks.
   """
-  use Harbor.Web, :verified_routes
-
   import Plug.Conn
   import Phoenix.Controller
 
@@ -63,7 +61,7 @@ defmodule Harbor.Web.UserAuth do
     conn
     |> renew_session(nil)
     |> delete_resp_cookie(@remember_me_cookie)
-    |> redirect(to: ~p"/")
+    |> redirect(to: "/")
   end
 
   @doc """
@@ -260,7 +258,7 @@ defmodule Harbor.Web.UserAuth do
       socket =
         socket
         |> Phoenix.LiveView.put_flash(:error, "You must log in to access this page.")
-        |> Phoenix.LiveView.redirect(to: ~p"/users/log-in")
+        |> Phoenix.LiveView.redirect(to: "/users/log-in")
 
       {:halt, socket}
     end
@@ -275,7 +273,7 @@ defmodule Harbor.Web.UserAuth do
       socket =
         socket
         |> Phoenix.LiveView.put_flash(:error, "You must be an admin to access this page.")
-        |> Phoenix.LiveView.redirect(to: ~p"/")
+        |> Phoenix.LiveView.redirect(to: "/")
 
       {:halt, socket}
     end
@@ -290,7 +288,7 @@ defmodule Harbor.Web.UserAuth do
       socket =
         socket
         |> Phoenix.LiveView.put_flash(:error, "You must re-authenticate to access this page.")
-        |> Phoenix.LiveView.redirect(to: ~p"/users/log-in")
+        |> Phoenix.LiveView.redirect(to: "/users/log-in")
 
       {:halt, socket}
     end
@@ -331,10 +329,10 @@ defmodule Harbor.Web.UserAuth do
   @doc "Returns the path to redirect to after log in."
   # the user was already logged in, redirect to settings
   def signed_in_path(%Plug.Conn{assigns: %{current_scope: %Scope{user: %User{}}}}) do
-    ~p"/users/settings"
+    "/users/settings"
   end
 
-  def signed_in_path(_), do: ~p"/"
+  def signed_in_path(_), do: "/"
 
   @doc """
   Plug for routes that require the user to be authenticated.
@@ -346,7 +344,7 @@ defmodule Harbor.Web.UserAuth do
       conn
       |> put_flash(:error, "You must log in to access this page.")
       |> maybe_store_return_to()
-      |> redirect(to: ~p"/users/log-in")
+      |> redirect(to: "/users/log-in")
       |> halt()
     end
   end

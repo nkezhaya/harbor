@@ -13,20 +13,20 @@ defmodule Harbor.Web.Admin.ProductLive.IndexTest do
   end
 
   test "lists all products", %{conn: conn, product: product} do
-    {:ok, _index_live, html} = live(conn, ~p"/admin/products")
+    {:ok, _index_live, html} = live(conn, "/admin/products")
 
     assert html =~ "Listing Products"
     assert html =~ product.name
   end
 
   test "saves new product", %{conn: conn, category: category} do
-    {:ok, index_live, _html} = live(conn, ~p"/admin/products")
+    {:ok, index_live, _html} = live(conn, "/admin/products")
 
     assert {:ok, form_live, _} =
              index_live
              |> element("a", "New Product")
              |> render_click()
-             |> follow_redirect(conn, ~p"/admin/products/new")
+             |> follow_redirect(conn, "/admin/products/new")
 
     assert render(form_live) =~ "New Product"
 
@@ -38,7 +38,7 @@ defmodule Harbor.Web.Admin.ProductLive.IndexTest do
              form_live
              |> form("#product-form", product: create_attrs(%{category_id: category.id}))
              |> render_submit()
-             |> follow_redirect(conn, ~p"/admin/products")
+             |> follow_redirect(conn, "/admin/products")
 
     html = render(index_live)
     assert html =~ "Product created successfully"
@@ -46,13 +46,13 @@ defmodule Harbor.Web.Admin.ProductLive.IndexTest do
   end
 
   test "updates product in listing", %{conn: conn, product: product} do
-    {:ok, index_live, _html} = live(conn, ~p"/admin/products")
+    {:ok, index_live, _html} = live(conn, "/admin/products")
 
     assert {:ok, form_live, _html} =
              index_live
              |> element("#products-#{product.id} a", "Edit")
              |> render_click()
-             |> follow_redirect(conn, ~p"/admin/products/#{product}/edit")
+             |> follow_redirect(conn, "/admin/products/#{product.id}/edit")
 
     assert render(form_live) =~ "Edit Product"
 
@@ -64,7 +64,7 @@ defmodule Harbor.Web.Admin.ProductLive.IndexTest do
              form_live
              |> form("#product-form", product: update_attrs())
              |> render_submit()
-             |> follow_redirect(conn, ~p"/admin/products")
+             |> follow_redirect(conn, "/admin/products")
 
     html = render(index_live)
     assert html =~ "Product updated successfully"
@@ -72,7 +72,7 @@ defmodule Harbor.Web.Admin.ProductLive.IndexTest do
   end
 
   test "deletes product in listing", %{conn: conn, product: product} do
-    {:ok, index_live, _html} = live(conn, ~p"/admin/products")
+    {:ok, index_live, _html} = live(conn, "/admin/products")
 
     assert index_live |> element("#products-#{product.id} a", "Delete") |> render_click()
     refute has_element?(index_live, "#products-#{product.id}")

@@ -14,16 +14,20 @@ defmodule Harbor.Web.Admin.ProductLive.Show do
       current_scope={@current_scope}
       page_title={@page_title}
       current_path={@current_path}
+      socket={@socket}
     >
       <.header>
         Product {@product.name}
         <:subtitle>This is a product record from your database.</:subtitle>
         <:actions>
-          <.button navigate={~p"/admin/products"}>
+          <.button navigate={admin_path(@socket, "/products")}>
             <.icon name="hero-arrow-left" />
             <span class="sr-only">Back to products</span>
           </.button>
-          <.button variant="primary" navigate={~p"/admin/products/#{@product}/edit?return_to=show"}>
+          <.button
+            variant="primary"
+            navigate={admin_path(@socket, "/products/#{@product.id}/edit?return_to=show")}
+          >
             <.icon name="hero-pencil-square" /> Edit product
           </.button>
         </:actions>

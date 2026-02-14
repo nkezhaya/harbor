@@ -5,13 +5,7 @@
 #     $ iex -S mix run dev.exs
 #
 
-require Logger
 Logger.configure(level: :debug)
-
-case Application.stop(:harbor) do
-  :ok -> :ok
-  {:error, {:not_started, :harbor}} -> :ok
-end
 
 Application.put_env(:phoenix, :json_library, JSON)
 Application.put_env(:phoenix, :stacktrace_depth, 20)
@@ -24,24 +18,29 @@ Application.put_env(:phoenix_live_view, :enable_expensive_runtime_checks, true)
 Application.put_env(:logger, :default_formatter, format: "[$level] $message\n")
 Application.put_env(:swoosh, :api_client, false)
 
-db_url =
+Application.put_env(:ex_aws, :region, System.fetch_env!("AWS_REGION"))
+Application.put_env(:ex_aws, :access_key_id, System.fetch_env!("AWS_ACCESS_KEY_ID"))
+Application.put_env(:ex_aws, :secret_access_key, System.fetch_env!("AWS_SECRET_ACCESS_KEY"))
+
+Application.put_env(:stripity_stripe, :api_key, System.fetch_env!("STRIPE_API_KEY"))
+
+Application.put_env(:harbor, :s3_bucket, System.fetch_env!("HARBOR_S3_BUCKET"))
+Application.put_env(:harbor, :cdn_url, System.fetch_env!("HARBOR_CDN_URL"))
+
+pg_url =
   System.get_env("DATABASE_URL") || "postgres://postgres:postgres@localhost:5432/harbor_dev"
 
-repo_config =
-  :harbor
-  |> Application.get_env(Harbor.Repo, [])
-  |> Keyword.merge(
-    url: db_url,
-    pool_size: System.schedulers_online() * 2,
-    stacktrace: true,
-    show_sensitive_data_on_connection_error: true
-  )
-
-Application.put_env(:harbor, Harbor.Repo, repo_config)
+Application.put_env(:harbor, Harbor.Repo,
+  url: pg_url,
+  pool_size: System.schedulers_online() * 2,
+  stacktrace: true,
+  show_sensitive_data_on_connection_error: true,
+  after_connect: {Postgrex, :query!, ["SET TIME ZONE 'UTC'", []]}
+)
 
 port = String.to_integer(System.get_env("PORT") || "4000")
 
-endpoint_config = [
+Application.put_env(:harbor, DemoWeb.Endpoint,
   adapter: Bandit.PhoenixAdapter,
   url: [host: "localhost"],
   http: [ip: {127, 0, 0, 1}, port: port],
@@ -67,9 +66,7 @@ endpoint_config = [
       ~r"lib/harbor/web/(?:controllers|live|components|router)/?.*\.(ex|heex)$"
     ]
   ]
-]
-
-Application.put_env(:harbor, DemoWeb.Endpoint, endpoint_config ++ [server: true])
+)
 
 defmodule DemoWeb.Router do
   use Phoenix.Router
@@ -90,10 +87,6 @@ defmodule DemoWeb.Router do
     plug :fetch_current_scope_for_user
   end
 
-  pipeline :admin_layout do
-    plug :put_root_layout, html: {Harbor.Web.AdminLayouts, :root}
-  end
-
   scope "/dev" do
     pipe_through :browser
 
@@ -101,37 +94,11 @@ defmodule DemoWeb.Router do
   end
 
   scope "/" do
-    pipe_through [:browser, :require_authenticated_user]
+    pipe_through :browser
 
-    live_session :require_authenticated_user,
-      on_mount: [{Harbor.Web.UserAuth, :require_authenticated}] do
-      harbor_routes(:authenticated)
-    end
-
-    scope "/admin" do
-      pipe_through [:admin_layout]
-
-      live_session :require_authenticated_admin,
-        on_mount: [
-          {Harbor.Web.UserAuth, :require_admin},
-          {Harbor.Web.LiveHooks, :global}
-        ] do
-        harbor_routes(:admin)
-      end
-    end
-  end
-
-  scope "/" do
-    pipe_through [:browser]
-
-    live_session :current_user,
-      on_mount: [
-        {Harbor.Web.UserAuth, :mount_current_scope},
-        {Harbor.Web.LiveHooks, :global},
-        {Harbor.Web.LiveHooks, :storefront}
-      ] do
-      harbor_routes(:public)
-    end
+    harbor_storefront()
+    harbor_authenticated()
+    harbor_admin()
   end
 end
 
@@ -152,15 +119,12 @@ defmodule DemoWeb.Endpoint do
   plug Plug.Static,
     at: "/",
     from: :harbor,
-    gzip: not code_reloading?,
+    gzip: false,
     only: Harbor.Web.static_paths()
 
-  if code_reloading? do
-    socket "/phoenix/live_reload/socket", Phoenix.LiveReloader.Socket
-    plug Phoenix.LiveReloader
-    plug Phoenix.CodeReloader
-    plug Phoenix.Ecto.CheckRepoStatus, otp_app: :harbor
-  end
+  socket "/phoenix/live_reload/socket", Phoenix.LiveReloader.Socket
+  plug Phoenix.LiveReloader
+  plug Phoenix.CodeReloader
 
   plug Plug.RequestId
   plug Plug.Telemetry, event_prefix: [:phoenix, :endpoint]
@@ -184,6 +148,8 @@ migrations_path = Path.join([Path.dirname(__ENV__.file), "priv", "repo", "migrat
 {:ok, _} = Harbor.Repo.start_link()
 Ecto.Migrator.run(Harbor.Repo, migrations_path, :up, all: true, log_migrations_sql: true)
 Harbor.Repo.stop()
+
+Application.put_env(:phoenix, :serve_endpoints, true)
 
 Task.async(fn ->
   children = [

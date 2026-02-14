@@ -21,7 +21,7 @@ defmodule Harbor.Web.UserLive.Confirmation do
           id="confirmation_form"
           phx-mounted={JS.focus_first()}
           phx-submit="submit"
-          action={~p"/users/log-in?_action=confirmed"}
+          action="/users/log-in?_action=confirmed"
           phx-trigger-action={@trigger_submit}
           class="space-y-4"
         >
@@ -46,7 +46,7 @@ defmodule Harbor.Web.UserLive.Confirmation do
           id="login_form"
           phx-submit="submit"
           phx-mounted={JS.focus_first()}
-          action={~p"/users/log-in"}
+          action="/users/log-in"
           phx-trigger-action={@trigger_submit}
           class="space-y-4"
         >
@@ -93,7 +93,7 @@ defmodule Harbor.Web.UserLive.Confirmation do
       {:ok,
        socket
        |> put_flash(:error, "Magic link is invalid or it has expired.")
-       |> push_navigate(to: ~p"/users/log-in")}
+       |> push_navigate(to: "/users/log-in")}
     end
   end
 

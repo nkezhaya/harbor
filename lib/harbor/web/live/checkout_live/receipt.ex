@@ -183,7 +183,7 @@ defmodule Harbor.Web.CheckoutLive.Receipt do
         {:ok,
          socket
          |> put_flash(:error, "Checkout session not found.")
-         |> push_navigate(to: ~p"/cart")}
+         |> push_navigate(to: "/cart")}
     end
   end
 end

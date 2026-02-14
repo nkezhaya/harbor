@@ -25,5 +25,5 @@ defmodule Harbor.Web.TestEndpoint do
   plug Plug.MethodOverride
   plug Plug.Head
   plug Plug.Session, @session_options
-  plug Harbor.Web.Router
+  plug Harbor.Web.TestRouter
 end

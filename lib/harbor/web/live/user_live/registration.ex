@@ -18,7 +18,7 @@ defmodule Harbor.Web.UserLive.Registration do
             <:subtitle>
               Already registered?
               <.link
-                navigate={~p"/users/log-in"}
+                navigate="/users/log-in"
                 class="font-semibold text-indigo-600 underline-offset-4 hover:text-indigo-500 hover:underline dark:text-indigo-400 dark:hover:text-indigo-300"
               >
                 Log in
@@ -75,7 +75,7 @@ defmodule Harbor.Web.UserLive.Registration do
         {:ok, _} =
           Auth.deliver_login_instructions(
             user,
-            &url(~p"/users/log-in/#{&1}")
+            &url(socket, "/users/log-in/#{&1}")
           )
 
         {:noreply,
@@ -84,7 +84,7 @@ defmodule Harbor.Web.UserLive.Registration do
            :info,
            "An email was sent to #{user.email}, please access it to confirm your account."
          )
-         |> push_navigate(to: ~p"/users/log-in")}
+         |> push_navigate(to: "/users/log-in")}
 
       {:error, %Ecto.Changeset{} = changeset} ->
         {:noreply, assign_form(socket, changeset)}
