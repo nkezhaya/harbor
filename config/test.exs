@@ -2,6 +2,15 @@ import Config
 
 config :bcrypt_elixir, :log_rounds, 1
 
+config :swoosh, :api_client, false
+
+config :logger, level: :warning
+
+config :phoenix, :plug_init_mode, :runtime
+
+config :phoenix_live_view,
+  enable_expensive_runtime_checks: true
+
 config :harbor, Harbor.Repo,
   username: "postgres",
   password: "postgres",
@@ -24,15 +33,6 @@ config :harbor, Harbor.Web.TestEndpoint,
   server: false
 
 config :harbor, Harbor.Mailer, adapter: Swoosh.Adapters.Test
-
-config :swoosh, :api_client, false
-
-config :logger, level: :warning
-
-config :phoenix, :plug_init_mode, :runtime
-
-config :phoenix_live_view,
-  enable_expensive_runtime_checks: true
 
 config :harbor, Harbor.Oban, testing: :manual
 
