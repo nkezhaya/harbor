@@ -24,9 +24,6 @@ Application.put_env(:ex_aws, :secret_access_key, System.fetch_env!("AWS_SECRET_A
 
 Application.put_env(:stripity_stripe, :api_key, System.fetch_env!("STRIPE_API_KEY"))
 
-Application.put_env(:harbor, :s3_bucket, System.fetch_env!("HARBOR_S3_BUCKET"))
-Application.put_env(:harbor, :cdn_url, System.fetch_env!("HARBOR_CDN_URL"))
-
 defmodule Harbor.DevRepo do
   use Ecto.Repo, otp_app: :harbor, adapter: Ecto.Adapters.Postgres
 end
@@ -39,7 +36,8 @@ defmodule Harbor.DevMailer do
   use Swoosh.Mailer, otp_app: :harbor
 end
 
-# Point Harbor's proxy modules at the dev implementations
+Application.put_env(:harbor, :s3_bucket, System.fetch_env!("HARBOR_S3_BUCKET"))
+Application.put_env(:harbor, :cdn_url, System.fetch_env!("HARBOR_CDN_URL"))
 Application.put_env(:harbor, :repo, Harbor.DevRepo)
 Application.put_env(:harbor, :oban, Harbor.DevOban)
 Application.put_env(:harbor, :mailer, Harbor.DevMailer)
@@ -179,6 +177,8 @@ Ecto.Migrator.up(Harbor.DevRepo, 2, Oban.Migration)
 Harbor.DevRepo.stop()
 
 Application.put_env(:phoenix, :serve_endpoints, true)
+
+Application.ensure_all_started(:harbor)
 
 Task.async(fn ->
   children = [
