@@ -17,7 +17,6 @@ config :harbor,
   mailer: Harbor.TestMailer
 
 config :harbor, Harbor.TestRepo,
-  priv: "priv/repo",
   url: "postgres://postgres:postgres@localhost:5432/harbor_test",
   pool: Ecto.Adapters.SQL.Sandbox,
   pool_size: System.schedulers_online() * 2,

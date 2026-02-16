@@ -108,10 +108,9 @@ defmodule Harbor.MixProject do
   defp aliases do
     [
       dev: ["run dev.exs"],
-      setup: ["deps.get", "ecto.setup", "assets.setup", "assets.build"],
-      "ecto.setup": ["ecto.create", "ecto.migrate"],
-      "ecto.reset": ["ecto.drop", "ecto.setup"],
-      test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
+      setup: ["deps.get", "ecto.reset", "assets.setup", "assets.build"],
+      "ecto.reset": ["ecto.drop", "ecto.create"],
+      test: ["ecto.create --quiet", "test"],
       "assets.setup": ["tailwind.install --if-missing", "esbuild.install --if-missing"],
       "assets.build": ["tailwind harbor", "esbuild harbor"],
       "assets.deploy": [

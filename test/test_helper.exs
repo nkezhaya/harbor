@@ -15,6 +15,8 @@ Supervisor.start_link(
 )
 
 _ = Ecto.Adapters.Postgres.storage_up(Harbor.TestRepo.config())
+Ecto.Migrator.up(Harbor.TestRepo, 1, Harbor.Migration)
+Ecto.Migrator.up(Harbor.TestRepo, 2, Oban.Migration)
 Harbor.Seeds.run()
 
 {:ok, _} = Harbor.Web.TestEndpoint.start_link()

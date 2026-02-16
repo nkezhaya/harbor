@@ -1,7 +1,9 @@
-defmodule Harbor.Repo.Migrations.InstallV1 do
+defmodule Harbor.Migration.V01 do
+  @moduledoc false
+
   use Ecto.Migration
 
-  def change do
+  def up do
     ## Tax Codes
 
     create table(:tax_codes) do
@@ -50,12 +52,11 @@ defmodule Harbor.Repo.Migrations.InstallV1 do
            )
 
     execute """
-            ALTER TABLE categories
-                ADD CONSTRAINT categories_parent_id_position_unique
-                UNIQUE NULLS NOT DISTINCT (parent_id, position)
-                DEFERRABLE INITIALLY DEFERRED
-            """,
-            ""
+    ALTER TABLE categories
+        ADD CONSTRAINT categories_parent_id_position_unique
+        UNIQUE NULLS NOT DISTINCT (parent_id, position)
+        DEFERRABLE INITIALLY DEFERRED
+    """
 
     ## Products
 
@@ -141,21 +142,15 @@ defmodule Harbor.Repo.Migrations.InstallV1 do
 
     # This seems redundant, but is required so we can create a composite foreign
     # key on the products table based on (variants.id, variants.product_id)
-    execute(
-      "ALTER TABLE variants ADD CONSTRAINT variants_primary UNIQUE (id, product_id)",
-      "ALTER TABLE variants DROP CONSTRAINT variants_primary"
-    )
+    execute "ALTER TABLE variants ADD CONSTRAINT variants_primary UNIQUE (id, product_id)"
 
     # Ensure that the variant pointed to by "products" is actually a variant of
     # the specific product
-    execute(
-      """
-      ALTER TABLE products ADD CONSTRAINT products_default_variant_id_fkey
-        FOREIGN KEY (default_variant_id, id) REFERENCES variants(id, product_id)
-        ON DELETE SET NULL DEFERRABLE INITIALLY IMMEDIATE
-      """,
-      "ALTER TABLE products DROP CONSTRAINT products_default_variant_id_fkey"
-    )
+    execute """
+    ALTER TABLE products ADD CONSTRAINT products_default_variant_id_fkey
+      FOREIGN KEY (default_variant_id, id) REFERENCES variants(id, product_id)
+      ON DELETE SET NULL DEFERRABLE INITIALLY IMMEDIATE
+    """
 
     create index(:products, [:default_variant_id])
 
@@ -186,14 +181,13 @@ defmodule Harbor.Repo.Migrations.InstallV1 do
     create constraint(:product_images, :position_gte_zero, check: "position >= 0")
 
     execute """
-            ALTER TABLE product_images
-                ADD CONSTRAINT product_images_product_id_position_unique UNIQUE (product_id, position) DEFERRABLE INITIALLY DEFERRED
-            """,
-            ""
+    ALTER TABLE product_images
+        ADD CONSTRAINT product_images_product_id_position_unique UNIQUE (product_id, position) DEFERRABLE INITIALLY DEFERRED
+    """
 
     ## Users
 
-    execute "CREATE EXTENSION IF NOT EXISTS citext", ""
+    execute "CREATE EXTENSION IF NOT EXISTS citext"
 
     create table(:users) do
       add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
@@ -532,8 +526,59 @@ defmodule Harbor.Repo.Migrations.InstallV1 do
     create unique_index(:tax_transaction_line_items, [:order_item_id])
     create unique_index(:tax_transaction_line_items, [:provider_ref])
 
-    ## Oban
+    ## Settings (singleton)
 
-    Oban.Migrations.up()
+    create table(:settings, primary_key: false) do
+      add :id, :boolean, primary_key: true, default: true
+    end
+
+    create constraint(:settings, :singleton, check: "id")
+  end
+
+  def down do
+    drop_if_exists table(:tax_transaction_line_items)
+    drop_if_exists table(:tax_calculation_line_items)
+    drop_if_exists table(:tax_calculations)
+    drop_if_exists table(:checkout_sessions)
+    drop_if_exists table(:payment_intents)
+    drop_if_exists table(:payment_methods)
+    drop_if_exists table(:payment_profiles)
+    drop_if_exists table(:cart_items)
+
+    # Remove cart_id from orders before dropping carts
+    alter table(:orders) do
+      remove :cart_id
+    end
+
+    drop_if_exists table(:carts)
+    drop_if_exists table(:order_items)
+    drop_if_exists table(:orders)
+    drop_if_exists table(:delivery_methods)
+
+    # Remove address FKs from customers before dropping addresses
+    execute "ALTER TABLE customers DROP CONSTRAINT IF EXISTS customers_default_shipping_address_id_fkey"
+
+    execute "ALTER TABLE customers DROP CONSTRAINT IF EXISTS customers_default_billing_address_id_fkey"
+
+    drop_if_exists table(:addresses)
+    drop_if_exists table(:customers)
+    drop_if_exists table(:users_roles)
+    drop_if_exists table(:users_tokens)
+    drop_if_exists table(:users)
+
+    # Remove default_variant_id FK from products before dropping variants
+    execute "ALTER TABLE products DROP CONSTRAINT IF EXISTS products_default_variant_id_fkey"
+
+    drop_if_exists table(:product_images)
+    drop_if_exists table(:variants_option_values)
+    drop_if_exists table(:variants)
+    drop_if_exists table(:option_values)
+    drop_if_exists table(:option_types)
+    drop_if_exists table(:products)
+    drop_if_exists table(:categories)
+    drop_if_exists table(:tax_codes)
+    drop_if_exists table(:settings)
+
+    execute "DROP EXTENSION IF EXISTS citext"
   end
 end

@@ -48,7 +48,6 @@ pg_url =
   System.get_env("DATABASE_URL") || "postgres://postgres:postgres@localhost:5432/harbor_dev"
 
 Application.put_env(:harbor, Harbor.DevRepo,
-  priv: "priv/repo",
   url: pg_url,
   pool_size: System.schedulers_online() * 2,
   stacktrace: true,
@@ -174,10 +173,9 @@ end
 Application.ensure_all_started(:postgrex)
 _ = Ecto.Adapters.Postgres.storage_up(Harbor.DevRepo.config())
 
-migrations_path = Path.join([Path.dirname(__ENV__.file), "priv", "repo", "migrations"])
-
 {:ok, _} = Harbor.DevRepo.start_link()
-Ecto.Migrator.run(Harbor.DevRepo, migrations_path, :up, all: true, log_migrations_sql: true)
+Ecto.Migrator.up(Harbor.DevRepo, 1, Harbor.Migration)
+Ecto.Migrator.up(Harbor.DevRepo, 2, Oban.Migration)
 Harbor.DevRepo.stop()
 
 Application.put_env(:phoenix, :serve_endpoints, true)
