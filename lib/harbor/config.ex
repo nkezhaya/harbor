@@ -17,20 +17,35 @@ defmodule Harbor.Config do
   end
 
   def s3_bucket do
-    Application.get_env(:harbor, :s3_bucket) ||
-      raise """
-      Expected an S3 bucket to be configured. Configure one with:
-
-          config :harbor, :s3_bucket, "my-bucket"
-      """
+    Application.fetch_env!(:harbor, :s3_bucket)
   end
 
   def cdn_url do
-    Application.get_env(:harbor, :cdn_url) ||
-      raise """
-      Expected a CDN URL to be configured. Configure one with:
+    Application.fetch_env!(:harbor, :cdn_url)
+  end
 
+  @required_keys [:repo, :oban, :mailer, :s3_bucket, :cdn_url]
+
+  def validate! do
+    missing =
+      for key <- @required_keys,
+          is_nil(Application.get_env(:harbor, key)),
+          do: key
+
+    if missing != [] do
+      raise ArgumentError, """
+      missing required Harbor configuration keys: #{inspect(missing)}
+
+      Ensure the following are set in your config:
+
+          config :harbor, :repo, MyApp.Repo
+          config :harbor, :oban, MyApp.Oban
+          config :harbor, :mailer, MyApp.Mailer
+          config :harbor, :s3_bucket, "my-bucket"
           config :harbor, :cdn_url, "https://my-distribution.cloudfront.net"
       """
+    end
+
+    :ok
   end
 end

@@ -5,6 +5,8 @@ defmodule Harbor.Application do
 
   @impl Application
   def start(_type, _args) do
+    Harbor.Config.validate!()
+
     children = [
       {Phoenix.PubSub, name: Harbor.PubSub}
     ]
