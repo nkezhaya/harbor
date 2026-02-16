@@ -25,6 +25,3 @@ config :tailwind,
       ),
     cd: Path.expand("..", __DIR__)
   ]
-
-config :harbor, :tax_provider, {:stripe, Harbor.Tax.TaxProvider.Stripe}
-config :harbor, :payment_provider, {:stripe, Harbor.Billing.PaymentProvider.Stripe}

@@ -6,8 +6,7 @@ defmodule Harbor.BillingTest do
   import Mox
 
   alias Harbor.Billing
-  alias Harbor.Billing.PaymentIntent
-  alias Harbor.Config
+  alias Harbor.Billing.{PaymentIntent, PaymentProvider}
 
   setup :set_mox_from_context
   setup :verify_on_exit!
@@ -25,7 +24,7 @@ defmodule Harbor.BillingTest do
 
       {:ok, profile} = Billing.find_or_create_payment_profile(scope, scope.customer)
 
-      assert profile.provider == Config.payment_provider()
+      assert profile.provider == PaymentProvider.name()
       assert profile.provider_ref == "cust_mock"
       assert profile.customer_id == scope.customer.id
     end
@@ -115,7 +114,7 @@ defmodule Harbor.BillingTest do
       assert {:ok, %PaymentIntent{} = intent} =
                Billing.create_payment_intent(payment_profile, params)
 
-      assert intent.provider == Config.payment_provider()
+      assert intent.provider == PaymentProvider.name()
       assert intent.provider_ref == "pi_mock"
       assert intent.status == "requires_payment_method"
       assert intent.amount == params.amount

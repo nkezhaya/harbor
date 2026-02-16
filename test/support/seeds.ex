@@ -1,8 +1,8 @@
 defmodule Harbor.Seeds do
   @moduledoc false
 
-  alias Harbor.{Config, Repo}
-  alias Harbor.Tax.TaxCode
+  alias Harbor.Repo
+  alias Harbor.Tax.{TaxCode, TaxProvider}
 
   def run do
     tax_codes =
@@ -34,7 +34,7 @@ defmodule Harbor.Seeds do
     entries =
       for {provider_ref, description, name} <- tax_codes do
         %{
-          provider: Config.tax_provider(),
+          provider: TaxProvider.name(),
           provider_ref: provider_ref,
           description: description,
           name: name,

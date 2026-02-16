@@ -7,7 +7,7 @@ defmodule Harbor.Tax.TaxCode do
 
   use Harbor.Schema
 
-  alias Harbor.Config
+  alias Harbor.Tax.TaxProvider
 
   @type t() :: %__MODULE__{}
 
@@ -32,6 +32,6 @@ defmodule Harbor.Tax.TaxCode do
   end
 
   defp put_provider(changeset) do
-    put_change(changeset, :provider, Config.tax_provider())
+    put_change(changeset, :provider, TaxProvider.name())
   end
 end

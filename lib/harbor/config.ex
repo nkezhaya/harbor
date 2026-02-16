@@ -7,13 +7,11 @@ defmodule Harbor.Config do
   """
 
   def tax_provider do
-    {provider, _} = Application.get_env(:harbor, :tax_provider)
-    to_string(provider)
+    Application.get_env(:harbor, :tax_provider, Harbor.Tax.TaxProvider.Stripe)
   end
 
   def payment_provider do
-    {provider, _} = Application.get_env(:harbor, :payment_provider)
-    to_string(provider)
+    Application.get_env(:harbor, :payment_provider, Harbor.Billing.PaymentProvider.Stripe)
   end
 
   def s3_bucket do

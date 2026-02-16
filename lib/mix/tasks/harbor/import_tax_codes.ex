@@ -4,14 +4,14 @@ defmodule Mix.Tasks.Harbor.ImportTaxCodes do
 
   use Mix.Task
 
-  alias Harbor.{Config, Repo}
+  alias Harbor.Repo
   alias Harbor.Tax.{TaxCode, TaxProvider}
 
   @requirements ["app.start"]
 
   @impl Mix.Task
   def run(_) do
-    provider = Config.tax_provider()
+    provider = TaxProvider.name()
     {:ok, tax_codes} = TaxProvider.list_tax_codes()
 
     for tc <- tax_codes do

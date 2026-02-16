@@ -10,7 +10,6 @@ defmodule Harbor.Billing do
 
   alias Harbor.Accounts.Scope
   alias Harbor.Billing.{PaymentIntent, PaymentProfile, PaymentProvider, SyncPaymentProfileWorker}
-  alias Harbor.Config
   alias Harbor.Customers.Customer
   alias Harbor.Repo
 
@@ -29,7 +28,7 @@ defmodule Harbor.Billing do
 
         case PaymentProvider.create_payment_profile(params, idempotency_key: customer.id) do
           {:ok, %{id: provider_ref}} ->
-            attrs = %{provider: Config.payment_provider(), provider_ref: provider_ref}
+            attrs = %{provider: PaymentProvider.name(), provider_ref: provider_ref}
             profile = insert_payment_profile!(scope, attrs)
             {:ok, profile}
 
@@ -43,7 +42,7 @@ defmodule Harbor.Billing do
   end
 
   defp insert_payment_profile!(%Scope{} = scope, attrs) do
-    %PaymentProfile{provider: Config.payment_provider()}
+    %PaymentProfile{provider: PaymentProvider.name()}
     |> PaymentProfile.changeset(attrs, scope)
     |> Repo.insert!(on_conflict: :nothing, conflict_target: [:provider, :customer_id])
     |> case do
@@ -71,7 +70,7 @@ defmodule Harbor.Billing do
     case PaymentProvider.create_payment_intent(payment_profile, params, opts) do
       {:ok, provider_intent} ->
         %PaymentIntent{
-          provider: Config.payment_provider(),
+          provider: PaymentProvider.name(),
           provider_ref: provider_intent.id,
           payment_profile_id: payment_profile.id
         }

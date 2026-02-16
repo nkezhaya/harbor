@@ -8,7 +8,7 @@ defmodule Harbor.Tax do
   import Ecto.Query
   import Harbor.QueryMacros
 
-  alias Harbor.{Config, Repo}
+  alias Harbor.Repo
   alias Harbor.Tax.{Calculation, CalculationLineItem, Request, TaxCode, TaxProvider}
 
   @doc """
@@ -28,7 +28,7 @@ defmodule Harbor.Tax do
   ## Tax Codes
 
   def list_tax_codes do
-    provider = Config.tax_provider()
+    provider = TaxProvider.name()
 
     TaxCode
     |> order_by(:position)

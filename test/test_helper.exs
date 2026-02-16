@@ -1,8 +1,8 @@
 Mox.defmock(Harbor.Tax.TaxProviderMock, for: Harbor.Tax.TaxProvider)
-Application.put_env(:harbor, :tax_provider, {:mock, Harbor.Tax.TaxProviderMock})
+Application.put_env(:harbor, :tax_provider, Harbor.Tax.TaxProviderMock)
 
 Mox.defmock(Harbor.Billing.PaymentProviderMock, for: Harbor.Billing.PaymentProvider)
-Application.put_env(:harbor, :payment_provider, {:mock, Harbor.Billing.PaymentProviderMock})
+Application.put_env(:harbor, :payment_provider, Harbor.Billing.PaymentProviderMock)
 
 Supervisor.start_link(
   [

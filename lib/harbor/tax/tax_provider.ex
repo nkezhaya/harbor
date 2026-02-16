@@ -6,6 +6,7 @@ defmodule Harbor.Tax.TaxProvider do
   transactions.
   """
 
+  alias Harbor.Config
   alias Harbor.Tax.Request
 
   @type result(type) :: {:ok, type} | {:error, any()}
@@ -14,13 +15,13 @@ defmodule Harbor.Tax.TaxProvider do
 
   @callback list_tax_codes() :: {:ok, [tax_code()]} | {:error, term()}
   def list_tax_codes do
-    impl().list_tax_codes()
+    provider().list_tax_codes()
   end
 
   @callback calculate_taxes(Request.t(), String.t()) ::
               result(%{id: String.t(), amount: non_neg_integer(), line_items: [line_item()]})
   def calculate_taxes(request, idempotency_key) do
-    impl().calculate_taxes(request, idempotency_key)
+    provider().calculate_taxes(request, idempotency_key)
   end
 
   @callback record_transaction(params) :: result(%{id: String.t(), line_items: [line_item()]})
@@ -29,7 +30,7 @@ defmodule Harbor.Tax.TaxProvider do
                    reference: String.t()
                  }
   def record_transaction(params) do
-    impl().record_transaction(params)
+    provider().record_transaction(params)
   end
 
   @callback refund_transaction(params) :: result(map())
@@ -42,11 +43,23 @@ defmodule Harbor.Tax.TaxProvider do
                    optional(:shipping_cost) => integer()
                  }
   def refund_transaction(params) do
-    impl().refund_transaction(params)
+    provider().refund_transaction(params)
   end
 
-  defp impl do
-    {_, module} = Application.get_env(:harbor, :tax_provider)
-    module
+  @doc """
+  Returns the configured tax provider module.
+  """
+  def provider do
+    Config.tax_provider()
+  end
+
+  @doc """
+  Returns a downcased string identifier for the configured tax provider.
+  """
+  def name do
+    provider()
+    |> Module.split()
+    |> List.last()
+    |> String.downcase()
   end
 end

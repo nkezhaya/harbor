@@ -4,8 +4,7 @@ defmodule Harbor.BillingFixtures do
   [PaymentProfile](`Harbor.Billing.PaymentProfile`) and
   [PaymentIntent](`Harbor.Billing.PaymentIntent`).
   """
-  alias Harbor.Billing.{PaymentIntent, PaymentProfile}
-  alias Harbor.Config
+  alias Harbor.Billing.{PaymentIntent, PaymentProfile, PaymentProvider}
   alias Harbor.Repo
 
   @doc """
@@ -14,7 +13,7 @@ defmodule Harbor.BillingFixtures do
   def payment_profile_fixture(scope, attrs \\ %{}) do
     attrs = Enum.into(attrs, %{provider_ref: "cust_#{System.unique_integer([:positive])}"})
 
-    %PaymentProfile{provider: Config.payment_provider()}
+    %PaymentProfile{provider: PaymentProvider.name()}
     |> PaymentProfile.changeset(attrs, scope)
     |> Repo.insert!()
   end
@@ -35,7 +34,7 @@ defmodule Harbor.BillingFixtures do
       })
       |> Map.put(:payment_profile_id, payment_profile.id)
 
-    %PaymentIntent{provider: Config.payment_provider()}
+    %PaymentIntent{provider: PaymentProvider.name()}
     |> PaymentIntent.changeset(attrs)
     |> Repo.insert!()
   end

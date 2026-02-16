@@ -6,6 +6,7 @@ defmodule Harbor.Billing.PaymentProvider do
   configuration and is expected to implement the callbacks defined here.
   """
   alias Harbor.Billing.{PaymentIntent, PaymentProfile}
+  alias Harbor.Config
 
   @type result(type) :: {:ok, type} | {:error, any()}
   @type payment_intent_response() :: %{
@@ -20,13 +21,13 @@ defmodule Harbor.Billing.PaymentProvider do
   @callback create_payment_profile(%{required(atom()) => any()}, keyword()) ::
               result(%{required(:id) => String.t()})
   def create_payment_profile(params, opts \\ []) do
-    impl().create_payment_profile(params, opts)
+    provider().create_payment_profile(params, opts)
   end
 
   @callback update_payment_profile(PaymentProfile.t(), %{required(atom()) => any()}) ::
               result(%{required(:id) => String.t()})
   def update_payment_profile(payment_profile, params) do
-    impl().update_payment_profile(payment_profile, params)
+    provider().update_payment_profile(payment_profile, params)
   end
 
   @callback create_payment_intent(
@@ -35,17 +36,29 @@ defmodule Harbor.Billing.PaymentProvider do
               keyword()
             ) :: result(payment_intent_response())
   def create_payment_intent(payment_profile, params, opts) do
-    impl().create_payment_intent(payment_profile, params, opts)
+    provider().create_payment_intent(payment_profile, params, opts)
   end
 
   @callback update_payment_intent(PaymentIntent.t(), %{required(atom()) => any()}) ::
               result(payment_intent_response())
   def update_payment_intent(payment_intent, params) do
-    impl().update_payment_intent(payment_intent, params)
+    provider().update_payment_intent(payment_intent, params)
   end
 
-  defp impl do
-    {_, module} = Application.get_env(:harbor, :payment_provider)
-    module
+  @doc """
+  Returns the configured payment provider module.
+  """
+  def provider do
+    Config.payment_provider()
+  end
+
+  @doc """
+  Returns a downcased string identifier for the configured payment provider.
+  """
+  def name do
+    provider()
+    |> Module.split()
+    |> List.last()
+    |> String.downcase()
   end
 end
