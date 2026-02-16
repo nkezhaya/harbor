@@ -21,7 +21,7 @@ defmodule Harbor.Migration do
 
     if migrated > target do
       change(migrated, target + 1, :down)
-      record_version(target)
+      if target > 0, do: record_version(target)
     end
   end
 
