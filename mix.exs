@@ -50,7 +50,13 @@ defmodule Harbor.MixProject do
   defp docs do
     [
       main: "Harbor",
-      extras: ["README.md"]
+      extras: extras()
+    ]
+  end
+
+  defp extras do
+    [
+      "guides/installation.md"
     ]
   end
 
