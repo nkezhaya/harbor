@@ -185,7 +185,6 @@ Task.async(fn ->
     Harbor.Web.Telemetry,
     Harbor.DevRepo,
     Harbor.DevOban,
-    {Phoenix.PubSub, name: Harbor.PubSub},
     DemoWeb.Endpoint
   ]
 

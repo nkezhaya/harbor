@@ -8,8 +8,7 @@ Supervisor.start_link(
   [
     Harbor.Web.Telemetry,
     Harbor.TestRepo,
-    Harbor.TestOban,
-    {Phoenix.PubSub, name: Harbor.PubSub}
+    Harbor.TestOban
   ],
   strategy: :one_for_one
 )
