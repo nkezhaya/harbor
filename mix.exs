@@ -107,6 +107,7 @@ defmodule Harbor.MixProject do
   # See the documentation for `Mix` for more info on aliases.
   defp aliases do
     [
+      dev: ["run dev.exs"],
       setup: ["deps.get", "ecto.setup", "assets.setup", "assets.build"],
       "ecto.setup": ["ecto.create", "ecto.migrate"],
       "ecto.reset": ["ecto.drop", "ecto.setup"],

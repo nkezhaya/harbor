@@ -28,26 +28,6 @@ defmodule Harbor.Web.UserLive.Login do
           </.header>
         </div>
 
-        <div
-          :if={local_mail_adapter?()}
-          class="rounded-lg border border-indigo-100 bg-indigo-50/80 p-4 text-sm text-indigo-700 shadow-sm dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-200"
-        >
-          <div class="flex items-start gap-3">
-            <.icon name="hero-information-circle" class="mt-0.5 size-5" />
-            <div class="space-y-1">
-              <p class="font-medium">You are running the local mail adapter.</p>
-              <p>
-                To see sent emails, visit <.link
-                  href="/dev/mailbox"
-                  class="font-semibold text-indigo-700 underline underline-offset-4 hover:text-indigo-500 dark:text-indigo-300 dark:hover:text-indigo-200"
-                >
-                  the mailbox page
-                </.link>.
-              </p>
-            </div>
-          </div>
-        </div>
-
         <.form
           :let={f}
           for={@form}
@@ -147,10 +127,5 @@ defmodule Harbor.Web.UserLive.Login do
      socket
      |> put_flash(:info, info)
      |> push_navigate(to: "/users/log-in")}
-  end
-
-  defp local_mail_adapter? do
-    Application.get_env(:harbor, Harbor.Mailer)[:adapter] ==
-      Swoosh.Adapters.Local
   end
 end

@@ -94,7 +94,7 @@
           {Credo.Check.Readability.MaxLineLength, [priority: :low, max_length: 120]},
           # {Credo.Check.Readability.MultiAlias, []},
           {Credo.Check.Readability.ModuleAttributeNames, []},
-          {Credo.Check.Readability.ModuleDoc, []},
+          {Credo.Check.Readability.ModuleDoc, files: %{excluded: ["test/support/*.ex"]}},
           {Credo.Check.Readability.ModuleNames, []},
           {Credo.Check.Readability.OneArityFunctionInPipe, []},
           {Credo.Check.Readability.OnePipePerLine, files: %{excluded: ["test/**/*.exs"]}},

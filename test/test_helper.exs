@@ -7,17 +7,17 @@ Application.put_env(:harbor, :payment_provider, {:mock, Harbor.Billing.PaymentPr
 Supervisor.start_link(
   [
     Harbor.Web.Telemetry,
-    Harbor.Repo,
-    Harbor.Oban,
+    Harbor.TestRepo,
+    Harbor.TestOban,
     {Phoenix.PubSub, name: Harbor.PubSub}
   ],
   strategy: :one_for_one
 )
 
-_ = Ecto.Adapters.Postgres.storage_up(Harbor.Repo.config())
+_ = Ecto.Adapters.Postgres.storage_up(Harbor.TestRepo.config())
 Harbor.Seeds.run()
 
 {:ok, _} = Harbor.Web.TestEndpoint.start_link()
 
 ExUnit.start()
-Ecto.Adapters.SQL.Sandbox.mode(Harbor.Repo, :manual)
+Ecto.Adapters.SQL.Sandbox.mode(Harbor.TestRepo, :manual)

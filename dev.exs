@@ -2,7 +2,7 @@
 #
 # Usage:
 #
-#     $ iex -S mix run dev.exs
+#     $ mix dev
 #
 
 Logger.configure(level: :debug)
@@ -27,15 +27,47 @@ Application.put_env(:stripity_stripe, :api_key, System.fetch_env!("STRIPE_API_KE
 Application.put_env(:harbor, :s3_bucket, System.fetch_env!("HARBOR_S3_BUCKET"))
 Application.put_env(:harbor, :cdn_url, System.fetch_env!("HARBOR_CDN_URL"))
 
+defmodule Harbor.DevRepo do
+  use Ecto.Repo, otp_app: :harbor, adapter: Ecto.Adapters.Postgres
+end
+
+defmodule Harbor.DevOban do
+  use Oban, otp_app: :harbor
+end
+
+defmodule Harbor.DevMailer do
+  use Swoosh.Mailer, otp_app: :harbor
+end
+
+# Point Harbor's proxy modules at the dev implementations
+Application.put_env(:harbor, :repo, Harbor.DevRepo)
+Application.put_env(:harbor, :oban, Harbor.DevOban)
+Application.put_env(:harbor, :mailer, Harbor.DevMailer)
+
 pg_url =
   System.get_env("DATABASE_URL") || "postgres://postgres:postgres@localhost:5432/harbor_dev"
 
-Application.put_env(:harbor, Harbor.Repo,
+Application.put_env(:harbor, Harbor.DevRepo,
+  priv: "priv/repo",
   url: pg_url,
   pool_size: System.schedulers_online() * 2,
   stacktrace: true,
-  show_sensitive_data_on_connection_error: true
+  show_sensitive_data_on_connection_error: true,
+  migration_primary_key: false,
+  migration_foreign_key: [type: :binary_id],
+  migration_timestamps: [type: :timestamptz],
+  after_connect: {Postgrex, :query!, ["SET TIME ZONE 'UTC'", []]}
 )
+
+Application.put_env(:harbor, Harbor.DevOban,
+  engine: Oban.Engines.Basic,
+  queues: [media_uploads: 10, billing: 10],
+  repo: Harbor.DevRepo
+)
+
+Application.put_env(:harbor, Harbor.DevMailer, adapter: Swoosh.Adapters.Local)
+
+Application.put_env(:harbor, :ecto_repos, [Harbor.DevRepo])
 
 port = String.to_integer(System.get_env("PORT") || "4000")
 
@@ -140,21 +172,21 @@ defmodule DemoWeb.Endpoint do
 end
 
 Application.ensure_all_started(:postgrex)
-_ = Ecto.Adapters.Postgres.storage_up(Harbor.Repo.config())
+_ = Ecto.Adapters.Postgres.storage_up(Harbor.DevRepo.config())
 
 migrations_path = Path.join([Path.dirname(__ENV__.file), "priv", "repo", "migrations"])
 
-{:ok, _} = Harbor.Repo.start_link()
-Ecto.Migrator.run(Harbor.Repo, migrations_path, :up, all: true, log_migrations_sql: true)
-Harbor.Repo.stop()
+{:ok, _} = Harbor.DevRepo.start_link()
+Ecto.Migrator.run(Harbor.DevRepo, migrations_path, :up, all: true, log_migrations_sql: true)
+Harbor.DevRepo.stop()
 
 Application.put_env(:phoenix, :serve_endpoints, true)
 
 Task.async(fn ->
   children = [
     Harbor.Web.Telemetry,
-    Harbor.Repo,
-    Harbor.Oban,
+    Harbor.DevRepo,
+    Harbor.DevOban,
     {Phoenix.PubSub, name: Harbor.PubSub},
     DemoWeb.Endpoint
   ]
