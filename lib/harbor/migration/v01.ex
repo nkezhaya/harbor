@@ -460,7 +460,8 @@ defmodule Harbor.Migration.V01 do
       add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
 
       add :payment_profile_id,
-          references(:payment_profiles, type: :binary_id, on_delete: :delete_all), null: false
+          references(:payment_profiles, type: :binary_id, on_delete: :delete_all),
+          null: false
 
       add :provider_ref, :string, null: false
       add :type, :string, null: false
@@ -483,7 +484,8 @@ defmodule Harbor.Migration.V01 do
       add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
 
       add :payment_profile_id,
-          references(:payment_profiles, type: :binary_id, on_delete: :delete_all), null: false
+          references(:payment_profiles, type: :binary_id, on_delete: :delete_all),
+          null: false
 
       add :provider, :string, null: false
       add :provider_ref, :string, null: false
@@ -554,7 +556,8 @@ defmodule Harbor.Migration.V01 do
           null: false
 
       add :calculation_id,
-          references(:tax_calculations, type: :binary_id, on_delete: :delete_all), null: false
+          references(:tax_calculations, type: :binary_id, on_delete: :delete_all),
+          null: false
 
       add :amount, :integer, null: false
     end
