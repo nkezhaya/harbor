@@ -86,6 +86,7 @@ defmodule Harbor.Migration.V01 do
     create table(:option_types, primary_key: false) do
       add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
       add :name, :string, null: false
+      add :slug, :string, null: false
 
       add :product_id,
           references(:products, type: :binary_id, on_delete: :delete_all),
@@ -97,11 +98,13 @@ defmodule Harbor.Migration.V01 do
     end
 
     create unique_index(:option_types, [:product_id, :name])
+    create unique_index(:option_types, [:product_id, :slug])
     create constraint(:option_types, :position_gte_zero, check: "position >= 0")
 
     create table(:option_values, primary_key: false) do
       add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
       add :name, :string, null: false
+      add :slug, :string, null: false
 
       add :option_type_id,
           references(:option_types, type: :binary_id, on_delete: :delete_all),
@@ -113,6 +116,7 @@ defmodule Harbor.Migration.V01 do
     end
 
     create unique_index(:option_values, [:option_type_id, :name])
+    create unique_index(:option_values, [:option_type_id, :slug])
     create constraint(:option_values, :position_gte_zero, check: "position >= 0")
 
     create table(:variants, primary_key: false) do
