@@ -21,6 +21,12 @@ defmodule Harbor.Catalog do
 
   ## Products
 
+  @doc """
+  Returns a paginated list of products matching the given params.
+
+  Non-admin scopes are restricted to active products. Results include
+  the `:default_variant` and first ready `:images` preloaded.
+  """
   @spec list_products(Scope.t(), map()) :: %{
           entries: [Product.t()],
           page: pos_integer(),
