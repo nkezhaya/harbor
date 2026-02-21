@@ -634,7 +634,5 @@ defmodule Harbor.Migration.V01 do
     drop_if_exists table(:categories)
     drop_if_exists table(:tax_codes)
     drop_if_exists table(:settings)
-
-    execute "DROP EXTENSION IF EXISTS citext"
   end
 end
