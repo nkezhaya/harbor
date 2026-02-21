@@ -7,7 +7,7 @@ defmodule Harbor.SlugTest do
 
   doctest Slug
 
-  describe "put_new_slug/3" do
+  describe "put_new_slug/2" do
     test "validates manual overrides" do
       product = product_fixture()
 

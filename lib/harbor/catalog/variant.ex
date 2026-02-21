@@ -9,7 +9,7 @@ defmodule Harbor.Catalog.Variant do
   """
   use Harbor.Schema
 
-  alias Harbor.Catalog.{OptionValue, Product}
+  alias Harbor.Catalog.{OptionValue, Product, VariantOptionValue}
   alias Harbor.Tax.TaxCode
 
   @type t() :: %__MODULE__{}
@@ -28,7 +28,7 @@ defmodule Harbor.Catalog.Variant do
     belongs_to :tax_code, TaxCode
 
     many_to_many :option_values, OptionValue,
-      join_through: "variants_option_values",
+      join_through: VariantOptionValue,
       join_keys: [variant_id: :id, option_value_id: :id]
 
     timestamps()

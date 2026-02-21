@@ -48,7 +48,7 @@ defmodule Harbor.Catalog.Product do
       with: &OptionType.changeset/3
     )
     |> cast_assoc(:variants)
-    |> Slug.put_new_slug(__MODULE__)
+    |> Slug.put_new_slug(unique_by: __MODULE__)
     |> validate_required([:name, :status, :category_id])
     |> assoc_constraint(:tax_code)
     |> assoc_constraint(:category)

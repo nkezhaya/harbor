@@ -11,28 +11,22 @@ defmodule Harbor.Slug do
   import Ecto.Changeset
   import Ecto.Query, only: [from: 2]
 
-  @spec put_new_slug(Ecto.Changeset.t(), Ecto.Queryable.t(), atom()) :: Ecto.Changeset.t()
-  def put_new_slug(changeset, queryable, field \\ :name) do
+  @spec put_new_slug(Ecto.Changeset.t(), keyword()) :: Ecto.Changeset.t()
+  def put_new_slug(changeset, opts \\ []) do
+    field = Keyword.get(opts, :field, :name)
+
+    case Keyword.get(opts, :unique_by) do
+      nil -> put_new_derived_slug(changeset, field)
+      queryable -> put_new_unique_slug(changeset, queryable, field)
+    end
+  end
+
+  defp put_new_unique_slug(changeset, queryable, field) do
     prepare_changes(changeset, fn prepared_changeset ->
       repo = prepared_changeset.repo
       id = get_field(prepared_changeset, :id)
 
-      string =
-        cond do
-          manual_slug_entry = get_change(prepared_changeset, :slug) ->
-            manual_slug_entry
-
-          # If a slug has already been set, only check the sluggable field for
-          # changes.
-          get_field(prepared_changeset, :slug) ->
-            get_change(prepared_changeset, field)
-
-          # If a slug hasn't been set yet, just use the field.
-          true ->
-            get_field(prepared_changeset, field)
-        end
-
-      case string do
+      case slug_source(prepared_changeset, field) do
         string when is_binary(string) ->
           put_change(prepared_changeset, :slug, get_slug(queryable, repo, id, string))
 
@@ -42,6 +36,33 @@ defmodule Harbor.Slug do
       |> validate_required(:slug)
       |> unique_constraint(:slug)
     end)
+  end
+
+  defp put_new_derived_slug(changeset, field) do
+    case slug_source(changeset, field) do
+      string when is_binary(string) ->
+        put_change(changeset, :slug, to_slug(string))
+
+      _ ->
+        changeset
+    end
+    |> validate_required(:slug)
+  end
+
+  defp slug_source(changeset, field) do
+    cond do
+      manual_slug_entry = get_change(changeset, :slug) ->
+        manual_slug_entry
+
+      # If a slug has already been set, only check the sluggable field for
+      # changes.
+      get_field(changeset, :slug) ->
+        get_change(changeset, field)
+
+      # If a slug hasn't been set yet, just use the field.
+      true ->
+        get_field(changeset, field)
+    end
   end
 
   defp get_slug(queryable, repo, id, string, last_slug \\ nil) do

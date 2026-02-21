@@ -28,7 +28,7 @@ defmodule Harbor.Catalog.Category do
   def changeset(category, attrs) do
     category
     |> cast(attrs, [:name, :slug, :position, :parent_ids, :tax_code_id])
-    |> Slug.put_new_slug(__MODULE__)
+    |> Slug.put_new_slug(unique_by: __MODULE__)
     |> validate_required([:name, :tax_code_id])
     |> assoc_constraint(:tax_code)
     |> put_new_position()
