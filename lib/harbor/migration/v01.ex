@@ -4,6 +4,8 @@ defmodule Harbor.Migration.V01 do
   use Ecto.Migration
 
   def up do
+    execute "CREATE EXTENSION IF NOT EXISTS pg_trgm"
+
     ## Tax Codes
 
     create table(:tax_codes, primary_key: false) do
@@ -80,6 +82,8 @@ defmodule Harbor.Migration.V01 do
 
     create index(:products, [:category_id])
     create unique_index(:products, [:slug], where: "status = 'active'")
+
+    execute "CREATE INDEX products_name_trgm ON products USING gin (name gin_trgm_ops)"
 
     ## Variants
 
