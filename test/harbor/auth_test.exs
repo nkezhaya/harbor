@@ -39,7 +39,7 @@ defmodule Harbor.AuthTest do
       token = Auth.generate_user_session_token(user)
       assert user_token = Repo.get_by(UserToken, token: token)
       assert user_token.context == "session"
-      assert user_token.authenticated_at != nil
+      assert user_token.authenticated_at
 
       # Creating the same token for another user should fail
       assert_raise Ecto.ConstraintError, fn ->
@@ -70,8 +70,8 @@ defmodule Harbor.AuthTest do
       assert {session_user, token_inserted_at} = Auth.get_user_by_session_token(token)
 
       assert session_user.id == user.id
-      assert session_user.authenticated_at != nil
-      assert token_inserted_at != nil
+      assert session_user.authenticated_at
+      assert token_inserted_at
     end
 
     test "does not return user for invalid token" do

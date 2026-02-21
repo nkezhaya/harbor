@@ -48,7 +48,7 @@ defmodule Harbor.BillingTest do
     test "returns nil when no profile exists" do
       scope = user_scope_fixture()
 
-      assert Billing.get_payment_profile(scope, scope.customer.id) == nil
+      assert is_nil(Billing.get_payment_profile(scope, scope.customer.id))
     end
 
     test "raises when called for another customer" do
