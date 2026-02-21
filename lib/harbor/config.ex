@@ -6,6 +6,10 @@ defmodule Harbor.Config do
   `Application.get_env/2` calls.
   """
 
+  def repo do
+    Application.fetch_env!(:harbor, :repo)
+  end
+
   def tax_provider do
     Application.get_env(:harbor, :tax_provider, Harbor.Tax.TaxProvider.Stripe)
   end
