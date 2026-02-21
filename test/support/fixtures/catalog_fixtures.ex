@@ -15,20 +15,55 @@ defmodule Harbor.CatalogFixtures do
         description: "some description",
         name: "some name",
         status: :active,
-        category_id: category.id,
-        variants: [
-          %{
-            sku: "sku-#{System.unique_integer()}",
-            price: 4000,
-            inventory_policy: :track_strict,
-            quantity_available: 10,
-            enabled: true
-          }
-        ]
+        category_id: category.id
       })
+      |> put_default_variants()
       |> Catalog.create_product()
 
     product
+  end
+
+  defp put_default_variants(%{option_types: _} = attrs), do: attrs
+
+  defp put_default_variants(attrs) do
+    Map.put_new(attrs, :variants, [
+      %{
+        sku: "sku-#{System.unique_integer()}",
+        price: 4000,
+        inventory_policy: :track_strict,
+        quantity_available: 10,
+        enabled: true
+      }
+    ])
+  end
+
+  @doc """
+  Creates a product with option types and option values attached to its variant.
+
+  Returns the product with `:option_types` and `:variants` preloaded. Each
+  option type gets values, and the product's first variant is linked to the
+  first value of each option type.
+
+  ## Example
+
+      product_with_options_fixture([
+        {"Color", ["Red", "Blue"]},
+        {"Size", ["Small", "Large"]}
+      ])
+  """
+  def product_with_options_fixture(option_specs, product_attrs \\ %{}) do
+    option_types =
+      Enum.with_index(option_specs, fn {type_name, value_names}, type_pos ->
+        %{
+          name: type_name,
+          position: type_pos,
+          values: Enum.with_index(value_names, fn name, pos -> %{name: name, position: pos} end)
+        }
+      end)
+
+    product_attrs
+    |> Map.put(:option_types, option_types)
+    |> product_fixture()
   end
 
   def variant_fixture(attrs \\ %{}) do
