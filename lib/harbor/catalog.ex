@@ -6,7 +6,16 @@ defmodule Harbor.Catalog do
   import Harbor.Authorization
 
   alias Harbor.Accounts.Scope
-  alias Harbor.Catalog.{Category, Product, ProductImage, ProductQuery}
+
+  alias Harbor.Catalog.{
+    Category,
+    Product,
+    ProductImage,
+    ProductQuery,
+    Variant,
+    VariantOptionValue
+  }
+
   alias Harbor.Catalog.Forms.{MediaUpload, MediaUploadPromotionWorker}
   alias Harbor.Repo
 
@@ -51,7 +60,8 @@ defmodule Harbor.Catalog do
     Repo.transact(fn ->
       changeset = change_product(%Product{}, attrs)
 
-      with {:ok, product} <- Repo.insert(changeset) do
+      with {:ok, product} <- Repo.insert(changeset),
+           {:ok, product} <- generate_variants(product) do
         put_new_default_variant(product)
       end
     end)
@@ -68,6 +78,7 @@ defmodule Harbor.Catalog do
 
     Repo.transact(fn ->
       with {:ok, product} <- Repo.insert_or_update(changeset),
+           {:ok, product} <- generate_variants(product),
            {:ok, product} <- put_new_default_variant(product),
            {:ok, product_images} <- promote_media_uploads(product, media_uploads) do
         {:ok, %{product | images: product_images}}
@@ -82,6 +93,45 @@ defmodule Harbor.Catalog do
   end
 
   defp put_new_default_variant(product), do: {:ok, product}
+
+  defp generate_variants(%Product{option_types: [_ | _] = option_types} = product) do
+    option_types = Repo.preload(option_types, :values)
+    permutations = cartesian_product(Enum.map(option_types, & &1.values))
+
+    variants =
+      Enum.map(permutations, fn option_values ->
+        {:ok, variant} =
+          %Variant{product_id: product.id}
+          |> Variant.changeset(%{
+            price: 0,
+            inventory_policy: :not_tracked,
+            quantity_available: 0,
+            enabled: false
+          })
+          |> Repo.insert()
+
+        for ov <- option_values do
+          Repo.insert!(%VariantOptionValue{
+            variant_id: variant.id,
+            option_value_id: ov.id
+          })
+        end
+
+        variant
+      end)
+
+    {:ok, %{product | variants: variants}}
+  end
+
+  defp generate_variants(product), do: {:ok, product}
+
+  defp cartesian_product([]), do: [[]]
+
+  defp cartesian_product([head | tail]) do
+    for value <- head, rest <- cartesian_product(tail) do
+      [value | rest]
+    end
+  end
 
   defp promote_media_uploads(%Product{} = product, media_uploads) do
     product = Repo.preload(product, :images)
