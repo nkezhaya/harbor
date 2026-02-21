@@ -5,10 +5,25 @@ defmodule Harbor.Web.ProductLive.Index do
   use Harbor.Web, :live_view
 
   alias Harbor.Catalog
+  alias Harbor.Catalog.ProductQuery
 
   @impl true
   def mount(_params, _session, socket) do
-    {:ok, assign(socket, products: Catalog.list_storefront_products())}
+    {:ok, socket}
+  end
+
+  @impl true
+  def handle_params(params, _uri, socket) do
+    scope = socket.assigns.current_scope
+    query = ProductQuery.new(scope, params)
+    result = Catalog.list_products(scope, params)
+
+    {:noreply,
+     assign(socket,
+       query: query,
+       products: result.entries,
+       total_pages: result.total_pages
+     )}
   end
 
   @impl true

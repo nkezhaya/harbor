@@ -6,23 +6,26 @@ defmodule Harbor.Catalog do
   import Harbor.Authorization
 
   alias Harbor.Accounts.Scope
-  alias Harbor.Catalog.{Category, Product, ProductImage}
+  alias Harbor.Catalog.{Category, Product, ProductImage, ProductQuery}
   alias Harbor.Catalog.Forms.{MediaUpload, MediaUploadPromotionWorker}
   alias Harbor.Repo
 
   ## Products
 
-  def list_products do
-    Product
-    |> preload([:default_variant])
-    |> Repo.all()
-  end
+  @spec list_products(Scope.t(), map()) :: %{
+          entries: [Product.t()],
+          page: pos_integer(),
+          per_page: pos_integer(),
+          total: non_neg_integer(),
+          total_pages: pos_integer()
+        }
+  def list_products(%Scope{} = scope, params \\ %{}) do
+    query = ProductQuery.new(scope, params)
 
-  def list_storefront_products do
     Product
-    |> where([p], p.status == :active)
+    |> ProductQuery.apply(query)
     |> preload([:default_variant, images: ^storefront_image_query()])
-    |> Repo.all()
+    |> Repo.paginate(query)
   end
 
   def get_storefront_product_by_slug!(slug) do

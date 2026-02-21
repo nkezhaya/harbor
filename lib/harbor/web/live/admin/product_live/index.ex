@@ -74,13 +74,17 @@ defmodule Harbor.Web.Admin.ProductLive.Index do
 
   @impl true
   def mount(_params, _session, socket) do
-    products = Catalog.list_products()
+    {:ok, assign(socket, :page_title, "Listing Products")}
+  end
 
-    {:ok,
+  @impl true
+  def handle_params(params, _uri, socket) do
+    %{entries: products} = Catalog.list_products(socket.assigns.current_scope, params)
+
+    {:noreply,
      socket
-     |> assign(:page_title, "Listing Products")
      |> assign(:products_empty?, products == [])
-     |> stream(:products, products)}
+     |> stream(:products, products, reset: true)}
   end
 
   @impl true
@@ -88,7 +92,7 @@ defmodule Harbor.Web.Admin.ProductLive.Index do
     product = Catalog.get_product!(id)
     {:ok, _} = Catalog.delete_product(product)
 
-    products = Catalog.list_products()
+    %{entries: products} = Catalog.list_products(socket.assigns.current_scope)
 
     {:noreply,
      socket
