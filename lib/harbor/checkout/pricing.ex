@@ -17,6 +17,7 @@ defmodule Harbor.Checkout.Pricing do
 
   alias Harbor.Customers.Address
   alias Harbor.Orders.{Order, OrderItem}
+  alias Harbor.Settings
   alias Harbor.Shipping.DeliveryMethod
 
   defstruct [
@@ -71,9 +72,13 @@ defmodule Harbor.Checkout.Pricing do
 
   defp put_shipping(%__MODULE__{} = pricing, %Order{} = order) do
     shipping_price =
-      case order.delivery_method do
-        %DeliveryMethod{price: price} -> price
-        _ -> 0
+      if Settings.delivery_enabled?() do
+        case order.delivery_method do
+          %DeliveryMethod{price: price} -> price
+          _ -> 0
+        end
+      else
+        0
       end
 
     %{pricing | shipping_price: shipping_price}

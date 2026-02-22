@@ -46,5 +46,6 @@ config :harbor, Harbor.TestOban,
   repo: Harbor.TestRepo,
   testing: :manual
 
+config :harbor, :cache, Harbor.Cache.None
 config :harbor, :s3_bucket, "test"
 config :harbor, :cdn_url, "https://test.cloudfront.net"

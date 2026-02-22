@@ -10,6 +10,7 @@ defmodule Harbor.Checkout do
   alias Harbor.Customers.Customer
   alias Harbor.{Orders, Repo, Tax}
   alias Harbor.Orders.{Order, OrderItem}
+  alias Harbor.Settings
   alias Harbor.Shipping.DeliveryMethod
   alias Harbor.Tax.{Calculation, Request}
 
@@ -454,9 +455,13 @@ defmodule Harbor.Checkout do
   end
 
   defp do_submit_checkout(%Session{} = session) do
-    case update_tax_calculation(session) do
-      {:ok, session} -> do_complete_and_submit(session)
-      error -> error
+    if Settings.tax_enabled?() do
+      case update_tax_calculation(session) do
+        {:ok, session} -> do_complete_and_submit(session)
+        error -> error
+      end
+    else
+      do_complete_and_submit(session)
     end
   end
 
@@ -587,9 +592,13 @@ defmodule Harbor.Checkout do
   end
 
   defp shipping_price_for_order(%Order{} = order) do
-    case order.delivery_method do
-      %DeliveryMethod{price: price} -> price
-      _ -> 0
+    if Settings.delivery_enabled?() do
+      case order.delivery_method do
+        %DeliveryMethod{price: price} -> price
+        _ -> 0
+      end
+    else
+      0
     end
   end
 

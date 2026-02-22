@@ -5,6 +5,8 @@ defmodule Harbor.Migration.V01 do
 
   def up do
     execute "CREATE EXTENSION IF NOT EXISTS pg_trgm"
+    execute "CREATE EXTENSION IF NOT EXISTS tcn"
+    execute "CREATE EXTENSION IF NOT EXISTS citext"
 
     ## Tax Codes
 
@@ -213,8 +215,6 @@ defmodule Harbor.Migration.V01 do
     """
 
     ## Users
-
-    execute "CREATE EXTENSION IF NOT EXISTS citext"
 
     create table(:users, primary_key: false) do
       add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
@@ -592,9 +592,21 @@ defmodule Harbor.Migration.V01 do
 
     create table(:settings, primary_key: false) do
       add :id, :boolean, primary_key: true, default: true
+      add :payments_enabled, :boolean, null: false, default: true
+      add :delivery_enabled, :boolean, null: false, default: true
+      add :tax_enabled, :boolean, null: false, default: true
     end
 
     create constraint(:settings, :singleton, check: "id")
+
+    execute "INSERT INTO settings (id) VALUES (true)"
+
+    execute """
+    CREATE TRIGGER harbor_settings_changed
+    AFTER INSERT OR UPDATE ON settings
+    FOR EACH ROW
+    EXECUTE FUNCTION triggered_change_notification('harbor_settings_changed')
+    """
   end
 
   def down do
@@ -639,6 +651,8 @@ defmodule Harbor.Migration.V01 do
     drop_if_exists table(:products)
     drop_if_exists table(:categories)
     drop_if_exists table(:tax_codes)
+
+    execute "DROP TRIGGER IF EXISTS harbor_settings_changed ON settings"
     drop_if_exists table(:settings)
   end
 end

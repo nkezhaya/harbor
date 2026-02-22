@@ -3,15 +3,23 @@ defmodule Harbor.Application do
 
   use Application
 
+  alias Harbor.Config
+
   @impl Application
   def start(_type, _args) do
     Harbor.Config.validate!()
 
     children = [
-      {Phoenix.PubSub, name: Harbor.PubSub}
+      {Phoenix.PubSub, name: Harbor.PubSub},
+      Harbor.Settings.Listener
     ]
 
-    opts = [strategy: :one_for_one, name: Harbor.Supervisor]
-    Supervisor.start_link(children, opts)
+    children =
+      case Config.cache() do
+        Harbor.Cache.ETS -> children ++ [Harbor.Cache.ETS]
+        _ -> children
+      end
+
+    Supervisor.start_link(children, strategy: :one_for_one, name: Harbor.Supervisor)
   end
 end

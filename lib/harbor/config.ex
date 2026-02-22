@@ -26,6 +26,10 @@ defmodule Harbor.Config do
     Application.fetch_env!(:harbor, :cdn_url)
   end
 
+  def cache do
+    Application.get_env(:harbor, :cache, Harbor.Cache.ETS)
+  end
+
   @required_keys [:repo, :oban, :mailer, :s3_bucket, :cdn_url]
 
   def validate! do

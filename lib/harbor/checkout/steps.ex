@@ -3,13 +3,10 @@ defmodule Harbor.Checkout.Steps do
   import Harbor.Authorization
 
   alias Harbor.Accounts.Scope
-  alias Harbor.Checkout
+  alias Harbor.{Checkout, Customers, Orders, Repo, Settings}
   alias Harbor.Checkout.{EnsurePaymentSetupWorker, Pricing, Session}
-  alias Harbor.Customers
   alias Harbor.Customers.{Address, Customer}
-  alias Harbor.Orders
   alias Harbor.Orders.Order
-  alias Harbor.Repo
 
   @spec complete_contact_step(Scope.t(), Session.t(), map()) ::
           {:ok, Session.t(), Scope.t()} | {:error, Ecto.Changeset.t()} | {:error, term()}
@@ -28,7 +25,10 @@ defmodule Harbor.Checkout.Steps do
                email: customer.email
              }) do
         scope = Scope.attach_customer(scope, customer)
-        enqueue_payment_setup(customer.id, session.id)
+
+        if Settings.payments_enabled?() do
+          enqueue_payment_setup(customer.id, session.id)
+        end
 
         {:ok, {session, scope}}
       end
@@ -69,6 +69,8 @@ defmodule Harbor.Checkout.Steps do
 
   @spec checkout_steps(Scope.t(), Order.t(), Pricing.t()) :: [atom()]
   def checkout_steps(%Scope{} = scope, %Order{} = order, %Pricing{} = pricing) do
+    settings = Settings.get()
+
     steps =
       if scope.authenticated? do
         []
@@ -76,15 +78,19 @@ defmodule Harbor.Checkout.Steps do
         [:contact]
       end
 
+    has_physical? = Enum.any?(order.items, & &1.variant.product.physical_product)
+
+    steps = if has_physical?, do: steps ++ [:shipping], else: steps
+
     steps =
-      if Enum.any?(order.items, & &1.variant.product.physical_product) do
-        steps ++ [:shipping, :delivery]
+      if settings.delivery_enabled and has_physical? do
+        steps ++ [:delivery]
       else
         steps
       end
 
     steps =
-      if pricing.total_price > 0 do
+      if settings.payments_enabled and pricing.total_price > 0 do
         steps ++ [:payment]
       else
         steps
