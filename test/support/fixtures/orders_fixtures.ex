@@ -2,19 +2,19 @@ defmodule Harbor.OrdersFixtures do
   @moduledoc """
   Test helpers for creating entities via the `Harbor.Orders` context.
   """
-  alias Harbor.Accounts.Scope
   alias Harbor.Orders
 
-  def order_fixture(attrs \\ %{}) do
+  def order_fixture(scope, attrs \\ %{}) do
     attrs =
       Enum.into(attrs, %{
-        email: "user@example.com",
+        email: "order@example.com",
         delivery_method_name: "Local Pickup",
-        subtotal: 42,
-        shipping_price: 0
+        subtotal: 1000,
+        tax: 0,
+        shipping_price: 0,
+        status: :pending
       })
 
-    scope = Scope.for_system()
     {:ok, order} = Orders.create_order(scope, attrs)
 
     order

@@ -6,11 +6,21 @@ defmodule Harbor.Orders do
   import Harbor.Authorization
 
   alias Harbor.Accounts.Scope
-  alias Harbor.Orders.Order
+  alias Harbor.Orders.{Order, OrderQuery}
   alias Harbor.Repo
+
+  def list_orders(%Scope{} = scope, params \\ %{}) do
+    query = OrderQuery.new(scope, params)
+
+    Order
+    |> where([o], o.status != :draft)
+    |> OrderQuery.apply(query)
+    |> Repo.all()
+  end
 
   def get_order!(%Scope{} = scope, id) do
     Order
+    |> preload([:customer, items: [variant: :product]])
     |> Repo.get!(id)
     |> tap(&ensure_authorized!(scope, &1))
   end

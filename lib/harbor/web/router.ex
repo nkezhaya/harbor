@@ -161,6 +161,11 @@ defmodule Harbor.Web.Router do
           live "/categories/new", Harbor.Web.Admin.CategoryLive.Form, :new
           live "/categories/:id", Harbor.Web.Admin.CategoryLive.Show, :show
           live "/categories/:id/edit", Harbor.Web.Admin.CategoryLive.Form, :edit
+
+          live "/orders", Harbor.Web.Admin.OrderLive.Index, :index
+          live "/orders/new", Harbor.Web.Admin.OrderLive.Form, :new
+          live "/orders/:id", Harbor.Web.Admin.OrderLive.Show, :show
+          live "/orders/:id/edit", Harbor.Web.Admin.OrderLive.Form, :edit
           unquote(block)
         end
       end

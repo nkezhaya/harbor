@@ -36,7 +36,7 @@ defmodule Harbor.AuthorizationTest do
 
     test "allows order access for the matching customer" do
       scope = guest_scope_fixture(customer: %{})
-      order = order_fixture(customer_id: scope.customer.id)
+      order = order_fixture(Scope.for_system(), %{customer_id: scope.customer.id})
 
       assert :ok == Authorization.ensure_authorized!(scope, order)
     end
@@ -65,7 +65,7 @@ defmodule Harbor.AuthorizationTest do
     test "raises when the scope does not own the resource" do
       scope = guest_scope_fixture(customer: %{})
       other_scope = guest_scope_fixture(customer: %{})
-      order = order_fixture(customer_id: other_scope.customer.id)
+      order = order_fixture(Scope.for_system(), %{customer_id: other_scope.customer.id})
 
       assert_raise Harbor.UnauthorizedError, fn ->
         Authorization.ensure_authorized!(scope, order)

@@ -360,6 +360,8 @@ defmodule Harbor.Migration.V01 do
         generated: "ALWAYS AS (subtotal + tax + shipping_price) STORED",
         null: false
 
+      add :notes, :text
+
       timestamps()
     end
 

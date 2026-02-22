@@ -33,6 +33,11 @@ defmodule Harbor.Web.AdminLayouts do
           label: "Customers",
           href: admin_path(assigns.socket, "/customers"),
           icon: "hero-user-group"
+        },
+        %{
+          label: "Orders",
+          href: admin_path(assigns.socket, "/orders"),
+          icon: "hero-shopping-bag"
         }
       ]
       |> Enum.map(&Map.put(&1, :active?, String.starts_with?(assigns.current_path, &1.href)))

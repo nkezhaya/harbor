@@ -42,6 +42,8 @@ defmodule Harbor.Orders.Order do
     field :shipping_price, :integer, default: 0
     field :total_price, :integer, read_after_writes: true
 
+    field :notes, :string
+
     belongs_to :cart, Cart
     belongs_to :customer, Customer
     has_many :items, OrderItem
@@ -71,7 +73,8 @@ defmodule Harbor.Orders.Order do
       :delivery_method_name,
       :subtotal,
       :tax,
-      :shipping_price
+      :shipping_price,
+      :notes
     ])
     |> validate_required([:status, :subtotal, :tax, :shipping_price])
     |> cast_assoc(:items)

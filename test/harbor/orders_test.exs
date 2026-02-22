@@ -12,8 +12,9 @@ defmodule Harbor.OrdersTest do
 
   describe "get_order!/2" do
     test "returns the order with given id", %{scope: scope} do
-      order = order_fixture()
-      assert Orders.get_order!(scope, order.id) == order
+      order = order_fixture(scope)
+      fetched = Orders.get_order!(scope, order.id)
+      assert fetched.id == order.id
     end
   end
 
@@ -39,7 +40,7 @@ defmodule Harbor.OrdersTest do
 
   describe "update_order/3" do
     test "with valid data updates the order", %{scope: scope} do
-      order = order_fixture()
+      order = order_fixture(scope)
       update_attrs = %{email: "new@example.com"}
 
       assert {:ok, %Order{} = order} = Orders.update_order(scope, order, update_attrs)
@@ -47,18 +48,18 @@ defmodule Harbor.OrdersTest do
     end
 
     test "with invalid data returns error changeset", %{scope: scope} do
-      order = order_fixture()
+      order = order_fixture(scope)
 
       assert {:error, %Ecto.Changeset{}} =
                Orders.update_order(scope, order, %{shipping_price: nil, total_price: nil})
 
-      assert order == Orders.get_order!(scope, order.id)
+      assert Orders.get_order!(scope, order.id).email == order.email
     end
   end
 
   describe "delete_order/2" do
     test "deletes the order", %{scope: scope} do
-      order = order_fixture()
+      order = order_fixture(scope)
       assert {:ok, %Order{}} = Orders.delete_order(scope, order)
       assert_raise Ecto.NoResultsError, fn -> Orders.get_order!(scope, order.id) end
     end
@@ -66,7 +67,7 @@ defmodule Harbor.OrdersTest do
 
   describe "change_order/2" do
     test "returns an order changeset", %{scope: scope} do
-      order = order_fixture()
+      order = order_fixture(scope)
       assert %Ecto.Changeset{} = Orders.change_order(scope, order)
     end
   end
