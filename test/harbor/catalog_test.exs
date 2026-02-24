@@ -189,7 +189,7 @@ defmodule Harbor.CatalogTest do
       product_fixture(%{name: "Draft Product", status: :draft})
       product_fixture(%{name: "Archived Product", status: :archived})
 
-      assert %{entries: [product], total: 1} = Catalog.list_products(guest_scope)
+      assert %{entries: [product], total: 1} = Catalog.list_products(guest_scope, %{status: nil})
       assert product.name == "Active Product"
     end
 
@@ -198,7 +198,7 @@ defmodule Harbor.CatalogTest do
       product_fixture(%{name: "Draft Product", status: :draft})
       product_fixture(%{name: "Archived Product", status: :archived})
 
-      assert %{entries: [_, _, _], total: 3} = Catalog.list_products(scope)
+      assert %{entries: [_, _, _], total: 3} = Catalog.list_products(scope, %{status: nil})
     end
   end
 
