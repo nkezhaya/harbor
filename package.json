@@ -1,0 +1,11 @@
+{
+  "name": "harbor",
+  "version": "0.1.0",
+  "description": "Admin hooks and uploaders for Harbor.",
+  "license": "MIT",
+  "module": "./priv/static/assets/js/admin.js",
+  "main": "./priv/static/assets/js/admin.js",
+  "exports": {
+    "import": "./priv/static/assets/js/admin.js"
+  }
+}
