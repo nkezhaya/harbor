@@ -112,6 +112,24 @@ it:
 harbor_admin("/manage")
 ```
 
+## Admin JavaScript
+
+Harbor ships an ESM bundle with the LiveView hooks and uploaders needed by the
+admin interface (image uploads, drag-and-drop reordering, etc.). Register them on
+your LiveSocket so the admin LiveViews work correctly.
+
+In your `assets/js/app.js`:
+
+```js
+import { hooks as harborHooks, Uploaders } from "harbor";
+
+let liveSocket = new LiveSocket("/live", Socket, {
+  params: {_csrf_token: csrfToken},
+  hooks: {...hooks, ...harborHooks},
+  uploaders: Uploaders,
+});
+```
+
 ## Start supervision
 
 Add Harbor's telemetry worker to your application's supervision tree:
