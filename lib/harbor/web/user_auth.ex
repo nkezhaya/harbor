@@ -6,7 +6,7 @@ defmodule Harbor.Web.UserAuth do
   import Phoenix.Controller
 
   alias Harbor.Accounts.{Scope, User}
-  alias Harbor.{Auth, Checkout}
+  alias Harbor.{Auth, Checkout, Util}
 
   # Make the remember me cookie valid for 14 days. This should match
   # the session validity setting in UserToken.
@@ -108,7 +108,7 @@ defmodule Harbor.Web.UserAuth do
   defp put_new_guest_session_token(conn) do
     case get_session(conn, :guest_session_token) do
       nil ->
-        guest_session_token = Ecto.UUID.generate()
+        guest_session_token = Util.csprng()
         conn = put_session(conn, :guest_session_token, guest_session_token)
         {guest_session_token, conn}
 

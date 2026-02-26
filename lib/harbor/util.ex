@@ -115,4 +115,11 @@ defmodule Harbor.Util do
         "#{prefix}.#{remaining_cents}"
     end
   end
+
+  @doc """
+  Generates a random secret.
+  """
+  def csprng(size \\ 32) do
+    Base.url_encode64(:crypto.strong_rand_bytes(size), padding: false)
+  end
 end

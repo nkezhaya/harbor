@@ -11,7 +11,7 @@ defmodule Harbor.Migration.V01 do
     ## Tax Codes
 
     create table(:tax_codes, primary_key: false) do
-      add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
+      add :id, :binary_id, primary_key: true, default: fragment("uuidv7()")
       add :name, :string, null: false
       add :description, :text, null: false
       add :provider, :string, null: false
@@ -35,7 +35,7 @@ defmodule Harbor.Migration.V01 do
     ## Categories
 
     create table(:categories, primary_key: false) do
-      add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
+      add :id, :binary_id, primary_key: true, default: fragment("uuidv7()")
       add :name, :string, null: false
       add :slug, :string, null: false
       add :position, :integer, null: false, default: 0
@@ -65,7 +65,7 @@ defmodule Harbor.Migration.V01 do
     ## Products
 
     create table(:products, primary_key: false) do
-      add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
+      add :id, :binary_id, primary_key: true, default: fragment("uuidv7()")
       add :name, :string, null: false
       add :slug, :string, null: false
       add :description, :text
@@ -90,7 +90,7 @@ defmodule Harbor.Migration.V01 do
     ## Variants
 
     create table(:option_types, primary_key: false) do
-      add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
+      add :id, :binary_id, primary_key: true, default: fragment("uuidv7()")
       add :name, :string, null: false
       add :slug, :string, null: false
 
@@ -108,7 +108,7 @@ defmodule Harbor.Migration.V01 do
     create constraint(:option_types, :position_gte_zero, check: "position >= 0")
 
     create table(:option_values, primary_key: false) do
-      add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
+      add :id, :binary_id, primary_key: true, default: fragment("uuidv7()")
       add :name, :string, null: false
       add :slug, :string, null: false
 
@@ -126,7 +126,7 @@ defmodule Harbor.Migration.V01 do
     create constraint(:option_values, :position_gte_zero, check: "position >= 0")
 
     create table(:variants, primary_key: false) do
-      add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
+      add :id, :binary_id, primary_key: true, default: fragment("uuidv7()")
 
       add :product_id,
           references(:products, type: :binary_id, on_delete: :delete_all),
@@ -180,7 +180,7 @@ defmodule Harbor.Migration.V01 do
     create index(:products, [:default_variant_id])
 
     create table(:product_images, primary_key: false) do
-      add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
+      add :id, :binary_id, primary_key: true, default: fragment("uuidv7()")
       add :status, :string, null: false, default: "draft"
       add :file_name, :string, null: false
       add :file_size, :integer, null: false
@@ -217,7 +217,7 @@ defmodule Harbor.Migration.V01 do
     ## Users
 
     create table(:users, primary_key: false) do
-      add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
+      add :id, :binary_id, primary_key: true, default: fragment("uuidv7()")
       add :email, :citext, null: false
       add :hashed_password, :string
       add :confirmed_at, :timestamptz
@@ -230,7 +230,7 @@ defmodule Harbor.Migration.V01 do
     ## Tokens
 
     create table(:users_tokens, primary_key: false) do
-      add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
+      add :id, :binary_id, primary_key: true, default: fragment("uuidv7()")
       add :user_id, references(:users, type: :binary_id, on_delete: :delete_all), null: false
       add :token, :binary, null: false
       add :context, :string, null: false
@@ -259,7 +259,7 @@ defmodule Harbor.Migration.V01 do
     ## Customers
 
     create table(:customers, primary_key: false) do
-      add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
+      add :id, :binary_id, primary_key: true, default: fragment("uuidv7()")
       add :first_name, :string
       add :last_name, :string
       add :company_name, :string
@@ -280,7 +280,7 @@ defmodule Harbor.Migration.V01 do
     ## Addresses
 
     create table(:addresses, primary_key: false) do
-      add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
+      add :id, :binary_id, primary_key: true, default: fragment("uuidv7()")
 
       add :customer_id, references(:customers, type: :binary_id, on_delete: :delete_all),
         null: false
@@ -311,7 +311,7 @@ defmodule Harbor.Migration.V01 do
     ## Delivery methods
 
     create table(:delivery_methods, primary_key: false) do
-      add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
+      add :id, :binary_id, primary_key: true, default: fragment("uuidv7()")
       add :name, :string, null: false
       add :price, :integer, null: false
       add :fulfillment_type, :string, null: false
@@ -329,7 +329,7 @@ defmodule Harbor.Migration.V01 do
     ## Orders
 
     create table(:orders, primary_key: false) do
-      add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
+      add :id, :binary_id, primary_key: true, default: fragment("uuidv7()")
       add :status, :string, null: false, default: "draft"
       add :number, :string, null: false
       add :customer_id, references(:customers, type: :binary_id)
@@ -379,7 +379,7 @@ defmodule Harbor.Migration.V01 do
     ## Order Items
 
     create table(:order_items, primary_key: false) do
-      add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
+      add :id, :binary_id, primary_key: true, default: fragment("uuidv7()")
       add :order_id, references(:orders, type: :binary_id, on_delete: :delete_all), null: false
       add :variant_id, references(:variants, type: :binary_id), null: false
       add :quantity, :integer, null: false
@@ -397,7 +397,7 @@ defmodule Harbor.Migration.V01 do
     ## Carts
 
     create table(:carts, primary_key: false) do
-      add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
+      add :id, :binary_id, primary_key: true, default: fragment("uuidv7()")
       add :customer_id, references(:customers, type: :binary_id, on_delete: :delete_all)
       add :session_token, :string
       add :status, :string, null: false, default: "active"
@@ -433,7 +433,7 @@ defmodule Harbor.Migration.V01 do
     ## Cart items
 
     create table(:cart_items, primary_key: false) do
-      add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
+      add :id, :binary_id, primary_key: true, default: fragment("uuidv7()")
       add :cart_id, references(:carts, type: :binary_id, on_delete: :delete_all), null: false
 
       add :variant_id, references(:variants, type: :binary_id, on_delete: :delete_all),
@@ -451,7 +451,7 @@ defmodule Harbor.Migration.V01 do
     ## Payment Profiles
 
     create table(:payment_profiles, primary_key: false) do
-      add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
+      add :id, :binary_id, primary_key: true, default: fragment("uuidv7()")
       add :provider, :string, null: false
       add :provider_ref, :string, null: false
 
@@ -467,7 +467,7 @@ defmodule Harbor.Migration.V01 do
     ## Payment Methods
 
     create table(:payment_methods, primary_key: false) do
-      add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
+      add :id, :binary_id, primary_key: true, default: fragment("uuidv7()")
 
       add :payment_profile_id,
           references(:payment_profiles, type: :binary_id, on_delete: :delete_all),
@@ -491,7 +491,7 @@ defmodule Harbor.Migration.V01 do
     ## Payment Intents
 
     create table(:payment_intents, primary_key: false) do
-      add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
+      add :id, :binary_id, primary_key: true, default: fragment("uuidv7()")
 
       add :payment_profile_id,
           references(:payment_profiles, type: :binary_id, on_delete: :delete_all),
@@ -514,7 +514,7 @@ defmodule Harbor.Migration.V01 do
     ## Checkout sessions
 
     create table(:checkout_sessions, primary_key: false) do
-      add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
+      add :id, :binary_id, primary_key: true, default: fragment("uuidv7()")
       add :order_id, references(:orders, type: :binary_id, on_delete: :delete_all), null: false
       add :status, :string, null: false, default: "active"
       add :current_step, :string
@@ -543,7 +543,7 @@ defmodule Harbor.Migration.V01 do
     ## Tax Calculations
 
     create table(:tax_calculations, primary_key: false) do
-      add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
+      add :id, :binary_id, primary_key: true, default: fragment("uuidv7()")
       add :provider_ref, :string, null: false
       add :order_id, references(:orders, type: :binary_id, on_delete: :delete_all), null: false
       add :amount, :integer, null: false
@@ -558,7 +558,7 @@ defmodule Harbor.Migration.V01 do
     ## Tax Calculation Line Items
 
     create table(:tax_calculation_line_items, primary_key: false) do
-      add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
+      add :id, :binary_id, primary_key: true, default: fragment("uuidv7()")
       add :provider_ref, :string, null: false
 
       add :order_item_id,
@@ -577,7 +577,7 @@ defmodule Harbor.Migration.V01 do
     ## Tax transactions
 
     create table(:tax_transaction_line_items, primary_key: false) do
-      add :id, :binary_id, primary_key: true, default: fragment("gen_random_uuid()")
+      add :id, :binary_id, primary_key: true, default: fragment("uuidv7()")
       add :provider_ref, :string, null: false
 
       add :order_item_id,
