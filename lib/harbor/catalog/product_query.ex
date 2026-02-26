@@ -15,7 +15,7 @@ defmodule Harbor.Catalog.ProductQuery do
   @primary_key false
   embedded_schema do
     field :search, :string
-    field :status, Ecto.Enum, values: [:draft, :active, :archived], default: :active
+    field :status, Ecto.Enum, values: [:draft, :active, :archived]
     field :category, :string
     field :price_min, :integer
     field :price_max, :integer

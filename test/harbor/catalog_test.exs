@@ -193,12 +193,12 @@ defmodule Harbor.CatalogTest do
       assert product.name == "Active Product"
     end
 
-    test "admin scope sees all products", %{scope: scope} do
+    test "admin scope sees all products by default", %{scope: scope} do
       product_fixture(%{name: "Active Product"})
       product_fixture(%{name: "Draft Product", status: :draft})
       product_fixture(%{name: "Archived Product", status: :archived})
 
-      assert %{entries: [_, _, _], total: 3} = Catalog.list_products(scope, %{status: nil})
+      assert %{entries: [_, _, _], total: 3} = Catalog.list_products(scope)
     end
   end
 
