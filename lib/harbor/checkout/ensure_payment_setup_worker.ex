@@ -6,7 +6,7 @@ defmodule Harbor.Checkout.EnsurePaymentSetupWorker do
   use Oban.Worker, queue: :billing, unique: [keys: [:customer_id, :checkout_session_id]]
 
   alias Harbor.Accounts.Scope
-  alias Harbor.{Billing, Checkout, Customers, Repo}
+  alias Harbor.{Billing, Checkout, Customers, Repo, Util}
   alias Harbor.Checkout.Session
 
   @impl Oban.Worker
@@ -31,7 +31,7 @@ defmodule Harbor.Checkout.EnsurePaymentSetupWorker do
     pricing = Checkout.build_pricing(session.order)
 
     params = %{
-      amount: pricing.total_price,
+      amount: Util.money_to_cents(pricing.total_price),
       currency: "usd",
       metadata: %{
         "checkout_session_id" => session.id,

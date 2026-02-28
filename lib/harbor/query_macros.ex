@@ -1,11 +1,15 @@
 defmodule Harbor.QueryMacros do
-  @moduledoc """
-  Exports some additional macros to make Ecto queries a bit nicer.
-  """
+  @moduledoc false
 
   defmacro now do
     quote do
       fragment("now()")
+    end
+  end
+
+  defmacro money_amount(field) do
+    quote do
+      fragment("(?).amount", unquote(field))
     end
   end
 end

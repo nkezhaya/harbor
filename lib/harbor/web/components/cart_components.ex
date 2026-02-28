@@ -10,7 +10,7 @@ defmodule Harbor.Web.CartComponents do
   import Phoenix.LiveView, only: [push_navigate: 2, put_flash: 3]
 
   alias Harbor.Catalog.Variant
-  alias Harbor.{Checkout, Util}
+  alias Harbor.Checkout
   alias Harbor.Checkout.{Cart, CartItem}
   alias Harbor.Web.ImageHelpers
 
@@ -75,7 +75,7 @@ defmodule Harbor.Web.CartComponents do
         <div class="flex items-center justify-between">
           <dt class="text-sm text-gray-600">Subtotal</dt>
           <dd class="text-sm font-medium text-gray-900">
-            {Util.formatted_price(@summary.subtotal)}
+            {@summary.subtotal}
           </dd>
         </div>
 
@@ -108,7 +108,7 @@ defmodule Harbor.Web.CartComponents do
         <div class="flex items-center justify-between border-t border-gray-200 pt-4">
           <dt class="text-base font-medium text-gray-900">Order total</dt>
           <dd class="text-base font-medium text-gray-900">
-            {Util.formatted_price(@summary.total)}
+            {@summary.total}
           </dd>
         </div>
       </dl>
@@ -264,8 +264,8 @@ defmodule Harbor.Web.CartComponents do
     items = items_from_cart(cart)
 
     subtotal =
-      Enum.reduce(items, 0, fn %CartItem{variant: variant, quantity: quantity}, acc ->
-        acc + variant.price * quantity
+      Enum.reduce(items, Money.zero(:USD), fn %CartItem{} = cart_item, acc ->
+        Money.add!(acc, Money.mult!(cart_item.variant.price, cart_item.quantity))
       end)
 
     item_count =

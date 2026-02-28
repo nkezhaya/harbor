@@ -2,7 +2,6 @@ defmodule Harbor.Web.Admin.OrderLive.Index do
   use Harbor.Web, :live_view
 
   alias Harbor.Orders
-  alias Harbor.Util
 
   @statuses ~w(pending paid shipped delivered canceled)
 
@@ -66,7 +65,7 @@ defmodule Harbor.Web.Admin.OrderLive.Index do
               {Phoenix.Naming.humanize(order.status)}
             </span>
           </:col>
-          <:col :let={{_id, order}} label="Total">{Util.formatted_price(order.total_price)}</:col>
+          <:col :let={{_id, order}} label="Total">{order.total_price}</:col>
           <:col :let={{_id, order}} label="Date">
             {DateHelpers.format_date(order.inserted_at)}
           </:col>

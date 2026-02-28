@@ -18,7 +18,7 @@ defmodule Harbor.Checkout.StepsTest do
 
       steps =
         Steps.checkout_steps(guest_scope_fixture(customer: false), order, %Pricing{
-          total_price: 1000
+          total_price: Money.new(:USD, 10)
         })
 
       assert :shipping in steps
@@ -29,7 +29,7 @@ defmodule Harbor.Checkout.StepsTest do
 
       steps =
         Steps.checkout_steps(guest_scope_fixture(customer: false), order, %Pricing{
-          total_price: 1000
+          total_price: Money.new(:USD, 10)
         })
 
       refute :delivery in steps
@@ -47,7 +47,7 @@ defmodule Harbor.Checkout.StepsTest do
 
       steps =
         Steps.checkout_steps(guest_scope_fixture(customer: false), order, %Pricing{
-          total_price: 1000
+          total_price: Money.new(:USD, 10)
         })
 
       refute :payment in steps
@@ -60,7 +60,7 @@ defmodule Harbor.Checkout.StepsTest do
 
       steps =
         Steps.checkout_steps(guest_scope_fixture(customer: false), order, %Pricing{
-          total_price: 1000
+          total_price: Money.new(:USD, 10)
         })
 
       assert :shipping in steps
@@ -72,7 +72,7 @@ defmodule Harbor.Checkout.StepsTest do
 
       steps =
         Steps.checkout_steps(guest_scope_fixture(customer: false), order, %Pricing{
-          total_price: 1000
+          total_price: Money.new(:USD, 10)
         })
 
       assert :payment in steps
@@ -82,7 +82,9 @@ defmodule Harbor.Checkout.StepsTest do
       order = order_with_variant(%{physical_product: false})
 
       steps =
-        Steps.checkout_steps(guest_scope_fixture(customer: false), order, %Pricing{total_price: 0})
+        Steps.checkout_steps(guest_scope_fixture(customer: false), order, %Pricing{
+          total_price: Money.new(:USD, 0)
+        })
 
       refute :payment in steps
     end
@@ -91,7 +93,9 @@ defmodule Harbor.Checkout.StepsTest do
       order = order_with_variant(%{physical_product: false})
 
       steps =
-        Steps.checkout_steps(guest_scope_fixture(customer: false), order, %Pricing{total_price: 0})
+        Steps.checkout_steps(guest_scope_fixture(customer: false), order, %Pricing{
+          total_price: Money.new(:USD, 0)
+        })
 
       assert List.last(steps) == :review
     end

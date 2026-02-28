@@ -6,7 +6,6 @@ defmodule Harbor.Web.CheckoutLive.Receipt do
 
   alias Harbor.Catalog.Variant
   alias Harbor.Checkout
-  alias Harbor.Util
 
   @impl true
   def render(assigns) do
@@ -71,7 +70,7 @@ defmodule Harbor.Web.CheckoutLive.Receipt do
                       id="receipt-total"
                       class="mt-1 text-sm font-semibold text-gray-900"
                     >
-                      {Util.formatted_price(@pricing.total_price)}
+                      {@pricing.total_price}
                     </dd>
                   </div>
                 </dl>
@@ -102,7 +101,7 @@ defmodule Harbor.Web.CheckoutLive.Receipt do
                         <p class="mt-1 text-sm text-gray-500">Qty: {item.quantity}</p>
                       </div>
                       <p class="text-sm font-medium text-gray-900">
-                        {Util.formatted_price(item.price * item.quantity)}
+                        {Money.mult!(item.price, item.quantity)}
                       </p>
                     </div>
                   </div>
@@ -132,25 +131,25 @@ defmodule Harbor.Web.CheckoutLive.Receipt do
                     <div class="flex items-center justify-between">
                       <dt class="text-gray-600">Subtotal</dt>
                       <dd class="font-medium text-gray-900">
-                        {Util.formatted_price(@pricing.subtotal)}
+                        {@pricing.subtotal}
                       </dd>
                     </div>
                     <div class="flex items-center justify-between">
                       <dt class="text-gray-600">Taxes</dt>
                       <dd class="font-medium text-gray-900">
-                        {Util.formatted_price(@pricing.tax)}
+                        {@pricing.tax || Money.zero(:USD)}
                       </dd>
                     </div>
                     <div class="flex items-center justify-between">
                       <dt class="text-gray-600">Shipping</dt>
                       <dd class="font-medium text-gray-900">
-                        {Util.formatted_price(@pricing.shipping_price)}
+                        {@pricing.shipping_price}
                       </dd>
                     </div>
                     <div class="flex items-center justify-between border-t border-gray-200 pt-3">
                       <dt class="font-semibold text-gray-900">Total</dt>
                       <dd class="font-semibold text-gray-900">
-                        {Util.formatted_price(@pricing.total_price)}
+                        {@pricing.total_price}
                       </dd>
                     </div>
                   </dl>

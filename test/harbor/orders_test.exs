@@ -23,18 +23,19 @@ defmodule Harbor.OrdersTest do
       valid_attrs = %{
         email: "user@example.com",
         delivery_method_name: "Local Pickup",
-        subtotal: 42,
-        shipping_price: 10
+        subtotal: Money.new(:USD, "0.42"),
+        shipping_price: Money.new(:USD, "0.10"),
+        tax: Money.new(:USD, 0)
       }
 
       assert {:ok, %Order{} = order} = Orders.create_order(scope, valid_attrs)
-      assert order.shipping_price == 10
-      assert order.total_price == 52
+      assert Money.equal?(order.shipping_price, Money.new(:USD, "0.10"))
+      assert Money.equal?(order.total_price, Money.new(:USD, "0.52"))
     end
 
     test "with invalid data returns error changeset", %{scope: scope} do
       assert {:error, %Ecto.Changeset{}} =
-               Orders.create_order(scope, %{shipping_price: nil, total_price: nil})
+               Orders.create_order(scope, %{shipping_price: nil})
     end
   end
 
@@ -51,7 +52,7 @@ defmodule Harbor.OrdersTest do
       order = order_fixture(scope)
 
       assert {:error, %Ecto.Changeset{}} =
-               Orders.update_order(scope, order, %{shipping_price: nil, total_price: nil})
+               Orders.update_order(scope, order, %{shipping_price: nil})
 
       assert Orders.get_order!(scope, order.id).email == order.email
     end

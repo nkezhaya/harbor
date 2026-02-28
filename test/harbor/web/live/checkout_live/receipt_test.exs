@@ -43,7 +43,7 @@ defmodule Harbor.Web.CheckoutLive.ReceiptTest do
     variant = variant_fixture()
     cart = cart_fixture(scope)
     cart_item_fixture(cart, %{variant_id: variant.id, quantity: 2})
-    delivery_method = delivery_method_fixture(%{price: 1500})
+    delivery_method = delivery_method_fixture(%{price: Money.new(:USD, 15)})
 
     address =
       address_fixture(scope, %{

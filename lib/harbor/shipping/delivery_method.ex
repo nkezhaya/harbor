@@ -8,7 +8,7 @@ defmodule Harbor.Shipping.DeliveryMethod do
 
   schema "delivery_methods" do
     field :name, :string
-    field :price, :integer
+    field :price, Money.Ecto.Composite.Type
     field :fulfillment_type, Ecto.Enum, values: [:ship, :pickup]
 
     timestamps()

@@ -5,7 +5,7 @@ defmodule Harbor.Web.CartLive.Show do
   use Harbor.Web, :live_view
 
   alias Harbor.Catalog.Variant
-  alias Harbor.{Checkout, Util}
+  alias Harbor.Checkout
   alias Harbor.Checkout.{Cart, CartItem}
 
   @impl true
@@ -81,7 +81,7 @@ defmodule Harbor.Web.CartLive.Show do
       assigns
       |> assign(:variant, variant)
       |> assign(:variant_description, Variant.description(variant))
-      |> assign(:price, Util.formatted_price(variant.price))
+      |> assign(:price, variant.price)
       |> assign(:form, to_form(CartItem.changeset(assigns.cart_item, %{})))
 
     ~H"""

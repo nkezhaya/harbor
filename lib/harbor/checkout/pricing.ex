@@ -9,10 +9,9 @@ defmodule Harbor.Checkout.Pricing do
   - Carrying over shipping and tax values (if present)
   - Computing a `total_price` from the available amounts
 
-  All monetary amounts are integers representing the smallest currency unit (for
-  example, cents). Use `build/1` to obtain a map with the keys `:count`,
+  Use `build/1` to obtain a struct with the keys `:count`,
   `:subtotal`, `:shipping_price`, and `:total_price` suitable for rendering in
-  the UI or passing to follow‑up workflows.
+  the UI or passing to follow-up workflows.
   """
 
   alias Harbor.Customers.Address
@@ -23,27 +22,27 @@ defmodule Harbor.Checkout.Pricing do
   defstruct [
     :items,
     count: 0,
-    subtotal: 0,
-    shipping_price: 0,
+    subtotal: Money.zero(:USD),
+    shipping_price: Money.zero(:USD),
     tax: nil,
-    total_price: 0,
+    total_price: Money.zero(:USD),
     meta: %{}
   ]
 
   @type line_item() :: %{
           id: Ecto.UUID.t(),
           quantity: non_neg_integer(),
-          price: non_neg_integer(),
-          total_price: non_neg_integer(),
+          price: Money.t(),
+          total_price: Money.t(),
           tax_code_ref: nil
         }
 
   @type summary() :: %{
           count: non_neg_integer(),
-          subtotal: non_neg_integer(),
-          shipping_price: nil | non_neg_integer(),
-          tax: nil | non_neg_integer(),
-          total_price: non_neg_integer()
+          subtotal: Money.t(),
+          shipping_price: nil | Money.t(),
+          tax: nil | Money.t(),
+          total_price: Money.t()
         }
 
   @type t() :: %__MODULE__{}
@@ -67,7 +66,12 @@ defmodule Harbor.Checkout.Pricing do
   end
 
   defp put_subtotal(%__MODULE__{items: items} = pricing) do
-    %{pricing | subtotal: Enum.sum_by(items, & &1.total_price)}
+    subtotal =
+      Enum.reduce(items, Money.zero(:USD), fn item, acc ->
+        Money.add!(acc, item.total_price)
+      end)
+
+    %{pricing | subtotal: subtotal}
   end
 
   defp put_shipping(%__MODULE__{} = pricing, %Order{} = order) do
@@ -75,10 +79,10 @@ defmodule Harbor.Checkout.Pricing do
       if Settings.delivery_enabled?() do
         case order.delivery_method do
           %DeliveryMethod{price: price} -> price
-          _ -> 0
+          _ -> Money.zero(:USD)
         end
       else
-        0
+        Money.zero(:USD)
       end
 
     %{pricing | shipping_price: shipping_price}
@@ -89,10 +93,12 @@ defmodule Harbor.Checkout.Pricing do
   end
 
   defp put_total(%__MODULE__{} = pricing) do
+    tax = pricing.tax || Money.zero(:USD)
+
     total_price =
-      pricing
-      |> Map.take([:subtotal, :shipping_price, :tax])
-      |> Enum.sum_by(fn {_key, value} -> value end)
+      pricing.subtotal
+      |> Money.add!(pricing.shipping_price)
+      |> Money.add!(tax)
 
     %{pricing | total_price: total_price}
   end
@@ -126,7 +132,7 @@ defmodule Harbor.Checkout.Pricing do
       id: order_item.id,
       quantity: quantity,
       price: price,
-      total_price: quantity * price,
+      total_price: Money.mult!(price, quantity),
       tax_code_ref: nil
     }
   end

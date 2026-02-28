@@ -9,7 +9,9 @@ defmodule Harbor.Web.ProductLive.ShowTest do
       product_fixture(%{
         name: "Wool Blanket",
         description: "Cozy throw blanket.",
-        variants: [%{sku: "sku-#{System.unique_integer()}", price: 5400, enabled: true}]
+        variants: [
+          %{sku: "sku-#{System.unique_integer()}", price: Money.new(:USD, 54), enabled: true}
+        ]
       })
 
     {:ok, _view, html} = live(conn, "/products/#{product.slug}")

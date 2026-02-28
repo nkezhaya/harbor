@@ -5,7 +5,6 @@ defmodule Harbor.Web.CartLive.ShowTest do
   import Harbor.{CatalogFixtures, CheckoutFixtures, CustomersFixtures}
 
   alias Harbor.Checkout.CartItem
-  alias Harbor.Util
 
   setup %{conn: conn} do
     scope = guest_scope_fixture(customer: false)
@@ -24,11 +23,12 @@ defmodule Harbor.Web.CartLive.ShowTest do
     {:ok, view, _html} = live(conn, "/cart")
 
     assert has_element?(view, "#cart-item-#{cart_item.id}", product_name)
-    assert render(view) =~ Util.formatted_price(variant.price)
-    assert render(view) =~ Util.formatted_price(variant.price * cart_item.quantity)
+    html = render(view)
+    assert html =~ Money.to_string!(variant.price)
+    assert html =~ Money.to_string!(Money.mult!(variant.price, cart_item.quantity))
     assert has_element?(view, ~S(button[phx-click="checkout"]), "Checkout")
-    assert render(view) =~ "Shipping estimate"
-    assert render(view) =~ "Calculated at checkout"
+    assert html =~ "Shipping estimate"
+    assert html =~ "Calculated at checkout"
   end
 
   test "updates item quantity through the selector", %{conn: conn, scope: scope} do
@@ -46,7 +46,7 @@ defmodule Harbor.Web.CartLive.ShowTest do
     })
 
     assert Repo.get!(CartItem, cart_item.id).quantity == 3
-    assert render(view) =~ Util.formatted_price(variant.price * 3)
+    assert render(view) =~ Money.to_string!(Money.mult!(variant.price, 3))
   end
 
   test "removes an item from the cart", %{conn: conn, scope: scope} do

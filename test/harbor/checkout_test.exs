@@ -343,7 +343,7 @@ defmodule Harbor.CheckoutTest do
           variants: [
             %{
               sku: "sku-#{System.unique_integer()}",
-              price: 0,
+              price: Money.new(:USD, 0),
               inventory_policy: :track_strict,
               quantity_available: 10,
               enabled: true
@@ -468,7 +468,7 @@ defmodule Harbor.CheckoutTest do
       cart_item_fixture(cart, %{variant_id: variant.id, quantity: 2})
 
       # Shipping method
-      delivery_method = delivery_method_fixture(%{price: 1500})
+      delivery_method = delivery_method_fixture(%{price: Money.new(:USD, 15)})
 
       # Addresses (tied to a user scope)
 
@@ -518,21 +518,27 @@ defmodule Harbor.CheckoutTest do
 
       assert {:ok, %Order{} = order} = Checkout.submit_checkout(scope, session)
 
-      # Subtotal is variant.price * quantity, tax defaults to 0, total is computed column
+      # Subtotal is variant.price * quantity, tax from provider, total computed in app
       assert order.email == user.email
       assert order.delivery_method_name == delivery_method.name
-      assert order.subtotal == variant.price * 2
-      assert order.shipping_price == delivery_method.price
-      assert order.tax == 1000
+      assert Money.equal?(order.subtotal, Money.mult!(variant.price, 2))
+      assert Money.equal?(order.shipping_price, delivery_method.price)
+      assert Money.equal?(order.tax, Money.new(:USD, 10))
       assert order.status == :pending
-      assert order.total_price == order.subtotal + order.shipping_price + order.tax
+
+      expected_total =
+        order.subtotal
+        |> Money.add!(order.shipping_price)
+        |> Money.add!(order.tax)
+
+      assert Money.equal?(order.total_price, expected_total)
 
       # Order items snapshot
       order = Repo.preload(order, :items)
       assert [item] = order.items
       assert item.variant_id == variant.id
       assert item.quantity == 2
-      assert item.price == variant.price
+      assert Money.equal?(item.price, variant.price)
 
       # Session is marked completed and linked to order
       session = Repo.get!(Session, session.id)
@@ -546,7 +552,7 @@ defmodule Harbor.CheckoutTest do
       scope = user_scope_fixture(user)
       cart = cart_fixture(scope)
       cart_item_fixture(cart, %{variant_id: variant.id, quantity: 1})
-      delivery_method = delivery_method_fixture(%{price: 100})
+      delivery_method = delivery_method_fixture(%{price: Money.new(:USD, 1)})
 
       address =
         address_fixture(scope, %{

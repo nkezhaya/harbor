@@ -29,7 +29,7 @@ defmodule Harbor.CatalogFixtures do
     Map.put_new(attrs, :variants, [
       %{
         sku: "sku-#{System.unique_integer()}",
-        price: 4000,
+        price: Money.new(:USD, 40),
         inventory_policy: :track_strict,
         quantity_available: 10,
         enabled: true

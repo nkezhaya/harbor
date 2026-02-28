@@ -8,7 +8,6 @@ defmodule Harbor.Web.CheckoutComponents do
   """
 
   use Harbor.Web, :component
-  import Harbor.Util, only: [formatted_price: 1]
 
   alias Harbor.Catalog.Variant
   alias Harbor.Checkout.Pricing
@@ -42,19 +41,19 @@ defmodule Harbor.Web.CheckoutComponents do
         <dl class="space-y-6 text-sm font-medium text-gray-500">
           <div class="flex justify-between">
             <dt>Subtotal</dt>
-            <dd class="text-gray-900">{formatted_price(@pricing.subtotal)}</dd>
+            <dd class="text-gray-900">{@pricing.subtotal}</dd>
           </div>
           <div class="flex justify-between">
             <dt>Taxes</dt>
-            <dd class="text-gray-900">{formatted_price(@pricing.tax)}</dd>
+            <dd class="text-gray-900">{@pricing.tax || Money.zero(:USD)}</dd>
           </div>
           <div class="flex justify-between">
             <dt>Shipping</dt>
-            <dd class="text-gray-900">{formatted_price(@pricing.shipping_price)}</dd>
+            <dd class="text-gray-900">{@pricing.shipping_price}</dd>
           </div>
           <div class="flex items-center justify-between border-t border-gray-200 pt-6 text-gray-900">
             <dt>Total</dt>
-            <dd class="text-base">{formatted_price(@pricing.total_price)}</dd>
+            <dd class="text-base">{@pricing.total_price}</dd>
           </div>
         </dl>
       </div>
@@ -85,7 +84,7 @@ defmodule Harbor.Web.CheckoutComponents do
       <div class="flex flex-col justify-between space-y-4">
         <div class="space-y-1 text-sm font-medium">
           <h3 class="text-gray-900">{@item.variant.product.name}</h3>
-          <p class="text-gray-900">{formatted_price(@item.price * @item.quantity)}</p>
+          <p class="text-gray-900">{Money.mult!(@item.price, @item.quantity)}</p>
           <p class="text-gray-500">{Variant.description(@item.variant)}</p>
           <p class="text-gray-500">Qty: {@item.quantity}</p>
         </div>

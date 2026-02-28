@@ -4,7 +4,7 @@ defmodule Harbor.Web.ProductLive.Show do
   """
   use Harbor.Web, :live_view
 
-  alias Harbor.{Catalog, Util}
+  alias Harbor.Catalog
   alias Harbor.Catalog.{Product, Variant}
 
   @impl true
@@ -67,7 +67,7 @@ defmodule Harbor.Web.ProductLive.Show do
             <h2 class="sr-only">Product information</h2>
             <%= if @has_price? do %>
               <p class="text-3xl tracking-tight text-gray-900">
-                {Util.formatted_price(@product.default_variant.price)}
+                {@product.default_variant.price}
               </p>
             <% else %>
               <p class="text-sm text-gray-500">
@@ -136,10 +136,7 @@ defmodule Harbor.Web.ProductLive.Show do
 
   defp product_in_stock?(_product), do: false
 
-  defp product_has_price?(%Product{default_variant: %Variant{price: price}})
-       when is_integer(price),
-       do: true
-
+  defp product_has_price?(%Product{default_variant: %Variant{price: %Money{}}}), do: true
   defp product_has_price?(_product), do: false
 
   @impl true

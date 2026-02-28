@@ -65,7 +65,13 @@ defmodule Harbor.Web.Admin.ProductLive.Form do
           field={@form[:variants]}
           append={if @has_variants?, do: [], else: [%Variant{}]}
         >
-          <.input field={variant_form[:price]} type="text" label="Price" />
+          <.input
+            field={variant_form[:price]}
+            type="text"
+            label="Price"
+            placeholder="0.00"
+            value={format_money_input(variant_form[:price].value)}
+          />
         </.inputs_for>
 
         <div class="col-span-full">
@@ -455,4 +461,9 @@ defmodule Harbor.Web.Admin.ProductLive.Form do
 
   defp return_path(socket, "index", _product), do: admin_path(socket, "/products")
   defp return_path(socket, "show", product), do: admin_path(socket, "/products/#{product.id}")
+
+  defp format_money_input(%Money{} = money),
+    do: Money.to_string!(money, symbol: false, fractional_digits: 2)
+
+  defp format_money_input(_), do: nil
 end

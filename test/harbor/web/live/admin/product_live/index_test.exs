@@ -83,7 +83,7 @@ defmodule Harbor.Web.Admin.ProductLive.IndexTest do
       name: "some name",
       status: :draft,
       description: "some description",
-      variants: %{"0" => %{price: 4000}}
+      variants: %{"0" => %{price: "40.00"}}
     })
   end
 

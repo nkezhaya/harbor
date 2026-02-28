@@ -2,7 +2,6 @@ defmodule Harbor.Web.Admin.OrderLive.Show do
   use Harbor.Web, :live_view
 
   alias Harbor.Orders
-  alias Harbor.Util
 
   @impl true
   def render(assigns) do
@@ -99,10 +98,10 @@ defmodule Harbor.Web.Admin.OrderLive.Show do
           Financial Summary
         </h3>
         <.list>
-          <:item title="Subtotal">{Util.formatted_price(@order.subtotal)}</:item>
-          <:item title="Tax">{Util.formatted_price(@order.tax)}</:item>
-          <:item title="Shipping">{Util.formatted_price(@order.shipping_price)}</:item>
-          <:item title="Total">{Util.formatted_price(@order.total_price)}</:item>
+          <:item title="Subtotal">{@order.subtotal}</:item>
+          <:item title="Tax">{@order.tax}</:item>
+          <:item title="Shipping">{@order.shipping_price}</:item>
+          <:item title="Total">{@order.total_price}</:item>
         </.list>
       </div>
 
@@ -118,9 +117,9 @@ defmodule Harbor.Web.Admin.OrderLive.Show do
             </span>
           </:col>
           <:col :let={item} label="Quantity">{item.quantity}</:col>
-          <:col :let={item} label="Unit price">{Util.formatted_price(item.price)}</:col>
+          <:col :let={item} label="Unit price">{item.price}</:col>
           <:col :let={item} label="Line total">
-            {Util.formatted_price(item.price * item.quantity)}
+            {Money.mult!(item.price, item.quantity)}
           </:col>
         </.table>
       </div>

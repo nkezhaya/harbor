@@ -9,6 +9,7 @@ defmodule Harbor.Schema do
       use Ecto.Schema
       import Ecto.Changeset
       import Ecto.Query, warn: false
+      import Money.Sigil
       import unquote(__MODULE__)
 
       alias Harbor.Accounts.Scope

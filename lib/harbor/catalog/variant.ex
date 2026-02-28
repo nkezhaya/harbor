@@ -16,7 +16,7 @@ defmodule Harbor.Catalog.Variant do
 
   schema "variants" do
     field :sku, :string
-    field :price, :integer
+    field :price, Money.Ecto.Composite.Type
     field :quantity_available, :integer, default: 0
     field :enabled, :boolean, default: false
 

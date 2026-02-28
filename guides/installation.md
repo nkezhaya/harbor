@@ -37,6 +37,19 @@ config :my_app, MyApp.Oban,
   # ...
 ```
 
+## Configure money
+
+Harbor uses [ex_money](https://hexdocs.pm/ex_money) for monetary values. Point
+it at Harbor's CLDR backend:
+
+```elixir
+# config/config.exs
+config :ex_money,
+  default_cldr_backend: Harbor.Cldr,
+  auto_start_exchange_rate_service: false,
+  exchange_rates_retrieve_every: :never
+```
+
 ## Configure providers
 
 Harbor requires an S3 bucket and CDN URL for media storage:

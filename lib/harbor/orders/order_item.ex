@@ -11,7 +11,7 @@ defmodule Harbor.Orders.OrderItem do
 
   schema "order_items" do
     field :quantity, :integer
-    field :price, :integer
+    field :price, Money.Ecto.Composite.Type
 
     belongs_to :order, Order
     belongs_to :variant, Variant

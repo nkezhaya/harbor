@@ -98,6 +98,8 @@ defmodule Harbor.MixProject do
       {:stripity_stripe, "~> 3.2"},
       {:oban, "~> 2.20"},
       {:address_input, "~> 0.3"},
+      {:ex_money, "~> 5.24"},
+      {:ex_money_sql, "~> 1.12"},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:mox, "~> 1.2", only: :test},

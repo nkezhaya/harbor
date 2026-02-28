@@ -109,7 +109,7 @@ defmodule Harbor.Catalog do
         {:ok, variant} =
           %Variant{product_id: product.id}
           |> Variant.changeset(%{
-            price: 0,
+            price: Money.new(:USD, 0),
             inventory_policy: :not_tracked,
             quantity_available: 0,
             enabled: false

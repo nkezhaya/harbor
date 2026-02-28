@@ -9,6 +9,7 @@ defmodule Harbor.Catalog.ProductQuery do
   use Harbor.Schema
 
   import Harbor.Authorization
+  import Harbor.QueryMacros
 
   alias Harbor.Catalog.{OptionType, OptionValue, Variant, VariantOptionValue}
 
@@ -83,10 +84,14 @@ defmodule Harbor.Catalog.ProductQuery do
   end
 
   defp where_price_min(q, nil), do: q
-  defp where_price_min(q, min), do: where(q, [variant: v], v.price >= ^min)
+
+  defp where_price_min(q, min),
+    do: where(q, [variant: v], money_amount(v.price) >= ^min)
 
   defp where_price_max(q, nil), do: q
-  defp where_price_max(q, max), do: where(q, [variant: v], v.price <= ^max)
+
+  defp where_price_max(q, max),
+    do: where(q, [variant: v], money_amount(v.price) <= ^max)
 
   defp filter_by_options(q, options) when options == %{}, do: q
 
@@ -136,7 +141,7 @@ defmodule Harbor.Catalog.ProductQuery do
 
     q
     |> ensure_variant_join()
-    |> order_by([variant: v], [{^dir, v.price}])
+    |> order_by([variant: v], [{^dir, money_amount(v.price)}])
   end
 
   defp ensure_variant_join(q) do

@@ -5,7 +5,7 @@ defmodule Harbor.Web.OrderLive.Index do
   use Harbor.Web, :live_view
 
   alias Harbor.Catalog.Variant
-  alias Harbor.{Orders, Util}
+  alias Harbor.Orders
   alias Harbor.Orders.{Order, OrderItem}
 
   @impl true
@@ -63,7 +63,7 @@ defmodule Harbor.Web.OrderLive.Index do
       assigns
       |> assign(:formatted_date, DateHelpers.format_date(order.inserted_at))
       |> assign(:iso_date, DateHelpers.format_iso_date(order.inserted_at))
-      |> assign(:formatted_price, Util.formatted_price(order.total_price))
+      |> assign(:formatted_price, order.total_price)
 
     ~H"""
     <div
@@ -132,10 +132,7 @@ defmodule Harbor.Web.OrderLive.Index do
     assigns =
       assigns
       |> assign(:variant_description, Variant.description(item.variant))
-      |> assign(
-        :formatted_price,
-        Util.formatted_price(assigns.item.price * assigns.item.quantity)
-      )
+      |> assign(:formatted_price, Money.mult!(assigns.item.price, assigns.item.quantity))
       |> assign(:product_path, "/products/#{assigns.item.variant.product.slug}")
 
     ~H"""

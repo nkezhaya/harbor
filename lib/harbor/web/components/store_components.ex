@@ -5,7 +5,6 @@ defmodule Harbor.Web.StoreComponents do
   use Harbor.Web, :component
 
   alias Harbor.Catalog.Product
-  alias Harbor.Util
   alias Harbor.Web.ImageHelpers
 
   @doc """
@@ -22,7 +21,7 @@ defmodule Harbor.Web.StoreComponents do
 
       <p class="mt-1 text-lg font-medium text-gray-900">
         <%= if @product.default_variant do %>
-          {Util.formatted_price(@product.default_variant.price)}
+          {@product.default_variant.price}
         <% end %>
       </p>
     </a>

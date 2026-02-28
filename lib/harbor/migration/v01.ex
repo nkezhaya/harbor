@@ -8,6 +8,8 @@ defmodule Harbor.Migration.V01 do
     execute "CREATE EXTENSION IF NOT EXISTS tcn"
     execute "CREATE EXTENSION IF NOT EXISTS citext"
 
+    execute(Money.DDL.create_money_with_currency())
+
     ## Tax Codes
 
     create table(:tax_codes, primary_key: false) do
@@ -133,7 +135,7 @@ defmodule Harbor.Migration.V01 do
           null: false
 
       add :sku, :string
-      add :price, :integer, null: false
+      add :price, :money_with_currency, null: false
       add :quantity_available, :integer, default: 0, null: false
       add :enabled, :boolean, null: false, default: false
       add :inventory_policy, :string, null: false, default: "not_tracked"
@@ -146,7 +148,7 @@ defmodule Harbor.Migration.V01 do
     create index(:variants, [:product_id, :enabled])
     create unique_index(:variants, [:sku], where: "sku IS NOT NULL")
 
-    create constraint(:variants, :price_gte_zero, check: "price >= 0")
+    create constraint(:variants, :price_gte_zero, check: "(price).amount >= 0")
     create constraint(:variants, :quantity_available_gte_zero, check: "quantity_available >= 0")
 
     create constraint(:variants, :inventory_policy_allowed,
@@ -313,14 +315,14 @@ defmodule Harbor.Migration.V01 do
     create table(:delivery_methods, primary_key: false) do
       add :id, :binary_id, primary_key: true, default: fragment("uuidv7()")
       add :name, :string, null: false
-      add :price, :integer, null: false
+      add :price, :money_with_currency, null: false
       add :fulfillment_type, :string, null: false
 
       timestamps()
     end
 
     create unique_index(:delivery_methods, [:name])
-    create constraint(:delivery_methods, :price_gte_zero, check: "price >= 0")
+    create constraint(:delivery_methods, :price_gte_zero, check: "(price).amount >= 0")
 
     create constraint(:delivery_methods, :check_fulfillment_type,
              check: "fulfillment_type in ('ship', 'pickup')"
@@ -352,12 +354,13 @@ defmodule Harbor.Migration.V01 do
 
       add :delivery_method_name, :string
 
-      add :subtotal, :integer, null: false
-      add :tax, :integer, null: false
-      add :shipping_price, :integer, null: false
+      add :subtotal, :money_with_currency, null: false
+      add :tax, :money_with_currency, null: false
+      add :shipping_price, :money_with_currency, null: false
 
-      add :total_price, :integer,
-        generated: "ALWAYS AS (subtotal + tax + shipping_price) STORED",
+      add :total_price, :money_with_currency,
+        generated:
+          "ALWAYS AS (ROW('USD', (subtotal).amount + (tax).amount + (shipping_price).amount)::money_with_currency) STORED",
         null: false
 
       add :notes, :text
@@ -372,9 +375,9 @@ defmodule Harbor.Migration.V01 do
              check: "status in ('draft', 'pending', 'paid', 'shipped', 'delivered', 'canceled')"
            )
 
-    create constraint(:orders, :subtotal_gte_zero, check: "subtotal >= 0")
-    create constraint(:orders, :tax_gte_zero, check: "tax >= 0")
-    create constraint(:orders, :shipping_price_gte_zero, check: "shipping_price >= 0")
+    create constraint(:orders, :subtotal_gte_zero, check: "(subtotal).amount >= 0")
+    create constraint(:orders, :tax_gte_zero, check: "(tax).amount >= 0")
+    create constraint(:orders, :shipping_price_gte_zero, check: "(shipping_price).amount >= 0")
 
     ## Order Items
 
@@ -383,7 +386,7 @@ defmodule Harbor.Migration.V01 do
       add :order_id, references(:orders, type: :binary_id, on_delete: :delete_all), null: false
       add :variant_id, references(:variants, type: :binary_id), null: false
       add :quantity, :integer, null: false
-      add :price, :integer, null: false
+      add :price, :money_with_currency, null: false
 
       timestamps()
     end
@@ -392,7 +395,7 @@ defmodule Harbor.Migration.V01 do
     create index(:order_items, [:variant_id])
     create unique_index(:order_items, [:order_id, :variant_id])
     create constraint(:order_items, :quantity_gte_zero, check: "quantity > 0")
-    create constraint(:order_items, :price_gte_zero, check: "price >= 0")
+    create constraint(:order_items, :price_gte_zero, check: "(price).amount >= 0")
 
     ## Carts
 
@@ -654,5 +657,7 @@ defmodule Harbor.Migration.V01 do
 
     execute "DROP TRIGGER IF EXISTS harbor_settings_changed ON settings"
     drop_if_exists table(:settings)
+
+    execute(Money.DDL.drop_money_with_currency())
   end
 end

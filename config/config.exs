@@ -17,4 +17,9 @@ config :harbor, :scopes,
     test_setup_helper: :register_and_log_in_user
   ]
 
+config :ex_money,
+  default_cldr_backend: Harbor.Cldr,
+  auto_start_exchange_rate_service: false,
+  exchange_rates_retrieve_every: :never
+
 import_config "#{config_env()}.exs"

@@ -43,7 +43,7 @@ defmodule Harbor.CatalogTest do
         variants: [
           %{
             sku: "cheap-1",
-            price: 1000,
+            price: Money.new(:USD, 10),
             inventory_policy: :not_tracked,
             quantity_available: 0,
             enabled: true
@@ -56,7 +56,7 @@ defmodule Harbor.CatalogTest do
         variants: [
           %{
             sku: "mid-1",
-            price: 3000,
+            price: Money.new(:USD, 30),
             inventory_policy: :not_tracked,
             quantity_available: 0,
             enabled: true
@@ -69,7 +69,7 @@ defmodule Harbor.CatalogTest do
         variants: [
           %{
             sku: "exp-1",
-            price: 8000,
+            price: Money.new(:USD, 80),
             inventory_policy: :not_tracked,
             quantity_available: 0,
             enabled: true
@@ -78,7 +78,7 @@ defmodule Harbor.CatalogTest do
       })
 
       assert %{entries: [product]} =
-               Catalog.list_products(scope, %{"price_min" => "2000", "price_max" => "5000"})
+               Catalog.list_products(scope, %{"price_min" => "20", "price_max" => "50"})
 
       assert product.name == "Mid"
     end
@@ -89,7 +89,7 @@ defmodule Harbor.CatalogTest do
         variants: [
           %{
             sku: "exp-2",
-            price: 8000,
+            price: Money.new(:USD, 80),
             inventory_policy: :not_tracked,
             quantity_available: 0,
             enabled: true
@@ -102,7 +102,7 @@ defmodule Harbor.CatalogTest do
         variants: [
           %{
             sku: "cheap-2",
-            price: 1000,
+            price: Money.new(:USD, 10),
             inventory_policy: :not_tracked,
             quantity_available: 0,
             enabled: true

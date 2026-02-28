@@ -21,9 +21,9 @@ defmodule Harbor.Orders.OrderTest do
       attrs = %{
         status: :pending,
         email: "pickup@example.com",
-        subtotal: 100,
-        tax: 0,
-        shipping_price: 0
+        subtotal: Money.new(:USD, 1),
+        tax: Money.new(:USD, 0),
+        shipping_price: Money.new(:USD, 0)
       }
 
       changeset = Order.submit_changeset(order, attrs, scope)

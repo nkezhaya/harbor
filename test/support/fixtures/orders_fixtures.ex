@@ -9,9 +9,9 @@ defmodule Harbor.OrdersFixtures do
       Enum.into(attrs, %{
         email: "order@example.com",
         delivery_method_name: "Local Pickup",
-        subtotal: 1000,
-        tax: 0,
-        shipping_price: 0,
+        subtotal: Money.new(:USD, 10),
+        tax: Money.new(:USD, 0),
+        shipping_price: Money.new(:USD, 0),
         status: :pending
       })
 

@@ -90,7 +90,7 @@ defmodule Harbor.Checkout.Steps do
       end
 
     steps =
-      if settings.payments_enabled and pricing.total_price > 0 do
+      if settings.payments_enabled and Money.positive?(pricing.total_price) do
         steps ++ [:payment]
       else
         steps

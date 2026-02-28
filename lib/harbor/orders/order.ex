@@ -37,10 +37,10 @@ defmodule Harbor.Orders.Order do
 
     field :delivery_method_name, :string
 
-    field :subtotal, :integer, default: 0
-    field :tax, :integer, default: 0
-    field :shipping_price, :integer, default: 0
-    field :total_price, :integer, read_after_writes: true
+    field :subtotal, Money.Ecto.Composite.Type, default: ~M[0]USD
+    field :tax, Money.Ecto.Composite.Type, default: ~M[0]USD
+    field :shipping_price, Money.Ecto.Composite.Type, default: ~M[0]USD
+    field :total_price, Money.Ecto.Composite.Type, read_after_writes: true
 
     field :notes, :string
 
