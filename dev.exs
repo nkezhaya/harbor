@@ -58,7 +58,7 @@ Application.put_env(:harbor, Harbor.DevRepo,
 
 Application.put_env(:harbor, Harbor.DevOban,
   engine: Oban.Engines.Basic,
-  queues: [media_uploads: 10, billing: 10],
+  queues: [media_uploads: 10, billing: 10, notifier: 10],
   repo: Harbor.DevRepo
 )
 

@@ -42,7 +42,7 @@ config :harbor, Harbor.TestMailer, adapter: Swoosh.Adapters.Test
 
 config :harbor, Harbor.TestOban,
   engine: Oban.Engines.Basic,
-  queues: [media_uploads: 10, billing: 10],
+  queues: [media_uploads: 10, billing: 10, notifier: 10],
   repo: Harbor.TestRepo,
   testing: :manual
 

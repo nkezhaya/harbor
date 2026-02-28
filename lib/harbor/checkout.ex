@@ -8,7 +8,7 @@ defmodule Harbor.Checkout do
   alias Harbor.Accounts.{Scope, User}
   alias Harbor.Checkout.{Cart, CartItem, Pricing, Session, Steps}
   alias Harbor.Customers.Customer
-  alias Harbor.{Orders, Repo, Tax}
+  alias Harbor.{Notifier, Orders, Repo, Tax}
   alias Harbor.Orders.{Order, OrderItem}
   alias Harbor.Settings
   alias Harbor.Shipping.DeliveryMethod
@@ -466,11 +466,19 @@ defmodule Harbor.Checkout do
   end
 
   defp do_complete_and_submit(%Session{} = session) do
-    Repo.transact(fn ->
-      with {:ok, session} <- complete_session(session) do
-        submit_order(session)
-      end
-    end)
+    result =
+      Repo.transact(fn ->
+        with {:ok, session} <- complete_session(session) do
+          submit_order(session)
+        end
+      end)
+
+    # Notify outside of the transaction, so failures don't prevent order
+    # submission.
+    with {:ok, order} <- result do
+      Notifier.enqueue_order_confirmed(order)
+      result
+    end
   end
 
   defp complete_session(%Session{} = session) do

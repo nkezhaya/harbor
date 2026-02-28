@@ -30,6 +30,10 @@ defmodule Harbor.Config do
     Application.get_env(:harbor, :cache, Harbor.Cache.ETS)
   end
 
+  def notifier do
+    Application.get_env(:harbor, :notifier)
+  end
+
   @required_keys [:repo, :oban, :mailer, :s3_bucket, :cdn_url]
 
   def validate! do

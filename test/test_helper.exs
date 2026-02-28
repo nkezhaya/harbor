@@ -4,6 +4,9 @@ Application.put_env(:harbor, :tax_provider, Harbor.Tax.TaxProviderMock)
 Mox.defmock(Harbor.Billing.PaymentProviderMock, for: Harbor.Billing.PaymentProvider)
 Application.put_env(:harbor, :payment_provider, Harbor.Billing.PaymentProviderMock)
 
+Mox.defmock(Harbor.NotifierMock, for: Harbor.Notifier)
+Application.put_env(:harbor, :notifier, Harbor.NotifierMock)
+
 Supervisor.start_link(
   [
     Harbor.Web.Telemetry,
