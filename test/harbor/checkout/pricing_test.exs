@@ -21,7 +21,18 @@ defmodule Harbor.Checkout.PricingTest do
 
   describe "build/1" do
     test "computes count and subtotal from items" do
-      variant = variant_fixture(%{variants: [%{price: Money.new(:USD, 25), enabled: true, inventory_policy: :not_tracked, quantity_available: 0}]})
+      variant =
+        variant_fixture(%{
+          variants: [
+            %{
+              price: Money.new(:USD, 25),
+              enabled: true,
+              inventory_policy: :not_tracked,
+              quantity_available: 0
+            }
+          ]
+        })
+
       order = order_with_items([{variant, 3}])
       pricing = Pricing.build(order)
 
@@ -30,8 +41,29 @@ defmodule Harbor.Checkout.PricingTest do
     end
 
     test "sums multiple items" do
-      v1 = variant_fixture(%{variants: [%{price: Money.new(:USD, 10), enabled: true, inventory_policy: :not_tracked, quantity_available: 0}]})
-      v2 = variant_fixture(%{variants: [%{price: Money.new(:USD, "7.50"), enabled: true, inventory_policy: :not_tracked, quantity_available: 0}]})
+      v1 =
+        variant_fixture(%{
+          variants: [
+            %{
+              price: Money.new(:USD, 10),
+              enabled: true,
+              inventory_policy: :not_tracked,
+              quantity_available: 0
+            }
+          ]
+        })
+
+      v2 =
+        variant_fixture(%{
+          variants: [
+            %{
+              price: Money.new(:USD, "7.50"),
+              enabled: true,
+              inventory_policy: :not_tracked,
+              quantity_available: 0
+            }
+          ]
+        })
 
       order = order_with_items([{v1, 2}, {v2, 4}])
       pricing = Pricing.build(order)
@@ -91,7 +123,18 @@ defmodule Harbor.Checkout.PricingTest do
     test "total sums subtotal, shipping, and tax" do
       Settings.update(%{delivery_enabled: true})
 
-      variant = variant_fixture(%{variants: [%{price: Money.new(:USD, 20), enabled: true, inventory_policy: :not_tracked, quantity_available: 0}]})
+      variant =
+        variant_fixture(%{
+          variants: [
+            %{
+              price: Money.new(:USD, 20),
+              enabled: true,
+              inventory_policy: :not_tracked,
+              quantity_available: 0
+            }
+          ]
+        })
+
       delivery_method = delivery_method_fixture(%{price: Money.new(:USD, 5)})
 
       order =
@@ -107,7 +150,18 @@ defmodule Harbor.Checkout.PricingTest do
     end
 
     test "total treats nil tax as zero" do
-      variant = variant_fixture(%{variants: [%{price: Money.new(:USD, 10), enabled: true, inventory_policy: :not_tracked, quantity_available: 0}]})
+      variant =
+        variant_fixture(%{
+          variants: [
+            %{
+              price: Money.new(:USD, 10),
+              enabled: true,
+              inventory_policy: :not_tracked,
+              quantity_available: 0
+            }
+          ]
+        })
+
       order = order_with_items([{variant, 1}])
 
       # Force nil tax by updating directly
@@ -118,7 +172,18 @@ defmodule Harbor.Checkout.PricingTest do
     end
 
     test "normalizes items with correct line totals" do
-      variant = variant_fixture(%{variants: [%{price: Money.new(:USD, "12.50"), enabled: true, inventory_policy: :not_tracked, quantity_available: 0}]})
+      variant =
+        variant_fixture(%{
+          variants: [
+            %{
+              price: Money.new(:USD, "12.50"),
+              enabled: true,
+              inventory_policy: :not_tracked,
+              quantity_available: 0
+            }
+          ]
+        })
+
       order = order_with_items([{variant, 4}])
       pricing = Pricing.build(order)
 
