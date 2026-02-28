@@ -621,6 +621,90 @@ defmodule Harbor.Web.CoreComponents do
     """
   end
 
+  @doc """
+  Renders a dropdown menu triggered by a vertical ellipsis (three-dot) button.
+
+  Uses `Phoenix.LiveView.JS` to toggle the menu on click and close it when
+  clicking outside.
+
+  ## Examples
+
+      <.dropdown id="order-actions" aria-label="Options for order R123">
+        <:item navigate="/orders/123">View</:item>
+        <:item href="/orders/123/invoice">Invoice</:item>
+      </.dropdown>
+  """
+  attr :id, :string, required: true
+  attr :rest, :global
+
+  slot :item, required: true do
+    attr :navigate, :string
+    attr :href, :string
+    attr :patch, :string
+  end
+
+  def dropdown(assigns) do
+    ~H"""
+    <div class="relative">
+      <button
+        id={"#{@id}-btn"}
+        type="button"
+        class="relative flex items-center text-gray-400 hover:text-gray-500 cursor-pointer"
+        phx-click={toggle_dropdown(@id)}
+        aria-expanded="false"
+        aria-haspopup="true"
+        aria-controls={@id}
+        {@rest}
+      >
+        <span class="absolute -inset-2"></span>
+        <.icon name="hero-ellipsis-vertical" class="size-6" />
+      </button>
+
+      <div
+        id={@id}
+        class="hidden absolute right-0 z-10 mt-2 w-40 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black/5 focus:outline-hidden"
+        phx-click-away={hide_dropdown(@id)}
+      >
+        <div class="py-1" role="menu">
+          <.link
+            :for={item <- @item}
+            navigate={item[:navigate]}
+            href={item[:href]}
+            patch={item[:patch]}
+            class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+            role="menuitem"
+            phx-click={hide_dropdown(@id)}
+          >
+            {render_slot(item)}
+          </.link>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  defp toggle_dropdown(id) do
+    btn = "##{id}-btn"
+
+    JS.toggle(
+      to: "##{id}",
+      in: {"transition ease-out duration-100", "opacity-0 scale-95", "opacity-100 scale-100"},
+      out: {"transition ease-in duration-75", "opacity-100 scale-100", "opacity-0 scale-95"}
+    )
+    |> JS.toggle_attribute({"aria-expanded", "true", "false"}, to: btn)
+  end
+
+  defp hide_dropdown(id) do
+    btn = "##{id}-btn"
+
+    JS.hide(
+      to: "##{id}",
+      transition:
+        {"transition ease-in duration-75", "opacity-100 scale-100", "opacity-0 scale-95"}
+    )
+    |> JS.set_attribute({"aria-expanded", "false"}, to: btn)
+  end
+
   ## JS Commands
 
   def show(js \\ %JS{}, selector) do

@@ -15,6 +15,7 @@ defmodule Harbor.Orders do
     Order
     |> where([o], o.status != :draft)
     |> OrderQuery.apply(query)
+    |> preload(items: [variant: [:option_values, product: :images]])
     |> Repo.all()
   end
 

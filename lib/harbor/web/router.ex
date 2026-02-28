@@ -84,6 +84,7 @@ defmodule Harbor.Web.Router do
 
         live_session :harbor_authenticated,
           on_mount: [{Harbor.Web.UserAuth, :require_authenticated}] do
+          live "/orders", Harbor.Web.OrderLive.Index, :index
           live "/users/settings", Harbor.Web.UserLive.Settings, :edit
 
           live "/users/settings/confirm-email/:token",

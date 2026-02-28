@@ -76,8 +76,8 @@ defmodule Harbor.Web.Admin.OrderLive.Show do
         <:item title="Order number">{@order.number}</:item>
         <:item title="Email">{@order.email}</:item>
         <:item title="Notes">{@order.notes}</:item>
-        <:item title="Created">{Calendar.strftime(@order.inserted_at, "%b %d, %Y %I:%M %p")}</:item>
-        <:item title="Updated">{Calendar.strftime(@order.updated_at, "%b %d, %Y %I:%M %p")}</:item>
+        <:item title="Created">{DateHelpers.format_datetime(@order.inserted_at)}</:item>
+        <:item title="Updated">{DateHelpers.format_datetime(@order.updated_at)}</:item>
       </.list>
 
       <div :if={@order.address_line1} class="mt-8">

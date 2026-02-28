@@ -68,7 +68,7 @@ defmodule Harbor.Web.Admin.OrderLive.Index do
           </:col>
           <:col :let={{_id, order}} label="Total">{Util.formatted_price(order.total_price)}</:col>
           <:col :let={{_id, order}} label="Date">
-            {Calendar.strftime(order.inserted_at, "%b %d, %Y")}
+            {DateHelpers.format_date(order.inserted_at)}
           </:col>
         </.table>
 
