@@ -42,7 +42,7 @@ defmodule Harbor.Migration.V01 do
       add :slug, :string, null: false
       add :position, :integer, null: false, default: 0
       add :parent_id, references(:categories, type: :binary_id)
-      add :parent_ids, {:array, :integer}, null: false, default: []
+      add :parent_ids, {:array, :binary_id}, null: false, default: []
       add :tax_code_id, references(:tax_codes, type: :binary_id), null: false
 
       timestamps()
