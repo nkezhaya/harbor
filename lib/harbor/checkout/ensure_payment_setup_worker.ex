@@ -32,7 +32,7 @@ defmodule Harbor.Checkout.EnsurePaymentSetupWorker do
 
     params = %{
       amount: Util.money_to_cents(pricing.total_price),
-      currency: "usd",
+      currency: String.downcase("#{pricing.total_price.currency}"),
       metadata: %{
         "checkout_session_id" => session.id,
         "order_id" => session.order_id
