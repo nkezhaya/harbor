@@ -4,6 +4,9 @@
 #
 #     $ iex -S mix dev
 #
+# Reference:
+#
+#     https://github.com/phoenixframework/phoenix_live_dashboard/blob/main/dev.exs
 
 Logger.configure(level: :debug)
 

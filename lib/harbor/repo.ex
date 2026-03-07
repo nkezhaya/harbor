@@ -5,6 +5,8 @@ defmodule Harbor.Repo do
   Not meant to be called directly. Use your application's repo instead.
   """
 
+  # Reference: https://github.com/oban-bg/oban/blob/main/lib/oban/repo.ex
+
   import Ecto.Query, only: [limit: 2, offset: 2]
 
   @callbacks [
