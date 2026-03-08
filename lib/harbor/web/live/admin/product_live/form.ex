@@ -3,13 +3,11 @@ defmodule Harbor.Web.Admin.ProductLive.Form do
   Admin LiveView for creating and editing products.
   """
   use Harbor.Web, :live_view
-  import Phoenix.HTML.Form, only: [input_name: 2, normalize_value: 2]
 
   alias Ecto.Changeset
   alias Harbor.{Catalog, Config, Tax, Util}
   alias Harbor.Catalog.Forms.MediaUpload
-  alias Harbor.Catalog.{OptionType, OptionValue, Product, Variant}
-  alias Harbor.Repo
+  alias Harbor.Catalog.{Product, Variant}
 
   @impl true
   def render(assigns) do
@@ -44,35 +42,28 @@ defmodule Harbor.Web.Admin.ProductLive.Form do
         />
 
         <.input
-          field={@form[:category_id]}
+          field={@form[:primary_taxon_id]}
           type="select"
-          label="Category"
-          prompt="Choose a category"
-          options={@category_options}
+          label="Primary Taxon"
+          prompt="Choose a taxon"
+          options={@taxon_options}
+        />
+
+        <.input
+          field={@form[:product_type_id]}
+          type="select"
+          label="Product Type"
+          prompt="Choose a product type"
+          options={@product_type_options}
         />
 
         <.input
           field={@form[:tax_code_id]}
           type="select"
-          label="Tax Code"
+          label="Tax Override"
           prompt="Choose a tax code"
           options={@tax_code_options}
         />
-
-        <.inputs_for
-          :let={variant_form}
-          :if={@form[:option_types].value == []}
-          field={@form[:variants]}
-          append={if @has_variants?, do: [], else: [%Variant{}]}
-        >
-          <.input
-            field={variant_form[:price]}
-            type="text"
-            label="Price"
-            placeholder="0.00"
-            value={format_money_input(variant_form[:price].value)}
-          />
-        </.inputs_for>
 
         <div class="col-span-full">
           <label class="block text-sm/6 font-medium text-gray-900 dark:text-white">
@@ -114,6 +105,7 @@ defmodule Harbor.Web.Admin.ProductLive.Form do
         </ul>
 
         <.variants_card form={@form} />
+
         <footer class="flex flex-wrap items-center gap-3 pt-4">
           <.button phx-disable-with="Saving..." variant="primary">Save Product</.button>
           <.button navigate={return_path(@socket, @return_to, @product)}>Cancel</.button>
@@ -343,9 +335,15 @@ defmodule Harbor.Web.Admin.ProductLive.Form do
     end
   end
 
-  defp category_options(scope) do
-    for category <- Catalog.list_categories(scope) do
-      {category.name, category.id}
+  defp taxon_options(scope) do
+    for taxon <- Catalog.list_taxons(scope) do
+      {taxon.name, taxon.id}
+    end
+  end
+
+  defp product_type_options do
+    for product_type <- Catalog.list_product_types() do
+      {product_type.name, product_type.id}
     end
   end
 
@@ -353,11 +351,7 @@ defmodule Harbor.Web.Admin.ProductLive.Form do
   defp return_to(_), do: "index"
 
   defp apply_action(socket, :edit, %{"id" => id}) do
-    product =
-      id
-      |> Catalog.get_product!()
-      |> Repo.preload([:images, :variants, option_types: [:values]])
-
+    product = Catalog.get_product!(id)
     media_uploads = Enum.map(product.images, &MediaUpload.from_product_image/1)
 
     socket
@@ -368,7 +362,7 @@ defmodule Harbor.Web.Admin.ProductLive.Form do
   end
 
   defp apply_action(socket, :new, _params) do
-    product = %Product{option_types: [], images: [], variants: []}
+    product = %Product{images: [], variants: []}
 
     socket
     |> assign(:page_title, "New Product")

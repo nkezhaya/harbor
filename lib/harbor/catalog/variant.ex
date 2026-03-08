@@ -1,15 +1,14 @@
 defmodule Harbor.Catalog.Variant do
   @moduledoc """
-  Schema and helpers for product variants within the catalog.
+  A variant is a concrete purchasable row for a
+  [Product](`Harbor.Catalog.Product`).
 
-  A variant represents a purchasable permutation of a product with its own SKU,
-  pricing, tax code and inventory tracking state. The helper functions in this
-  module provide convenient access to display data already loaded via
-  associations.
+  It is the record that carries the SKU, price, inventory state, and the
+  specific option values the customer is buying.
   """
   use Harbor.Schema
 
-  alias Harbor.Catalog.{OptionValue, Product, VariantOptionValue}
+  alias Harbor.Catalog.{Product, VariantOptionValue, VariantPropertyValue}
   alias Harbor.Tax.TaxCode
 
   @type t() :: %__MODULE__{}
@@ -27,9 +26,9 @@ defmodule Harbor.Catalog.Variant do
     belongs_to :product, Product
     belongs_to :tax_code, TaxCode
 
-    many_to_many :option_values, OptionValue,
-      join_through: VariantOptionValue,
-      join_keys: [variant_id: :id, option_value_id: :id]
+    has_many :variant_option_values, VariantOptionValue, on_replace: :delete
+    has_many :option_values, through: [:variant_option_values, :option_value]
+    has_many :variant_property_values, VariantPropertyValue, on_replace: :delete
 
     timestamps()
   end
@@ -38,6 +37,7 @@ defmodule Harbor.Catalog.Variant do
   def changeset(variant, attrs) do
     variant
     |> cast(attrs, [
+      :product_id,
       :sku,
       :price,
       :quantity_available,
@@ -51,6 +51,8 @@ defmodule Harbor.Catalog.Variant do
       :enabled,
       :inventory_policy
     ])
+    |> assoc_constraint(:product)
+    |> assoc_constraint(:tax_code)
     |> check_constraint(:price,
       name: :price_gte_zero,
       message: "must be greater than or equal to 0"
@@ -60,16 +62,11 @@ defmodule Harbor.Catalog.Variant do
       message: "must be greater than or equal to 0"
     )
     |> unique_constraint(:sku)
-    |> assoc_constraint(:tax_code)
   end
 
   @doc """
   Returns the first [ProductImage](`Harbor.Catalog.ProductImage`) associated
   with the variant's [Product](`Harbor.Catalog.Product`).
-
-  The variant is expected to have its product association preloaded alongside
-  the `images` collection. When no image is available, or the association is not
-  loaded, `nil` is returned.
   """
   def main_image(%__MODULE__{product: %{images: [image | _]}}), do: image
   def main_image(_variant), do: nil
@@ -77,11 +74,6 @@ defmodule Harbor.Catalog.Variant do
   @doc """
   Returns a user-friendly description for a variant built from its associated
   [OptionValue](`Harbor.Catalog.OptionValue`) records.
-
-  When the `option_values` association is preloaded, the option names are joined
-  with a comma. If no option values are present, the variant's SKU is returned.
-  Returns `nil` when the association is unavailable so callers can decide how to
-  handle missing data.
   """
   def description(%__MODULE__{option_values: option_values, sku: sku})
       when is_list(option_values) do

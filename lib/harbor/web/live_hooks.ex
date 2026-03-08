@@ -15,8 +15,8 @@ defmodule Harbor.Web.LiveHooks do
   def on_mount(:storefront, _params, _session, socket) do
     socket =
       socket
-      |> assign_new(:root_categories, fn ->
-        Catalog.list_root_categories()
+      |> assign_new(:root_taxons, fn ->
+        Catalog.list_root_taxons()
       end)
       |> assign_new(:cart, fn %{current_scope: current_scope} ->
         Checkout.fetch_active_cart_with_items(current_scope)

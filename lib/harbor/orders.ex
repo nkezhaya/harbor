@@ -21,7 +21,7 @@ defmodule Harbor.Orders do
 
   def get_order!(%Scope{} = scope, id) do
     Order
-    |> preload([:customer, items: [variant: :product]])
+    |> preload([:customer, items: [variant: [:option_values, product: :images]]])
     |> Repo.get!(id)
     |> tap(&ensure_authorized!(scope, &1))
   end

@@ -7,9 +7,10 @@ defmodule Harbor.Web.Admin.ProductLive.IndexTest do
   setup :register_and_log_in_admin
 
   setup do
-    category = category_fixture()
-    product = product_fixture(%{category_id: category.id})
-    [category: category, product: product]
+    taxon = taxon_fixture()
+    product_type = product_type_fixture()
+    product = product_fixture(%{primary_taxon_id: taxon.id, product_type_id: product_type.id})
+    [taxon: taxon, product_type: product_type, product: product]
   end
 
   test "lists all products", %{conn: conn, product: product} do
@@ -19,7 +20,7 @@ defmodule Harbor.Web.Admin.ProductLive.IndexTest do
     assert html =~ product.name
   end
 
-  test "saves new product", %{conn: conn, category: category} do
+  test "saves new product", %{conn: conn, taxon: taxon, product_type: product_type} do
     {:ok, index_live, _html} = live(conn, "/admin/products")
 
     assert {:ok, form_live, _} =
@@ -36,7 +37,13 @@ defmodule Harbor.Web.Admin.ProductLive.IndexTest do
 
     assert {:ok, index_live, _html} =
              form_live
-             |> form("#product-form", product: create_attrs(%{category_id: category.id}))
+             |> form("#product-form",
+               product:
+                 create_attrs(%{
+                   primary_taxon_id: taxon.id,
+                   product_type_id: product_type.id
+                 })
+             )
              |> render_submit()
              |> follow_redirect(conn, "/admin/products")
 
@@ -83,7 +90,7 @@ defmodule Harbor.Web.Admin.ProductLive.IndexTest do
       name: "some name",
       status: :draft,
       description: "some description",
-      variants: %{"0" => %{price: "40.00"}}
+      variants: %{"0" => %{price: "40.00", enabled: "true"}}
     })
   end
 
