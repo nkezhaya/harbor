@@ -16,12 +16,13 @@ Supervisor.start_link(
   strategy: :one_for_one
 )
 
-_ = Ecto.Adapters.Postgres.storage_up(Harbor.TestRepo.config())
+Ecto.Adapters.Postgres.storage_up(Harbor.TestRepo.config())
 Ecto.Migrator.up(Harbor.TestRepo, 1, Harbor.Migration)
 Ecto.Migrator.up(Harbor.TestRepo, 2, Oban.Migration)
 Harbor.Seeds.run()
 
 {:ok, _} = Harbor.Web.TestEndpoint.start_link()
+{:ok, _} = Application.ensure_all_started(:credo)
 
 ExUnit.start()
 Ecto.Adapters.SQL.Sandbox.mode(Harbor.TestRepo, :manual)

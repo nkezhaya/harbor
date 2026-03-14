@@ -129,6 +129,7 @@
           {Credo.Check.Refactor.RejectFilter, []},
           {Credo.Check.Refactor.FunctionArity, []},
           {Credo.Check.Refactor.IoPuts, []},
+          {Credo.Check.Refactor.RedundantIgnoredMatch, []},
           {Credo.Check.Refactor.LongQuoteBlocks, []},
           {Credo.Check.Refactor.MapJoin, []},
           {Credo.Check.Refactor.MapMap, []},
