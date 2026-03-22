@@ -1,5 +1,5 @@
 defmodule Harbor.Web.Admin.OrderLive.FormTest do
-  use Harbor.Web.ConnCase, async: true
+  use Harbor.ConnCase, async: true
 
   import Phoenix.LiveViewTest
   import Harbor.OrdersFixtures

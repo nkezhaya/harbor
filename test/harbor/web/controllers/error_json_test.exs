@@ -1,5 +1,5 @@
 defmodule Harbor.Web.ErrorJSONTest do
-  use Harbor.Web.ConnCase, async: true
+  use Harbor.ConnCase, async: true
 
   test "renders 404" do
     assert Harbor.Web.ErrorJSON.render("404.json", %{}) == %{

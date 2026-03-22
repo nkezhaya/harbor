@@ -1,5 +1,5 @@
 defmodule Harbor.Web.UserLive.SettingsTest do
-  use Harbor.Web.ConnCase, async: true
+  use Harbor.ConnCase, async: true
 
   import Harbor.AccountsFixtures
   import Phoenix.LiveViewTest

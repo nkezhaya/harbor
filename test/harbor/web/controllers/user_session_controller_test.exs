@@ -1,5 +1,5 @@
 defmodule Harbor.Web.UserSessionControllerTest do
-  use Harbor.Web.ConnCase, async: true
+  use Harbor.ConnCase, async: true
 
   import Harbor.AccountsFixtures
   alias Harbor.Accounts
