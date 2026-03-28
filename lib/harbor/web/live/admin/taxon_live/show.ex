@@ -45,7 +45,7 @@ defmodule Harbor.Web.Admin.TaxonLive.Show do
 
   @impl true
   def mount(%{"id" => id}, _session, socket) do
-    taxon = Catalog.get_taxon!(socket.assigns.current_scope, id)
+    taxon = Catalog.get_taxon!(id)
 
     {:ok,
      socket

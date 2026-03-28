@@ -474,12 +474,6 @@ defmodule Harbor.Catalog do
     |> Repo.get!(id)
   end
 
-  def get_taxon!(%Scope{} = _scope, id) do
-    Taxon
-    |> preload(:parent)
-    |> Repo.get!(id)
-  end
-
   def create_taxon(%Scope{} = scope, attrs) do
     ensure_admin!(scope)
 

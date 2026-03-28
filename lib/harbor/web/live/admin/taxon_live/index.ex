@@ -84,7 +84,7 @@ defmodule Harbor.Web.Admin.TaxonLive.Index do
 
   @impl true
   def handle_event("delete", %{"id" => id}, %{assigns: %{current_scope: current_scope}} = socket) do
-    taxon = Catalog.get_taxon!(current_scope, id)
+    taxon = Catalog.get_taxon!(id)
     {:ok, _} = Catalog.delete_taxon(current_scope, taxon)
 
     taxons = Catalog.list_taxons()

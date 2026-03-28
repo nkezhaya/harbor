@@ -714,9 +714,8 @@ defmodule Harbor.CatalogTest do
 
   describe "get_taxon!/2" do
     test "returns the taxon with given id" do
-      admin_scope = AccountsFixtures.admin_scope_fixture()
       taxon = taxon_fixture(%{})
-      assert Catalog.get_taxon!(admin_scope, taxon.id) == taxon
+      assert Catalog.get_taxon!(taxon.id) == taxon
     end
   end
 
@@ -775,7 +774,7 @@ defmodule Harbor.CatalogTest do
                  slug: nil
                })
 
-      assert taxon == Catalog.get_taxon!(admin_scope, taxon.id)
+      assert taxon == Catalog.get_taxon!(taxon.id)
     end
 
     test "raises for non-admin scopes" do
@@ -795,7 +794,7 @@ defmodule Harbor.CatalogTest do
       assert {:ok, %Taxon{}} = Catalog.delete_taxon(admin_scope, taxon)
 
       assert_raise Ecto.NoResultsError, fn ->
-        Catalog.get_taxon!(admin_scope, taxon.id)
+        Catalog.get_taxon!(taxon.id)
       end
     end
 

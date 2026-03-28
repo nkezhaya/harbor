@@ -41,7 +41,7 @@ defmodule Harbor.Web.Admin.TaxonLive.Form do
   end
 
   defp apply_action(socket, :edit, %{"id" => id}) do
-    taxon = Catalog.get_taxon!(socket.assigns.current_scope, id)
+    taxon = Catalog.get_taxon!(id)
 
     socket
     |> assign(:page_title, "Edit Taxon")
