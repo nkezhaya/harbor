@@ -20,11 +20,11 @@ defmodule Harbor.Catalog.Property do
   - A suitcase might have a variant-level property called "Packed Weight" if
     different sizes have different shipping weights.
 
-  Properties are different from [OptionType](`Harbor.Catalog.OptionType`)
+  Properties are different from [ProductOption](`Harbor.Catalog.ProductOption`)
   records.
 
-  Use an option type when the choice defines a purchasable combination, such as
-  Size or Color.
+  Use a product option when the choice defines a purchasable combination, such
+  as Size or Color.
 
   Use a property when the value is descriptive data, such as Material, Care
   Instructions, or Country of Origin.

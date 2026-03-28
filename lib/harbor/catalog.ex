@@ -7,18 +7,18 @@ defmodule Harbor.Catalog do
 
   The shirt itself is a [Product](`Harbor.Catalog.Product`). This is the shared
   catalog record for the item that customers recognize. It holds things like the
-  name, description, brand, product type, main merchandising taxon, images, and
-  the list of variants that belong to it.
+  name, description, brand, product type, main merchandising taxon, images,
+  product-owned options, and the list of variants that belong to it.
 
   The brand, such as "Nike" or "Uniqlo", is a
   [Brand](`Harbor.Catalog.Brand`). Brands are reusable catalog records. They
   are not just free-form strings on a product.
 
   The kind of product the shirt is belongs to a
-  [ProductType](`Harbor.Catalog.ProductType`). A product type is an internal
-  authoring template. It answers questions like "what kind of thing is this?"
-  and "which option dimensions and properties usually apply here?" For example,
-  this item might belong to a product type called "T-Shirt".
+  [ProductType](`Harbor.Catalog.ProductType`). A product type is a lightweight
+  internal classification and template. It answers questions like "what kind of
+  thing is this?" and carries default tax information and any property-template
+  behavior Harbor still wants.
 
   Where the product appears in Harbor's navigation is described by a
   [Taxon](`Harbor.Catalog.Taxon`). A taxon is a merchandising node such as
@@ -32,45 +32,29 @@ defmodule Harbor.Catalog do
   Variants are explicit rows. Harbor does not assume every possible combination
   exists.
 
-  The dimensions a variant can vary by are [OptionType](`Harbor.Catalog.OptionType`)
-  records. Common examples are "Size" and "Color". The concrete values inside
-  those dimensions are [OptionValue](`Harbor.Catalog.OptionValue`) records such
-  as "S", "M", "L", "Black", and "White". These are reusable catalog vocabulary,
-  not product-owned strings. A product can choose which option types it uses,
-  and a variant chooses one value from each active option type.
+  The variation structure itself is product-owned. A
+  [ProductOption](`Harbor.Catalog.ProductOption`) is one option on one product,
+  such as Size or Color. Its concrete values are
+  [ProductOptionValue](`Harbor.Catalog.ProductOptionValue`) records such as S,
+  M, Black, or White. A variant chooses one value for each product option
+  through [VariantOptionValue](`Harbor.Catalog.VariantOptionValue`) rows.
 
   Not every important piece of product data should create a new SKU. Descriptive
   data that does not define a purchasable combination belongs in
-  [Property](`Harbor.Catalog.Property`). Examples include "Material", "Fit", or
-  "Country of Origin". Properties can apply at the product level or the variant
+  [Property](`Harbor.Catalog.Property`). Examples include Material, Fit, or
+  Country of Origin. Properties can apply at the product level or the variant
   level, depending on what they describe.
 
   Some properties use shared categorical values. For example, a property like
-  "Material" might draw from a reusable set that contains "Cotton", "Wool", and
-  "Linen". The shared set is a
-  [PropertyValueSet](`Harbor.Catalog.PropertyValueSet`), and the individual
-  choices inside it are [PropertyOption](`Harbor.Catalog.PropertyOption`)
-  records.
+  Material might draw from a reusable set that contains Cotton, Wool, and
+  Linen. The shared set is a [PropertyValueSet](`Harbor.Catalog.PropertyValueSet`),
+  and the individual choices inside it are
+  [PropertyOption](`Harbor.Catalog.PropertyOption`) records.
 
   Product images are [ProductImage](`Harbor.Catalog.ProductImage`) records.
   Images stay attached to the product rather than to individual variants.
-
-  In short:
-
-    * Product: the thing being merchandised
-    * Variant: a specific purchasable row
-    * Brand: who made or owns it
-    * ProductType: the internal template for this kind of item
-    * Taxon: where it sits in Harbor's navigation
-    * OptionType and OptionValue: reusable SKU dimensions like size and color
-    * Property, PropertyValueSet, and PropertyOption: descriptive data that does
-      not necessarily create new SKUs
-    * ProductImage: media attached to the product
-
-  This context exposes the main catalog operations, while the schema modules
-  define the underlying records and relationships.
   """
-  import Ecto.Query, warn: false
+  import Ecto.Query
   import Harbor.Authorization
 
   alias Harbor.Accounts.Scope
@@ -114,20 +98,26 @@ defmodule Harbor.Catalog do
   end
 
   def get_storefront_product_by_slug!(slug) do
+    variant_preload = [
+      :option_values,
+      variant_option_values: [:product_option, :product_option_value]
+    ]
+
     enabled_variants_query =
       Variant
       |> where([v], v.enabled)
       |> order_by([v], asc: v.inserted_at)
-      |> preload([:option_values, variant_option_values: [:option_type, :option_value]])
+      |> preload(^variant_preload)
 
     Product
     |> where([p], p.slug == ^slug and p.status == :active)
     |> preload([
       :brand,
       :primary_taxon,
-      default_variant: [:option_values, variant_option_values: [:option_type, :option_value]],
-      variants: ^enabled_variants_query,
-      images: ^storefront_gallery_query()
+      product_options: :values,
+      default_variant: ^variant_preload,
+      images: ^storefront_gallery_query(),
+      variants: ^enabled_variants_query
     ])
     |> Repo.one!()
   end
@@ -153,13 +143,19 @@ defmodule Harbor.Catalog do
 
   def create_product(attrs) do
     Repo.transact(fn ->
-      persist_product(%Product{}, attrs)
+      persist_product(%Product{product_taxons: []}, attrs)
     end)
   end
 
   def update_product(%Product{} = product, attrs) do
     Repo.transact(fn ->
       persist_product(product, attrs)
+    end)
+  end
+
+  def update_product_variants(%Product{} = product, attrs) do
+    Repo.transact(fn ->
+      persist_product_variants(product, attrs)
     end)
   end
 
@@ -172,41 +168,83 @@ defmodule Harbor.Catalog do
     end)
   end
 
+  def delete_product(%Product{} = product) do
+    Repo.delete(product)
+  end
+
+  def change_product(%Product{} = product, attrs \\ %{}) do
+    product
+    |> Repo.preload([:product_taxons, :variants, product_options: :values])
+    |> put_taxon_ids()
+    |> Product.changeset(attrs)
+  end
+
+  def change_product_variants(%Product{} = product, attrs \\ %{}) do
+    product
+    |> Repo.preload(product_options: :values, variants: :variant_option_values)
+    |> Product.variant_changeset(attrs)
+  end
+
   defp persist_product(%Product{} = product, attrs) do
-    changeset = change_product(product, attrs)
+    changeset =
+      product
+      |> change_product(attrs)
+      |> sync_taxons()
+      |> validate_active_product_has_variants()
 
     with {:ok, product} <- Repo.insert_or_update(changeset),
-         {:ok, product} <- sync_primary_taxon(product),
          {:ok, product} <- ensure_default_variant(product) do
       {:ok, preload_product(product)}
     end
   end
 
-  ## TODO: Temp hack while admin UI gets changes
-  defp sync_primary_taxon(%Product{primary_taxon_id: nil} = product), do: {:ok, product}
+  defp persist_product_variants(%Product{} = product, attrs) do
+    changeset =
+      product
+      |> change_product_variants(attrs)
+      |> clear_default_variant_if_deleted()
+      |> validate_active_product_has_variants()
 
-  defp sync_primary_taxon(%Product{} = product) do
-    Repo.delete_all(
-      from(product_taxon in ProductTaxon,
-        where: product_taxon.product_id == ^product.id,
-        where: product_taxon.taxon_id != ^product.primary_taxon_id
-      )
-    )
-
-    %ProductTaxon{}
-    |> ProductTaxon.changeset(%{
-      product_id: product.id,
-      taxon_id: product.primary_taxon_id,
-      position: 0
-    })
-    |> Repo.insert(
-      on_conflict: [set: [position: 0]],
-      conflict_target: [:product_id, :taxon_id]
-    )
-    |> case do
-      {:ok, _product_taxon} -> {:ok, product}
-      error -> error
+    with {:ok, product} <- Repo.update(changeset),
+         {:ok, product} <- ensure_default_variant(product) do
+      {:ok, preload_product(product)}
     end
+  end
+
+  # NOTE: Ugly hacks while waiting for master variants. To be removed.
+  defp validate_active_product_has_variants(changeset) do
+    case Ecto.Changeset.apply_changes(changeset) do
+      %Product{status: :active, variants: []} ->
+        Ecto.Changeset.add_error(
+          changeset,
+          :status,
+          "active products must have at least one variant"
+        )
+
+      _ ->
+        changeset
+    end
+  end
+
+  defp clear_default_variant_if_deleted(changeset) do
+    default_variant_id = Ecto.Changeset.get_field(changeset, :default_variant_id)
+
+    cond do
+      is_nil(default_variant_id) ->
+        changeset
+
+      default_variant_survives?(changeset, default_variant_id) ->
+        changeset
+
+      true ->
+        Ecto.Changeset.put_change(changeset, :default_variant_id, nil)
+    end
+  end
+
+  defp default_variant_survives?(changeset, default_variant_id) do
+    changeset
+    |> Ecto.Changeset.get_assoc(:variants, :struct)
+    |> Enum.any?(&(&1.id == default_variant_id))
   end
 
   defp ensure_default_variant(%Product{} = product) do
@@ -226,24 +264,83 @@ defmodule Harbor.Catalog do
 
       true ->
         product
-        |> Product.changeset(%{default_variant_id: default_variant.id})
+        |> Ecto.Changeset.change(default_variant_id: default_variant.id)
         |> Repo.update()
     end
   end
 
+  defp sync_taxons(changeset) do
+    existing_product_taxons =
+      changeset
+      |> Ecto.Changeset.get_assoc(:product_taxons, :struct)
+      |> Map.new(&{&1.taxon_id, &1})
+
+    primary_taxon_id = Ecto.Changeset.get_field(changeset, :primary_taxon_id)
+
+    taxon_ids = Ecto.Changeset.get_field(changeset, :taxon_ids) || []
+    taxon_ids = Enum.uniq(taxon_ids)
+
+    taxon_ids =
+      cond do
+        is_nil(primary_taxon_id) ->
+          taxon_ids
+
+        primary_taxon_id in taxon_ids ->
+          taxon_ids
+
+        true ->
+          [primary_taxon_id | taxon_ids]
+      end
+
+    product_taxons =
+      taxon_ids
+      |> Enum.with_index()
+      |> Enum.map(fn {taxon_id, position} ->
+        Map.get(existing_product_taxons, taxon_id, %ProductTaxon{})
+        |> ProductTaxon.changeset(%{taxon_id: taxon_id, position: position})
+      end)
+
+    Ecto.Changeset.put_assoc(changeset, :product_taxons, product_taxons)
+  end
+
   defp preload_product(%Product{} = product) do
-    Repo.preload(product, [
-      :brand,
-      :product_type,
-      :primary_taxon,
-      :default_variant,
-      :images,
-      product_taxons: :taxon,
-      variants: [:option_values, variant_option_values: [:option_type, :option_value]],
-      product_option_types: [option_type: :values],
-      product_option_values: [:option_type, :option_value],
-      product_property_values: [:property, :property_option]
-    ])
+    Repo.preload(
+      product,
+      [
+        :brand,
+        :product_type,
+        :primary_taxon,
+        :images,
+        default_variant: [
+          :option_values,
+          variant_option_values: [:product_option, :product_option_value]
+        ],
+        product_taxons: :taxon,
+        product_options: :values,
+        variants: [
+          :option_values,
+          variant_option_values: [:product_option, :product_option_value]
+        ],
+        product_property_values: [:property, :property_option]
+      ],
+      force: true
+    )
+  end
+
+  defp put_taxon_ids(%Product{} = product) do
+    taxon_ids =
+      cond do
+        Ecto.assoc_loaded?(product.product_taxons) and product.product_taxons != [] ->
+          Enum.map(product.product_taxons, & &1.taxon_id)
+
+        is_nil(product.primary_taxon_id) ->
+          []
+
+        true ->
+          [product.primary_taxon_id]
+      end
+
+    %{product | taxon_ids: taxon_ids}
   end
 
   defp promote_media_uploads(%Product{} = product, media_uploads) do
@@ -297,14 +394,6 @@ defmodule Harbor.Catalog do
   defp image_path(%Product{} = product, %MediaUpload{} = media_upload) do
     [_ | tail] = Path.split(media_upload.key)
     Path.join(["products", product.id, "images"] ++ tail)
-  end
-
-  def delete_product(%Product{} = product) do
-    Repo.delete(product)
-  end
-
-  def change_product(%Product{} = product, attrs \\ %{}) do
-    Product.changeset(product, attrs)
   end
 
   ## Brands

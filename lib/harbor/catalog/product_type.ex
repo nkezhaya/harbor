@@ -2,13 +2,12 @@ defmodule Harbor.Catalog.ProductType do
   @moduledoc """
   A product type is Harbor's internal template for a kind of product.
 
-  It tells the catalog which option dimensions and descriptive properties
-  usually apply, and it carries the default tax classification for that type of
-  item.
+  It carries lightweight classification and default tax information for that
+  kind of item, and may still provide property templates.
   """
   use Harbor.Schema
 
-  alias Harbor.Catalog.{Product, ProductTypeOptionType, ProductTypeProperty}
+  alias Harbor.Catalog.{Product, ProductTypeProperty}
   alias Harbor.Slug
   alias Harbor.Tax.TaxCode
 
@@ -21,8 +20,6 @@ defmodule Harbor.Catalog.ProductType do
     belongs_to :tax_code, TaxCode
 
     has_many :products, Product
-    has_many :product_type_option_types, ProductTypeOptionType, on_replace: :delete
-    has_many :option_types, through: [:product_type_option_types, :option_type]
     has_many :product_type_properties, ProductTypeProperty, on_replace: :delete
     has_many :properties, through: [:product_type_properties, :property]
 

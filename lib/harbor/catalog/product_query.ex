@@ -11,7 +11,7 @@ defmodule Harbor.Catalog.ProductQuery do
   import Harbor.Authorization
   import Harbor.QueryMacros
 
-  alias Harbor.Catalog.{OptionType, OptionValue, Variant, VariantOptionValue}
+  alias Harbor.Catalog.Variant
 
   @primary_key false
   embedded_schema do
@@ -104,15 +104,14 @@ defmodule Harbor.Catalog.ProductQuery do
       end
 
     groups =
-      Enum.flat_map(options, fn {type_slug, value_slugs} ->
-        values = String.split(to_string(value_slugs), ",", trim: true)
-
-        if values == [] do
-          []
-        else
-          [{type_slug, values}]
+      options
+      |> Enum.reduce([], fn {option_name, value_names}, groups ->
+        case String.split(value_names, ",", trim: true) do
+          [] -> groups
+          values -> [{option_name, values} | groups]
         end
       end)
+      |> Enum.reverse()
 
     case groups do
       [] -> q
@@ -121,25 +120,24 @@ defmodule Harbor.Catalog.ProductQuery do
   end
 
   defp option_match_subquery(groups) do
-    dynamic = option_filter_dynamic(groups)
     group_count = length(groups)
 
     Variant
     |> where([v], v.product_id == parent_as(:product).id and v.enabled)
-    |> join(:inner, [v], vov in VariantOptionValue, on: vov.variant_id == v.id, as: :vov)
-    |> join(:inner, [vov: vov], ov in OptionValue, on: ov.id == vov.option_value_id, as: :ov)
-    |> join(:inner, [ov: ov], ot in OptionType, on: ot.id == ov.option_type_id, as: :ot)
-    |> where(^dynamic)
+    |> join(:inner, [v], vov in assoc(v, :variant_option_values), as: :vov)
+    |> join(:inner, [vov: vov], po in assoc(vov, :product_option), as: :po)
+    |> join(:inner, [vov: vov], pov in assoc(vov, :product_option_value), as: :pov)
+    |> where(^option_filter_dynamic(groups))
     |> group_by([v], v.id)
-    |> having([ot: ot], count(fragment("DISTINCT ?", ot.slug)) == ^group_count)
+    |> having([po: po], count(po.name, :distinct) == ^group_count)
     |> select([], 1)
   end
 
   defp option_filter_dynamic(groups) do
-    Enum.reduce(groups, dynamic(false), fn {type_slug, value_slugs}, dynamic_acc ->
+    Enum.reduce(groups, dynamic(false), fn {option_name, value_names}, dynamic_acc ->
       dynamic(
-        [ot: ot, ov: ov],
-        ^dynamic_acc or (ot.slug == ^type_slug and ov.slug in ^value_slugs)
+        [po: po, pov: pov],
+        ^dynamic_acc or (po.name == ^option_name and pov.name in ^value_names)
       )
     end)
   end

@@ -52,7 +52,7 @@ defmodule Harbor.Web.CheckoutLive.Receipt do
                       id="receipt-order-status"
                       class="mt-1 text-sm font-semibold text-gray-900"
                     >
-                      {Phoenix.Naming.humanize(@order.status)}
+                      {humanize(@order.status)}
                     </dd>
                   </div>
                   <div class="rounded-lg bg-white p-4">

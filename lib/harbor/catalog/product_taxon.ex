@@ -14,9 +14,8 @@ defmodule Harbor.Catalog.ProductTaxon do
   @doc false
   def changeset(product_taxon, attrs) do
     product_taxon
-    |> cast(attrs, [:product_id, :taxon_id, :position])
-    |> validate_required([:product_id, :taxon_id, :position])
-    |> assoc_constraint(:product)
+    |> cast(attrs, [:taxon_id, :position])
+    |> validate_required([:taxon_id, :position])
     |> assoc_constraint(:taxon)
     |> check_constraint(:position,
       name: :position_gte_zero,

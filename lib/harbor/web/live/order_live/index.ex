@@ -201,7 +201,7 @@ defmodule Harbor.Web.OrderLive.Index do
         <% _ -> %>
           <.icon name="hero-clock-solid" class="size-5 text-yellow-500" />
           <p class="ml-2 text-sm font-medium text-gray-500">
-            {Phoenix.Naming.humanize(@status)}
+            {humanize(@status)}
           </p>
       <% end %>
     </div>

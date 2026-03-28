@@ -24,6 +24,9 @@ defmodule Harbor.Web.Admin.ProductLive.Show do
             <.icon name="hero-arrow-left" />
             <span class="sr-only">Back to products</span>
           </.button>
+          <.button navigate={admin_path(@socket, "/products/#{@product.id}/variants")}>
+            <.icon name="hero-queue-list" /> Edit variants
+          </.button>
           <.button
             variant="primary"
             navigate={admin_path(@socket, "/products/#{@product.id}/edit?return_to=show")}

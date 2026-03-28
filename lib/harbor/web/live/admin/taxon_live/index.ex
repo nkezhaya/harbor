@@ -73,7 +73,7 @@ defmodule Harbor.Web.Admin.TaxonLive.Index do
 
   @impl true
   def mount(_params, _session, socket) do
-    taxons = Catalog.list_taxons(socket.assigns.current_scope)
+    taxons = Catalog.list_taxons()
 
     {:ok,
      socket
@@ -87,7 +87,7 @@ defmodule Harbor.Web.Admin.TaxonLive.Index do
     taxon = Catalog.get_taxon!(current_scope, id)
     {:ok, _} = Catalog.delete_taxon(current_scope, taxon)
 
-    taxons = Catalog.list_taxons(current_scope)
+    taxons = Catalog.list_taxons()
 
     {:noreply,
      socket

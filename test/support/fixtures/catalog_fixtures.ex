@@ -4,18 +4,6 @@ defmodule Harbor.CatalogFixtures do
   """
   alias Harbor.AccountsFixtures
   alias Harbor.Catalog
-
-  alias Harbor.Catalog.{
-    OptionType,
-    OptionValue,
-    ProductOptionType,
-    ProductOptionValue,
-    ProductTypeOptionType,
-    Variant,
-    VariantOptionValue
-  }
-
-  alias Harbor.Repo
   alias Harbor.TaxFixtures
 
   def product_fixture(attrs \\ %{}) do
@@ -33,7 +21,20 @@ defmodule Harbor.CatalogFixtures do
       })
       |> put_default_variants()
 
-    {:ok, product} = Catalog.create_product(attrs)
+    final_status = Map.fetch!(attrs, :status)
+    variants = Map.get(attrs, :variants, [])
+    create_status = if final_status == :active and variants != [], do: :draft, else: final_status
+
+    create_attrs =
+      attrs
+      |> Map.drop([:variants, :status])
+      |> Map.put(:status, create_status)
+
+    {:ok, product} = Catalog.create_product(create_attrs)
+    product = Catalog.get_product!(product.id)
+    product = maybe_update_variants(product, variants)
+    product = maybe_update_status(product, create_status, final_status)
+
     Catalog.get_product!(product.id)
   end
 
@@ -51,101 +52,42 @@ defmodule Harbor.CatalogFixtures do
     ])
   end
 
-  @doc """
-  Creates a product with reusable option types, allowed values, and explicit
-  variants.
-
-  Returns the product with option types and variants preloaded.
-  """
   def product_with_options_fixture(option_specs, product_attrs \\ %{}) do
-    product = product_fixture(Map.put(product_attrs, :variants, []))
+    taxon = if Map.has_key?(product_attrs, :primary_taxon_id), do: nil, else: taxon_fixture()
 
-    option_types =
-      Enum.with_index(option_specs, fn {type_name, value_names}, type_pos ->
-        option_type =
-          option_type_fixture(%{
-            name: "#{type_name} #{System.unique_integer([:positive])}",
-            slug: Harbor.Slug.to_slug(type_name),
-            position: type_pos
-          })
+    product_type =
+      if Map.has_key?(product_attrs, :product_type_id), do: nil, else: product_type_fixture()
 
-        option_values =
-          Enum.with_index(value_names, fn value_name, value_pos ->
-            option_value_fixture(option_type,
-              name: value_name,
-              slug: Harbor.Slug.to_slug(value_name),
-              position: value_pos
-            )
-          end)
+    final_status = Map.get(product_attrs, :status, :active)
 
-        %ProductTypeOptionType{}
-        |> ProductTypeOptionType.changeset(%{
-          product_type_id: product.product_type_id,
-          option_type_id: option_type.id,
-          position: type_pos
-        })
-        |> Repo.insert!()
+    create_attrs =
+      product_attrs
+      |> Map.drop([:status])
+      |> Enum.into(%{
+        description: "some description",
+        name: "some name #{System.unique_integer([:positive])}",
+        status: :draft,
+        primary_taxon_id: taxon && taxon.id,
+        product_type_id: product_type && product_type.id,
+        product_options: build_product_options(option_specs)
+      })
 
-        %ProductOptionType{}
-        |> ProductOptionType.changeset(%{
-          product_id: product.id,
-          option_type_id: option_type.id,
-          product_type_id: product.product_type_id,
-          position: type_pos
-        })
-        |> Repo.insert!()
+    {:ok, product} = Catalog.create_product(create_attrs)
+    product = Catalog.get_product!(product.id)
 
-        Enum.each(option_values, fn option_value ->
-          %ProductOptionValue{}
-          |> ProductOptionValue.changeset(%{
-            product_id: product.id,
-            option_type_id: option_type.id,
-            option_value_id: option_value.id
-          })
-          |> Repo.insert!()
-        end)
+    {:ok, product} =
+      Catalog.update_product_variants(product, %{
+        variants: build_variants(product.product_options)
+      })
 
-        %{option_type: option_type, option_values: option_values}
-      end)
-
-    variants =
-      option_types
-      |> Enum.map(& &1.option_values)
-      |> cartesian_product()
-      |> Enum.with_index(fn option_values, index ->
-        variant =
-          %Variant{product_id: product.id}
-          |> Variant.changeset(%{
-            sku: "sku-#{product.id}-#{index}",
-            price: Money.new(:USD, 40),
-            inventory_policy: :track_strict,
-            quantity_available: 10,
-            enabled: true
-          })
-          |> Repo.insert!()
-
-        Enum.each(option_values, fn option_value ->
-          %VariantOptionValue{}
-          |> VariantOptionValue.changeset(%{
-            variant_id: variant.id,
-            option_value_id: option_value.id,
-            option_type_id: option_value.option_type_id
-          })
-          |> Repo.insert!()
-        end)
-
-        variant
-      end)
-
-    default_variant = List.first(variants)
-    {:ok, _product} = Catalog.update_product(product, %{default_variant_id: default_variant.id})
+    product = maybe_update_status(product, :draft, final_status)
 
     Catalog.get_product!(product.id)
   end
 
   def variant_fixture(attrs \\ %{}) do
     %{variants: [variant | _]} = product_fixture(attrs)
-    Repo.preload(variant, [:option_values, :product])
+    Harbor.Repo.preload(variant, [:option_values, :product])
   end
 
   def product_image_fixture(attrs \\ %{}) do
@@ -191,29 +133,56 @@ defmodule Harbor.CatalogFixtures do
     product_type
   end
 
-  def option_type_fixture(attrs \\ %{}) do
-    attrs =
-      Enum.into(attrs, %{
-        name: "Option Type #{System.unique_integer([:positive])}",
-        position: 0
-      })
+  defp maybe_update_variants(product, []), do: product
 
-    %OptionType{}
-    |> OptionType.changeset(attrs)
-    |> Repo.insert!()
+  defp maybe_update_variants(product, variants) do
+    {:ok, product} = Catalog.update_product_variants(product, %{variants: variants})
+    product
   end
 
-  def option_value_fixture(%OptionType{} = option_type, attrs \\ %{}) do
-    attrs =
-      Enum.into(attrs, %{
-        name: "Option Value #{System.unique_integer([:positive])}",
-        option_type_id: option_type.id,
-        position: 0
-      })
+  defp maybe_update_status(product, status, status), do: product
 
-    %OptionValue{}
-    |> OptionValue.changeset(attrs)
-    |> Repo.insert!()
+  defp maybe_update_status(product, _current_status, final_status) do
+    {:ok, product} = Catalog.update_product(product, %{status: final_status})
+    product
+  end
+
+  defp build_product_options(option_specs) do
+    Enum.with_index(option_specs, fn {option_name, value_names}, option_position ->
+      %{
+        name: option_name,
+        position: option_position,
+        values:
+          Enum.with_index(value_names, fn value_name, value_position ->
+            %{
+              name: value_name,
+              position: value_position
+            }
+          end)
+      }
+    end)
+  end
+
+  defp build_variants(product_options) do
+    product_options
+    |> Enum.map(& &1.values)
+    |> cartesian_product()
+    |> Enum.with_index(fn product_option_values, index ->
+      %{
+        sku: "sku-#{System.unique_integer([:positive])}-#{index}",
+        price: Money.new(:USD, 40),
+        inventory_policy: :track_strict,
+        quantity_available: 10,
+        enabled: true,
+        variant_option_values:
+          Enum.map(product_option_values, fn product_option_value ->
+            %{
+              product_option_id: product_option_value.product_option_id,
+              product_option_value_id: product_option_value.id
+            }
+          end)
+      }
+    end)
   end
 
   defp cartesian_product([]), do: [[]]

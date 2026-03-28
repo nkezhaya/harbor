@@ -4,8 +4,7 @@ defmodule Harbor.Catalog.Forms.MediaUpload do
   the [Product](`Harbor.Catalog.Product`) is persisted. On save, this gets
   promoted to a [ProductImage](`Harbor.Catalog.ProductImage`).
   """
-  use Ecto.Schema
-  import Ecto.Changeset
+  use Harbor.Schema
 
   alias Harbor.Catalog.ProductImage
 

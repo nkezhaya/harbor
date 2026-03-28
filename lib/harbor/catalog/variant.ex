@@ -4,7 +4,7 @@ defmodule Harbor.Catalog.Variant do
   [Product](`Harbor.Catalog.Product`).
 
   It is the record that carries the SKU, price, inventory state, and the
-  specific option values the customer is buying.
+  specific product option values the customer is buying.
   """
   use Harbor.Schema
 
@@ -27,7 +27,7 @@ defmodule Harbor.Catalog.Variant do
     belongs_to :tax_code, TaxCode
 
     has_many :variant_option_values, VariantOptionValue, on_replace: :delete
-    has_many :option_values, through: [:variant_option_values, :option_value]
+    has_many :option_values, through: [:variant_option_values, :product_option_value]
     has_many :variant_property_values, VariantPropertyValue, on_replace: :delete
 
     timestamps()
@@ -37,7 +37,6 @@ defmodule Harbor.Catalog.Variant do
   def changeset(variant, attrs) do
     variant
     |> cast(attrs, [
-      :product_id,
       :sku,
       :price,
       :quantity_available,
@@ -45,6 +44,7 @@ defmodule Harbor.Catalog.Variant do
       :inventory_policy,
       :tax_code_id
     ])
+    |> cast_assoc(:variant_option_values, with: &VariantOptionValue.changeset/2)
     |> validate_required([
       :price,
       :quantity_available,
@@ -73,7 +73,7 @@ defmodule Harbor.Catalog.Variant do
 
   @doc """
   Returns a user-friendly description for a variant built from its associated
-  [OptionValue](`Harbor.Catalog.OptionValue`) records.
+  [ProductOptionValue](`Harbor.Catalog.ProductOptionValue`) records.
   """
   def description(%__MODULE__{option_values: option_values, sku: sku})
       when is_list(option_values) do

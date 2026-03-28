@@ -153,108 +153,46 @@ defmodule Harbor.Migration.V01 do
       DEFERRABLE INITIALLY DEFERRED
     """
 
-    ## Option Types
+    ## Product Options
 
-    create table(:option_types, primary_key: false) do
+    create table(:product_options, primary_key: false) do
       add :id, :binary_id, primary_key: true, default: fragment("uuidv7()")
-      add :name, :string, null: false
-      add :slug, :string, null: false
+
+      add :product_id,
+          references(:products, type: :binary_id, on_delete: :delete_all),
+          null: false
+
+      add :name, :citext, null: false
       add :position, :integer, null: false, default: 0
 
       timestamps()
     end
 
-    create unique_index(:option_types, [:name])
-    create unique_index(:option_types, [:slug])
-    create constraint(:option_types, :position_gte_zero, check: "position >= 0")
-
-    create table(:option_values, primary_key: false) do
-      add :id, :binary_id, primary_key: true, default: fragment("uuidv7()")
-      add :name, :string, null: false
-      add :slug, :string, null: false
-
-      add :option_type_id, references(:option_types, type: :binary_id, on_delete: :delete_all),
-        null: false
-
-      add :position, :integer, null: false, default: 0
-
-      timestamps()
-    end
-
-    create unique_index(:option_values, [:option_type_id, :name])
-    create unique_index(:option_values, [:option_type_id, :slug])
-
-    create unique_index(:option_values, [:option_type_id, :id],
-             name: :option_values_type_id_id_unique
-           )
-
-    create index(:option_values, [:option_type_id, :position])
-    create constraint(:option_values, :position_gte_zero, check: "position >= 0")
-
-    create table(:product_type_option_types, primary_key: false) do
-      add :product_type_id, references(:product_types, type: :binary_id, on_delete: :delete_all),
-        primary_key: true
-
-      add :option_type_id, references(:option_types, type: :binary_id, on_delete: :delete_all),
-        primary_key: true
-
-      add :position, :integer, null: false, default: 0
-    end
-
-    create index(:product_type_option_types, [:product_type_id, :position])
-    create constraint(:product_type_option_types, :position_gte_zero, check: "position >= 0")
-
-    create table(:product_option_types, primary_key: false) do
-      add :product_id, references(:products, type: :binary_id, on_delete: :delete_all),
-        primary_key: true
-
-      add :option_type_id, references(:option_types, type: :binary_id), primary_key: true
-      add :product_type_id, :binary_id, null: false
-      add :position, :integer, null: false, default: 0
-    end
-
-    create index(:product_option_types, [:product_id, :position])
-    create constraint(:product_option_types, :position_gte_zero, check: "position >= 0")
-
-    execute """
-    ALTER TABLE product_option_types
-      ADD CONSTRAINT product_option_types_product_type_match
-      FOREIGN KEY (product_id, product_type_id)
-      REFERENCES products(id, product_type_id)
-    """
-
-    execute """
-    ALTER TABLE product_option_types
-      ADD CONSTRAINT product_option_types_allowed_by_type
-      FOREIGN KEY (product_type_id, option_type_id)
-      REFERENCES product_type_option_types(product_type_id, option_type_id)
-    """
+    create unique_index(:product_options, [:product_id, :name])
+    create index(:product_options, [:product_id, :position])
+    create constraint(:product_options, :position_gte_zero, check: "position >= 0")
 
     create table(:product_option_values, primary_key: false) do
-      add :product_id, references(:products, type: :binary_id, on_delete: :delete_all),
-        primary_key: true
+      add :id, :binary_id, primary_key: true, default: fragment("uuidv7()")
 
-      add :option_value_id, references(:option_values, type: :binary_id, on_delete: :delete_all),
-        primary_key: true
+      add :product_option_id,
+          references(:product_options, type: :binary_id, on_delete: :delete_all),
+          null: false
 
-      add :option_type_id, :binary_id, null: false
+      add :name, :citext, null: false
+      add :position, :integer, null: false, default: 0
+
+      timestamps()
     end
 
-    create index(:product_option_values, [:product_id, :option_type_id])
+    create unique_index(:product_option_values, [:product_option_id, :name])
 
-    execute """
-    ALTER TABLE product_option_values
-      ADD CONSTRAINT product_option_values_type_match
-      FOREIGN KEY (product_id, option_type_id)
-      REFERENCES product_option_types(product_id, option_type_id)
-    """
+    create unique_index(:product_option_values, [:product_option_id, :id],
+             name: :product_option_values_option_id_id_unique
+           )
 
-    execute """
-    ALTER TABLE product_option_values
-      ADD CONSTRAINT product_option_values_value_match
-      FOREIGN KEY (option_type_id, option_value_id)
-      REFERENCES option_values(option_type_id, id)
-    """
+    create index(:product_option_values, [:product_option_id, :position])
+    create constraint(:product_option_values, :position_gte_zero, check: "position >= 0")
 
     ## Property Definitions
 
@@ -382,34 +320,46 @@ defmodule Harbor.Migration.V01 do
     execute """
     ALTER TABLE products ADD CONSTRAINT products_default_variant_id_fkey
       FOREIGN KEY (default_variant_id, id) REFERENCES variants(id, product_id)
-      ON DELETE SET NULL DEFERRABLE INITIALLY IMMEDIATE
+      DEFERRABLE INITIALLY IMMEDIATE
     """
 
     create index(:products, [:default_variant_id])
 
     create table(:variants_option_values, primary_key: false) do
+      add :id, :binary_id, primary_key: true, default: fragment("uuidv7()")
+
       add :variant_id,
           references(:variants, type: :binary_id, on_delete: :delete_all),
-          primary_key: true
+          null: false
 
-      add :option_value_id,
-          references(:option_values, type: :binary_id, on_delete: :delete_all),
-          primary_key: true
-
-      add :option_type_id, :binary_id, null: false
+      add :product_option_id, :binary_id, null: false
+      add :product_option_value_id, :binary_id, null: false
     end
 
-    create index(:variants_option_values, [:option_value_id])
+    create index(:variants_option_values, [:variant_id])
+    create index(:variants_option_values, [:product_option_id])
+    create index(:variants_option_values, [:product_option_value_id])
 
-    create unique_index(:variants_option_values, [:variant_id, :option_type_id],
-             name: :variants_option_values_one_per_type
+    create unique_index(:variants_option_values, [:variant_id, :product_option_id],
+             name: :variants_option_values_one_per_option
            )
 
     execute """
     ALTER TABLE variants_option_values
-      ADD CONSTRAINT variants_option_values_type_match
-      FOREIGN KEY (option_type_id, option_value_id)
-      REFERENCES option_values(option_type_id, id)
+      ADD CONSTRAINT variants_option_values_product_option_fkey
+      FOREIGN KEY (product_option_id)
+      REFERENCES product_options(id)
+      ON DELETE CASCADE
+      DEFERRABLE INITIALLY DEFERRED
+    """
+
+    execute """
+    ALTER TABLE variants_option_values
+      ADD CONSTRAINT variants_option_values_option_match
+      FOREIGN KEY (product_option_id, product_option_value_id)
+      REFERENCES product_option_values(product_option_id, id)
+      ON DELETE CASCADE
+      DEFERRABLE INITIALLY DEFERRED
     """
 
     ## Property Values
@@ -501,12 +451,34 @@ defmodule Harbor.Migration.V01 do
     AS $$
     DECLARE
       invalid_variant_id uuid;
+      invalid_product_option_id uuid;
+      product_status text;
     BEGIN
       IF p_product_id IS NULL THEN
         RETURN;
       END IF;
 
-      -- Does any variant use an option type that the product does not use?
+      SELECT p.status
+      INTO product_status
+      FROM products p
+      WHERE p.id = p_product_id;
+
+      SELECT po.id
+      INTO invalid_product_option_id
+      FROM product_options po
+      WHERE po.product_id = p_product_id
+        AND NOT EXISTS (
+          SELECT 1
+          FROM product_option_values pov
+          WHERE pov.product_option_id = po.id
+        )
+      LIMIT 1;
+
+      IF invalid_product_option_id IS NOT NULL THEN
+        RAISE EXCEPTION 'product option % has no values for product %', invalid_product_option_id, p_product_id
+          USING CONSTRAINT = 'product_options_must_have_values';
+      END IF;
+
       SELECT v.id
       INTO invalid_variant_id
       FROM variants v
@@ -514,68 +486,41 @@ defmodule Harbor.Migration.V01 do
         AND EXISTS (
           SELECT 1
           FROM variants_option_values vov
+          JOIN product_options po ON po.id = vov.product_option_id
           WHERE vov.variant_id = v.id
-            AND NOT EXISTS (
-              SELECT 1
-              FROM product_option_types pot
-              WHERE pot.product_id = p_product_id
-                AND pot.option_type_id = vov.option_type_id
-            )
+            AND po.product_id != p_product_id
         )
       LIMIT 1;
 
       IF invalid_variant_id IS NOT NULL THEN
-        RAISE EXCEPTION 'variant % uses an option type not configured for product %', invalid_variant_id, p_product_id
-          USING CONSTRAINT = 'variants_match_product_option_types';
+        RAISE EXCEPTION 'variant % uses an option not configured for product %', invalid_variant_id, p_product_id
+          USING CONSTRAINT = 'variants_match_product_options';
       END IF;
 
-      -- If the product explicitly narrows allowed values for an option type,
-      -- does any variant still point at a value outside that allowed subset?
-      SELECT v.id
-      INTO invalid_variant_id
-      FROM variants v
-      WHERE v.product_id = p_product_id
-        AND EXISTS (
-          SELECT 1
-          FROM variants_option_values vov
-          WHERE vov.variant_id = v.id
-            AND EXISTS (
-              SELECT 1
-              FROM product_option_values pov
-              WHERE pov.product_id = p_product_id
-                AND pov.option_type_id = vov.option_type_id
-            )
-            AND NOT EXISTS (
-              SELECT 1
-              FROM product_option_values pov
-              WHERE pov.product_id = p_product_id
-                AND pov.option_type_id = vov.option_type_id
-                AND pov.option_value_id = vov.option_value_id
-            )
-        )
-      LIMIT 1;
-
-      IF invalid_variant_id IS NOT NULL THEN
-        RAISE EXCEPTION 'variant % uses an option value not allowed for product %', invalid_variant_id, p_product_id
-          USING CONSTRAINT = 'variants_use_allowed_option_values';
-      END IF;
-
-      -- Does every variant cover every option type that the product says is
-      -- required for its sellable combinations?
       SELECT v.id
       INTO invalid_variant_id
       FROM variants v
       WHERE v.product_id = p_product_id
         AND (
-          (SELECT COUNT(*) FROM product_option_types pot WHERE pot.product_id = p_product_id)
+          (SELECT COUNT(*) FROM product_options po WHERE po.product_id = p_product_id)
           <>
           (SELECT COUNT(*) FROM variants_option_values vov WHERE vov.variant_id = v.id)
         )
       LIMIT 1;
 
       IF invalid_variant_id IS NOT NULL THEN
-        RAISE EXCEPTION 'variant % does not cover all required option types for product %', invalid_variant_id, p_product_id
-          USING CONSTRAINT = 'variants_cover_all_product_option_types';
+        RAISE EXCEPTION 'variant % does not cover all required product options for product %', invalid_variant_id, p_product_id
+          USING CONSTRAINT = 'variants_cover_all_product_options';
+      END IF;
+
+      IF product_status = 'active'
+         AND NOT EXISTS (
+           SELECT 1
+           FROM variants v
+           WHERE v.product_id = p_product_id
+         ) THEN
+        RAISE EXCEPTION 'active product % must have at least one variant', p_product_id
+          USING CONSTRAINT = 'active_products_must_have_variants';
       END IF;
     END;
     $$
@@ -589,8 +534,11 @@ defmodule Harbor.Migration.V01 do
     DECLARE
       target_product_id uuid;
       target_variant_id uuid;
+      target_product_option_id uuid;
     BEGIN
-      IF TG_TABLE_NAME = 'variants' THEN
+      IF TG_TABLE_NAME = 'products' THEN
+        target_product_id := COALESCE(NEW.id, OLD.id);
+      ELSIF TG_TABLE_NAME = 'variants' THEN
         target_product_id := COALESCE(NEW.product_id, OLD.product_id);
       ELSIF TG_TABLE_NAME = 'variants_option_values' THEN
         target_variant_id := COALESCE(NEW.variant_id, OLD.variant_id);
@@ -599,6 +547,13 @@ defmodule Harbor.Migration.V01 do
         INTO target_product_id
         FROM variants v
         WHERE v.id = target_variant_id;
+      ELSIF TG_TABLE_NAME = 'product_option_values' THEN
+        target_product_option_id := COALESCE(NEW.product_option_id, OLD.product_option_id);
+
+        SELECT po.product_id
+        INTO target_product_id
+        FROM product_options po
+        WHERE po.id = target_product_option_id;
       ELSE
         target_product_id := COALESCE(NEW.product_id, OLD.product_id);
       END IF;
@@ -610,8 +565,8 @@ defmodule Harbor.Migration.V01 do
     """
 
     execute """
-    CREATE CONSTRAINT TRIGGER product_option_types_variant_shape_check
-    AFTER INSERT OR UPDATE OR DELETE ON product_option_types
+    CREATE CONSTRAINT TRIGGER product_options_variant_shape_check
+    AFTER INSERT OR UPDATE OR DELETE ON product_options
     DEFERRABLE INITIALLY DEFERRED
     FOR EACH ROW EXECUTE FUNCTION validate_product_variant_option_shape()
     """
@@ -633,6 +588,13 @@ defmodule Harbor.Migration.V01 do
     execute """
     CREATE CONSTRAINT TRIGGER variants_variant_shape_check
     AFTER INSERT OR UPDATE OR DELETE ON variants
+    DEFERRABLE INITIALLY DEFERRED
+    FOR EACH ROW EXECUTE FUNCTION validate_product_variant_option_shape()
+    """
+
+    execute """
+    CREATE CONSTRAINT TRIGGER products_variant_shape_check
+    AFTER INSERT OR UPDATE ON products
     DEFERRABLE INITIALLY DEFERRED
     FOR EACH ROW EXECUTE FUNCTION validate_product_variant_option_shape()
     """
@@ -1102,13 +1064,15 @@ defmodule Harbor.Migration.V01 do
     execute "DROP TRIGGER IF EXISTS harbor_settings_changed ON settings"
     drop_if_exists table(:settings)
 
+    execute "DROP TRIGGER IF EXISTS products_variant_shape_check ON products"
+
     execute "DROP TRIGGER IF EXISTS variants_variant_shape_check ON variants"
 
     execute "DROP TRIGGER IF EXISTS variants_option_values_variant_shape_check ON variants_option_values"
 
     execute "DROP TRIGGER IF EXISTS product_option_values_variant_shape_check ON product_option_values"
 
-    execute "DROP TRIGGER IF EXISTS product_option_types_variant_shape_check ON product_option_types"
+    execute "DROP TRIGGER IF EXISTS product_options_variant_shape_check ON product_options"
 
     execute "DROP FUNCTION IF EXISTS validate_product_variant_option_shape()"
     execute "DROP FUNCTION IF EXISTS validate_product_variant_option_shape_for_product(uuid)"
@@ -1121,10 +1085,7 @@ defmodule Harbor.Migration.V01 do
     drop_if_exists table(:variants_option_values)
     drop_if_exists table(:variants)
     drop_if_exists table(:product_option_values)
-    drop_if_exists table(:product_option_types)
-    drop_if_exists table(:product_type_option_types)
-    drop_if_exists table(:option_values)
-    drop_if_exists table(:option_types)
+    drop_if_exists table(:product_options)
     drop_if_exists table(:product_type_properties)
     drop_if_exists table(:property_options)
     drop_if_exists table(:properties)

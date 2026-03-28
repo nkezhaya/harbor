@@ -152,6 +152,7 @@ defmodule Harbor.Web.Router do
           live "/products/new", Harbor.Web.Admin.ProductLive.Form, :new
           live "/products/:id", Harbor.Web.Admin.ProductLive.Show, :show
           live "/products/:id/edit", Harbor.Web.Admin.ProductLive.Form, :edit
+          live "/products/:id/variants", Harbor.Web.Admin.ProductLive.VariantForm, :edit
 
           live "/customers", Harbor.Web.Admin.CustomerLive.Index, :index
           live "/customers/new", Harbor.Web.Admin.CustomerLive.Form, :new

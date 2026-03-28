@@ -3,6 +3,7 @@ defmodule Harbor.Orders.Order do
   Ecto schema for orders with status and totals.
   """
   use Harbor.Schema
+  import Money.Validate, only: [validate_money: 3]
 
   alias Harbor.Accounts.Scope
   alias Harbor.Authorization
@@ -77,6 +78,9 @@ defmodule Harbor.Orders.Order do
       :notes
     ])
     |> validate_required([:status, :subtotal, :tax, :shipping_price])
+    |> validate_non_negative_money(:subtotal)
+    |> validate_non_negative_money(:tax)
+    |> validate_non_negative_money(:shipping_price)
     |> cast_assoc(:items)
     |> put_new_order_number()
     |> apply_scope(scope)
@@ -147,11 +151,9 @@ defmodule Harbor.Orders.Order do
 
   defp address_full_name(%Address{first_name: first_name, last_name: last_name}) do
     [first_name, last_name]
-    |> Enum.reject(&blank_string?/1)
+    |> Enum.filter(& &1)
     |> Enum.join(" ")
   end
-
-  defp blank_string?(value), do: value in [nil, ""]
 
   defp apply_scope(changeset, %Scope{} = scope) do
     cond do
@@ -170,6 +172,16 @@ defmodule Harbor.Orders.Order do
     case get_field(changeset, :number) do
       nil -> put_change(changeset, :number, random_order_number())
       _ -> changeset
+    end
+  end
+
+  defp validate_non_negative_money(changeset, field) do
+    case fetch_change(changeset, field) do
+      {:ok, %Money{} = money} ->
+        validate_money(changeset, field, greater_than_or_equal_to: Money.zero(money.currency))
+
+      _ ->
+        changeset
     end
   end
 
