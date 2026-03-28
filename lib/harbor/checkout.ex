@@ -428,7 +428,7 @@ defmodule Harbor.Checkout do
           variant: [
             :tax_code,
             :option_values,
-            product: [:images, :tax_code, category: [:tax_code]]
+            product: [:images, :tax_code, product_type: [:tax_code]]
           ]
         ]
       ]
@@ -625,7 +625,9 @@ defmodule Harbor.Checkout do
   end
 
   defp variant_tax_code_ref(variant) do
-    tax_code = variant.tax_code || variant.product.tax_code || variant.product.category.tax_code
+    tax_code =
+      variant.tax_code || variant.product.tax_code || variant.product.product_type.tax_code
+
     tax_code.provider_ref
   end
 end

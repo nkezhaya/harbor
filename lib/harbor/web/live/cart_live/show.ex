@@ -14,7 +14,7 @@ defmodule Harbor.Web.CartLive.Show do
     <Layouts.app
       flash={@flash}
       current_scope={@current_scope}
-      root_categories={@root_categories}
+      root_taxons={@root_taxons}
       cart={@cart}
     >
       <div class="bg-white">

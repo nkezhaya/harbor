@@ -91,6 +91,7 @@ defmodule Harbor.Web do
 
       # HTML escaping functionality
       import Phoenix.HTML
+      import Phoenix.Naming, only: [humanize: 1]
       # Core UI components
       import Harbor.Web.CoreComponents
       import Harbor.Web.PathHelpers

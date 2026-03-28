@@ -22,7 +22,10 @@ Ecto.Migrator.up(Harbor.TestRepo, 2, Oban.Migration)
 Harbor.Seeds.run()
 
 {:ok, _} = Harbor.Web.TestEndpoint.start_link()
-{:ok, _} = Application.ensure_all_started(:credo)
+
+# Not matching here, since it may or may not be started depending on how tests
+# are run. (mix precommit vs. mix test)
+Application.ensure_all_started(:credo)
 
 ExUnit.start()
 Ecto.Adapters.SQL.Sandbox.mode(Harbor.TestRepo, :manual)

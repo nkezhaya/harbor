@@ -4,7 +4,14 @@ defmodule Harbor.Schema do
   """
   import Ecto.Changeset
 
-  defmacro __using__(_opts) do
+  defmacro __using__(opts) do
+    primary_key =
+      Keyword.get(
+        opts,
+        :primary_key,
+        {:id, :binary_id, autogenerate: false, read_after_writes: true}
+      )
+
     quote do
       use Ecto.Schema
       import Ecto.Changeset
@@ -14,12 +21,7 @@ defmodule Harbor.Schema do
 
       alias Harbor.Accounts.Scope
 
-      Module.put_attribute(
-        __MODULE__,
-        :primary_key,
-        {:id, :binary_id, autogenerate: false, read_after_writes: true}
-      )
-
+      Module.put_attribute(__MODULE__, :primary_key, unquote(Macro.escape(primary_key)))
       Module.put_attribute(__MODULE__, :foreign_key_type, :binary_id)
       Module.put_attribute(__MODULE__, :timestamps_opts, type: :utc_datetime_usec)
       Module.put_attribute(__MODULE__, :schema_prefix, "public")
@@ -41,6 +43,28 @@ defmodule Harbor.Schema do
     case get_change(changeset, :delete) do
       true -> %{changeset | action: :delete}
       _ -> changeset
+    end
+  end
+
+  def put_ignore_unless_changed(changeset, fields \\ [])
+
+  def put_ignore_unless_changed(%{valid?: true} = changeset, _fields) do
+    changeset
+  end
+
+  def put_ignore_unless_changed(%{valid?: false, changes: changes} = changeset, []) do
+    if changes == %{} do
+      %{changeset | action: :ignore}
+    else
+      changeset
+    end
+  end
+
+  def put_ignore_unless_changed(%{valid?: false} = changeset, fields) do
+    if Enum.any?(fields, &changed?(changeset, &1)) do
+      changeset
+    else
+      %{changeset | action: :ignore}
     end
   end
 

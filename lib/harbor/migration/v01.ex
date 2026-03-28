@@ -34,32 +34,64 @@ defmodule Harbor.Migration.V01 do
     create unique_index(:tax_codes, [:provider, :provider_ref])
     create index(:tax_codes, [:position])
 
-    ## Categories
+    ## Brands
 
-    create table(:categories, primary_key: false) do
+    create table(:brands, primary_key: false) do
       add :id, :binary_id, primary_key: true, default: fragment("uuidv7()")
       add :name, :string, null: false
       add :slug, :string, null: false
+      add :description, :text
+      add :logo_path, :string
       add :position, :integer, null: false, default: 0
-      add :parent_id, references(:categories, type: :binary_id)
-      add :parent_ids, {:array, :binary_id}, null: false, default: []
+
+      timestamps()
+    end
+
+    create unique_index(:brands, [:name])
+    create unique_index(:brands, [:slug])
+    create constraint(:brands, :position_gte_zero, check: "position >= 0")
+
+    ## Product Types
+
+    create table(:product_types, primary_key: false) do
+      add :id, :binary_id, primary_key: true, default: fragment("uuidv7()")
+      add :name, :string, null: false
+      add :slug, :string, null: false
       add :tax_code_id, references(:tax_codes, type: :binary_id), null: false
 
       timestamps()
     end
 
-    create unique_index(:categories, [:slug])
-    create unique_index(:categories, [:parent_id, :name], nulls_distinct: false)
-    create index(:categories, [:parent_id, :position])
-    create index(:categories, [:parent_ids], using: :gin)
+    create unique_index(:product_types, [:name])
+    create unique_index(:product_types, [:slug])
 
-    create constraint(:categories, :parent_cannot_be_self,
+    ## Taxons
+
+    create table(:taxons, primary_key: false) do
+      add :id, :binary_id, primary_key: true, default: fragment("uuidv7()")
+      add :name, :string, null: false
+      add :slug, :string, null: false
+      add :position, :integer, null: false, default: 0
+      add :parent_id, references(:taxons, type: :binary_id)
+      add :parent_ids, {:array, :binary_id}, null: false, default: []
+
+      timestamps()
+    end
+
+    create unique_index(:taxons, [:slug])
+    create unique_index(:taxons, [:parent_id, :name], nulls_distinct: false)
+    create index(:taxons, [:parent_id, :position])
+    create index(:taxons, [:parent_ids], using: :gin)
+
+    create constraint(:taxons, :parent_cannot_be_self,
              check: "parent_id IS NULL OR parent_id != id"
            )
 
+    create constraint(:taxons, :position_gte_zero, check: "position >= 0")
+
     execute """
-    ALTER TABLE categories
-        ADD CONSTRAINT categories_parent_id_position_unique
+    ALTER TABLE taxons
+        ADD CONSTRAINT taxons_parent_id_position_unique
         UNIQUE NULLS NOT DISTINCT (parent_id, position)
         DEFERRABLE INITIALLY DEFERRED
     """
@@ -73,7 +105,9 @@ defmodule Harbor.Migration.V01 do
       add :description, :text
       add :status, :string, null: false, default: "draft"
       add :physical_product, :boolean, null: false, default: true
-      add :category_id, references(:categories, type: :binary_id), null: false
+      add :brand_id, references(:brands, type: :binary_id)
+      add :product_type_id, references(:product_types, type: :binary_id), null: false
+      add :primary_taxon_id, references(:taxons, type: :binary_id), null: false
       add :tax_code_id, references(:tax_codes, type: :binary_id)
       add :default_variant_id, :binary_id
 
@@ -84,48 +118,172 @@ defmodule Harbor.Migration.V01 do
              check: "status in ('draft', 'active', 'archived')"
            )
 
-    create index(:products, [:category_id])
     create unique_index(:products, [:slug], where: "status = 'active'")
+    create index(:products, [:brand_id])
+    create index(:products, [:product_type_id])
+    create index(:products, [:primary_taxon_id])
+
+    create unique_index(:products, [:id, :product_type_id],
+             name: :products_id_product_type_id_unique
+           )
 
     execute "CREATE INDEX products_name_trgm ON products USING gin (name gin_trgm_ops)"
 
-    ## Variants
+    ## Product Taxons
 
-    create table(:option_types, primary_key: false) do
+    create table(:product_taxons, primary_key: false) do
+      add :product_id, references(:products, type: :binary_id, on_delete: :delete_all),
+        primary_key: true
+
+      add :taxon_id, references(:taxons, type: :binary_id, on_delete: :delete_all),
+        primary_key: true
+
+      add :position, :integer, null: false, default: 0
+    end
+
+    create index(:product_taxons, [:taxon_id])
+    create index(:product_taxons, [:product_id, :position])
+    create constraint(:product_taxons, :position_gte_zero, check: "position >= 0")
+
+    execute """
+    ALTER TABLE products
+      ADD CONSTRAINT products_primary_taxon_in_taxons
+      FOREIGN KEY (id, primary_taxon_id)
+      REFERENCES product_taxons(product_id, taxon_id)
+      DEFERRABLE INITIALLY DEFERRED
+    """
+
+    ## Product Options
+
+    create table(:product_options, primary_key: false) do
       add :id, :binary_id, primary_key: true, default: fragment("uuidv7()")
-      add :name, :string, null: false
-      add :slug, :string, null: false
 
       add :product_id,
           references(:products, type: :binary_id, on_delete: :delete_all),
           null: false
 
+      add :name, :citext, null: false
       add :position, :integer, null: false, default: 0
 
       timestamps()
     end
 
-    create unique_index(:option_types, [:product_id, :name])
-    create unique_index(:option_types, [:product_id, :slug])
-    create constraint(:option_types, :position_gte_zero, check: "position >= 0")
+    create unique_index(:product_options, [:product_id, :name])
+    create index(:product_options, [:product_id, :position])
+    create constraint(:product_options, :position_gte_zero, check: "position >= 0")
 
-    create table(:option_values, primary_key: false) do
+    create table(:product_option_values, primary_key: false) do
+      add :id, :binary_id, primary_key: true, default: fragment("uuidv7()")
+
+      add :product_option_id,
+          references(:product_options, type: :binary_id, on_delete: :delete_all),
+          null: false
+
+      add :name, :citext, null: false
+      add :position, :integer, null: false, default: 0
+
+      timestamps()
+    end
+
+    create unique_index(:product_option_values, [:product_option_id, :name])
+
+    create unique_index(:product_option_values, [:product_option_id, :id],
+             name: :product_option_values_option_id_id_unique
+           )
+
+    create index(:product_option_values, [:product_option_id, :position])
+    create constraint(:product_option_values, :position_gte_zero, check: "position >= 0")
+
+    ## Property Definitions
+
+    create table(:property_groups, primary_key: false) do
+      add :id, :binary_id, primary_key: true, default: fragment("uuidv7()")
+      add :name, :string, null: false
+      add :slug, :string, null: false
+      add :position, :integer, null: false, default: 0
+
+      timestamps()
+    end
+
+    create unique_index(:property_groups, [:slug])
+    create constraint(:property_groups, :position_gte_zero, check: "position >= 0")
+
+    create table(:property_value_sets, primary_key: false) do
       add :id, :binary_id, primary_key: true, default: fragment("uuidv7()")
       add :name, :string, null: false
       add :slug, :string, null: false
 
-      add :option_type_id,
-          references(:option_types, type: :binary_id, on_delete: :delete_all),
-          null: false
+      timestamps()
+    end
 
+    create unique_index(:property_value_sets, [:name])
+    create unique_index(:property_value_sets, [:slug])
+
+    create table(:properties, primary_key: false) do
+      add :id, :binary_id, primary_key: true, default: fragment("uuidv7()")
+      add :property_group_id, references(:property_groups, type: :binary_id), null: false
+
+      add :property_value_set_id,
+          references(:property_value_sets, type: :binary_id, on_delete: :nilify_all)
+
+      add :name, :string, null: false
+      add :slug, :string, null: false
+      add :value_type, :string, null: false
+      add :unit, :string
+      add :applies_to, :string, null: false
+      add :filterable, :boolean, null: false, default: false
+      add :multi_value, :boolean, null: false, default: false
       add :position, :integer, null: false, default: 0
 
       timestamps()
     end
 
-    create unique_index(:option_values, [:option_type_id, :name])
-    create unique_index(:option_values, [:option_type_id, :slug])
-    create constraint(:option_values, :position_gte_zero, check: "position >= 0")
+    create unique_index(:properties, [:slug])
+    create index(:properties, [:property_group_id, :position])
+    create index(:properties, [:property_value_set_id])
+    create constraint(:properties, :position_gte_zero, check: "position >= 0")
+
+    create constraint(:properties, :check_value_type,
+             check: "value_type in ('string', 'text', 'integer', 'decimal', 'boolean', 'date')"
+           )
+
+    create constraint(:properties, :check_applies_to,
+             check: "applies_to in ('product', 'variant')"
+           )
+
+    create table(:property_options, primary_key: false) do
+      add :id, :binary_id, primary_key: true, default: fragment("uuidv7()")
+
+      add :property_value_set_id,
+          references(:property_value_sets, type: :binary_id, on_delete: :delete_all), null: false
+
+      add :name, :string, null: false
+      add :slug, :string, null: false
+      add :position, :integer, null: false, default: 0
+
+      timestamps()
+    end
+
+    create unique_index(:property_options, [:property_value_set_id, :name])
+    create unique_index(:property_options, [:property_value_set_id, :slug])
+    create index(:property_options, [:property_value_set_id, :position])
+    create constraint(:property_options, :position_gte_zero, check: "position >= 0")
+
+    create table(:product_type_properties, primary_key: false) do
+      add :product_type_id, references(:product_types, type: :binary_id, on_delete: :delete_all),
+        primary_key: true
+
+      add :property_id, references(:properties, type: :binary_id, on_delete: :delete_all),
+        primary_key: true
+
+      add :required, :boolean, null: false, default: false
+      add :position, :integer, null: false, default: 0
+    end
+
+    create index(:product_type_properties, [:product_type_id, :position])
+    create constraint(:product_type_properties, :position_gte_zero, check: "position >= 0")
+
+    ## Variants
 
     create table(:variants, primary_key: false) do
       add :id, :binary_id, primary_key: true, default: fragment("uuidv7()")
@@ -155,31 +313,293 @@ defmodule Harbor.Migration.V01 do
              check: "inventory_policy IN ('not_tracked', 'track_strict', 'track_allow')"
            )
 
-    create table(:variants_option_values, primary_key: false) do
-      add :variant_id,
-          references(:variants, type: :binary_id, on_delete: :delete_all),
-          primary_key: true
-
-      add :option_value_id,
-          references(:option_values, type: :binary_id, on_delete: :delete_all),
-          primary_key: true
-    end
-
-    create index(:variants_option_values, [:option_value_id])
-
     # This seems redundant, but is required so we can create a composite foreign
     # key on the products table based on (variants.id, variants.product_id)
     execute "ALTER TABLE variants ADD CONSTRAINT variants_primary UNIQUE (id, product_id)"
 
-    # Ensure that the variant pointed to by "products" is actually a variant of
-    # the specific product
     execute """
     ALTER TABLE products ADD CONSTRAINT products_default_variant_id_fkey
       FOREIGN KEY (default_variant_id, id) REFERENCES variants(id, product_id)
-      ON DELETE SET NULL DEFERRABLE INITIALLY IMMEDIATE
+      DEFERRABLE INITIALLY IMMEDIATE
     """
 
     create index(:products, [:default_variant_id])
+
+    create table(:variants_option_values, primary_key: false) do
+      add :id, :binary_id, primary_key: true, default: fragment("uuidv7()")
+
+      add :variant_id,
+          references(:variants, type: :binary_id, on_delete: :delete_all),
+          null: false
+
+      add :product_option_id, :binary_id, null: false
+      add :product_option_value_id, :binary_id, null: false
+    end
+
+    create index(:variants_option_values, [:variant_id])
+    create index(:variants_option_values, [:product_option_id])
+    create index(:variants_option_values, [:product_option_value_id])
+
+    create unique_index(:variants_option_values, [:variant_id, :product_option_id],
+             name: :variants_option_values_one_per_option
+           )
+
+    execute """
+    ALTER TABLE variants_option_values
+      ADD CONSTRAINT variants_option_values_product_option_fkey
+      FOREIGN KEY (product_option_id)
+      REFERENCES product_options(id)
+      ON DELETE CASCADE
+      DEFERRABLE INITIALLY DEFERRED
+    """
+
+    execute """
+    ALTER TABLE variants_option_values
+      ADD CONSTRAINT variants_option_values_option_match
+      FOREIGN KEY (product_option_id, product_option_value_id)
+      REFERENCES product_option_values(product_option_id, id)
+      ON DELETE CASCADE
+      DEFERRABLE INITIALLY DEFERRED
+    """
+
+    ## Property Values
+
+    create table(:product_property_values, primary_key: false) do
+      add :id, :binary_id, primary_key: true, default: fragment("uuidv7()")
+
+      add :product_id, references(:products, type: :binary_id, on_delete: :delete_all),
+        null: false
+
+      add :property_id, references(:properties, type: :binary_id), null: false
+      add :property_option_id, references(:property_options, type: :binary_id)
+      add :string_value, :string
+      add :text_value, :text
+      add :integer_value, :integer
+      add :decimal_value, :decimal
+      add :boolean_value, :boolean
+      add :date_value, :date
+
+      timestamps()
+    end
+
+    create index(:product_property_values, [:product_id])
+    create index(:product_property_values, [:property_id])
+
+    create unique_index(:product_property_values, [:product_id, :property_id],
+             where: "property_option_id IS NULL",
+             name: :product_property_values_single_unique
+           )
+
+    create unique_index(
+             :product_property_values,
+             [:product_id, :property_id, :property_option_id],
+             where: "property_option_id IS NOT NULL",
+             name: :product_property_values_multi_unique
+           )
+
+    create index(:product_property_values, [:property_id, :string_value])
+    create index(:product_property_values, [:property_id, :integer_value])
+    create index(:product_property_values, [:property_id, :decimal_value])
+    create index(:product_property_values, [:property_id, :boolean_value])
+    create index(:product_property_values, [:property_id, :date_value])
+    create index(:product_property_values, [:property_id, :property_option_id])
+
+    create table(:variant_property_values, primary_key: false) do
+      add :id, :binary_id, primary_key: true, default: fragment("uuidv7()")
+
+      add :variant_id, references(:variants, type: :binary_id, on_delete: :delete_all),
+        null: false
+
+      add :property_id, references(:properties, type: :binary_id), null: false
+      add :property_option_id, references(:property_options, type: :binary_id)
+      add :string_value, :string
+      add :text_value, :text
+      add :integer_value, :integer
+      add :decimal_value, :decimal
+      add :boolean_value, :boolean
+      add :date_value, :date
+
+      timestamps()
+    end
+
+    create index(:variant_property_values, [:variant_id])
+    create index(:variant_property_values, [:property_id])
+
+    create unique_index(:variant_property_values, [:variant_id, :property_id],
+             where: "property_option_id IS NULL",
+             name: :variant_property_values_single_unique
+           )
+
+    create unique_index(
+             :variant_property_values,
+             [:variant_id, :property_id, :property_option_id],
+             where: "property_option_id IS NOT NULL",
+             name: :variant_property_values_multi_unique
+           )
+
+    create index(:variant_property_values, [:property_id, :property_option_id])
+    create index(:variant_property_values, [:property_id, :integer_value])
+    create index(:variant_property_values, [:property_id, :decimal_value])
+    create index(:variant_property_values, [:property_id, :date_value])
+
+    ## Variant shape validation
+
+    execute """
+    CREATE OR REPLACE FUNCTION validate_product_variant_option_shape_for_product(p_product_id uuid)
+    RETURNS void
+    LANGUAGE plpgsql
+    AS $$
+    DECLARE
+      invalid_variant_id uuid;
+      invalid_product_option_id uuid;
+      product_status text;
+    BEGIN
+      IF p_product_id IS NULL THEN
+        RETURN;
+      END IF;
+
+      SELECT p.status
+      INTO product_status
+      FROM products p
+      WHERE p.id = p_product_id;
+
+      SELECT po.id
+      INTO invalid_product_option_id
+      FROM product_options po
+      WHERE po.product_id = p_product_id
+        AND NOT EXISTS (
+          SELECT 1
+          FROM product_option_values pov
+          WHERE pov.product_option_id = po.id
+        )
+      LIMIT 1;
+
+      IF invalid_product_option_id IS NOT NULL THEN
+        RAISE EXCEPTION 'product option % has no values for product %', invalid_product_option_id, p_product_id
+          USING CONSTRAINT = 'product_options_must_have_values';
+      END IF;
+
+      SELECT v.id
+      INTO invalid_variant_id
+      FROM variants v
+      WHERE v.product_id = p_product_id
+        AND EXISTS (
+          SELECT 1
+          FROM variants_option_values vov
+          JOIN product_options po ON po.id = vov.product_option_id
+          WHERE vov.variant_id = v.id
+            AND po.product_id != p_product_id
+        )
+      LIMIT 1;
+
+      IF invalid_variant_id IS NOT NULL THEN
+        RAISE EXCEPTION 'variant % uses an option not configured for product %', invalid_variant_id, p_product_id
+          USING CONSTRAINT = 'variants_match_product_options';
+      END IF;
+
+      SELECT v.id
+      INTO invalid_variant_id
+      FROM variants v
+      WHERE v.product_id = p_product_id
+        AND (
+          (SELECT COUNT(*) FROM product_options po WHERE po.product_id = p_product_id)
+          <>
+          (SELECT COUNT(*) FROM variants_option_values vov WHERE vov.variant_id = v.id)
+        )
+      LIMIT 1;
+
+      IF invalid_variant_id IS NOT NULL THEN
+        RAISE EXCEPTION 'variant % does not cover all required product options for product %', invalid_variant_id, p_product_id
+          USING CONSTRAINT = 'variants_cover_all_product_options';
+      END IF;
+
+      IF product_status = 'active'
+         AND NOT EXISTS (
+           SELECT 1
+           FROM variants v
+           WHERE v.product_id = p_product_id
+         ) THEN
+        RAISE EXCEPTION 'active product % must have at least one variant', p_product_id
+          USING CONSTRAINT = 'active_products_must_have_variants';
+      END IF;
+    END;
+    $$
+    """
+
+    execute """
+    CREATE OR REPLACE FUNCTION validate_product_variant_option_shape()
+    RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+    DECLARE
+      target_product_id uuid;
+      target_variant_id uuid;
+      target_product_option_id uuid;
+    BEGIN
+      IF TG_TABLE_NAME = 'products' THEN
+        target_product_id := COALESCE(NEW.id, OLD.id);
+      ELSIF TG_TABLE_NAME = 'variants' THEN
+        target_product_id := COALESCE(NEW.product_id, OLD.product_id);
+      ELSIF TG_TABLE_NAME = 'variants_option_values' THEN
+        target_variant_id := COALESCE(NEW.variant_id, OLD.variant_id);
+
+        SELECT v.product_id
+        INTO target_product_id
+        FROM variants v
+        WHERE v.id = target_variant_id;
+      ELSIF TG_TABLE_NAME = 'product_option_values' THEN
+        target_product_option_id := COALESCE(NEW.product_option_id, OLD.product_option_id);
+
+        SELECT po.product_id
+        INTO target_product_id
+        FROM product_options po
+        WHERE po.id = target_product_option_id;
+      ELSE
+        target_product_id := COALESCE(NEW.product_id, OLD.product_id);
+      END IF;
+
+      PERFORM validate_product_variant_option_shape_for_product(target_product_id);
+      RETURN NULL;
+    END;
+    $$
+    """
+
+    execute """
+    CREATE CONSTRAINT TRIGGER product_options_variant_shape_check
+    AFTER INSERT OR UPDATE OR DELETE ON product_options
+    DEFERRABLE INITIALLY DEFERRED
+    FOR EACH ROW EXECUTE FUNCTION validate_product_variant_option_shape()
+    """
+
+    execute """
+    CREATE CONSTRAINT TRIGGER product_option_values_variant_shape_check
+    AFTER INSERT OR UPDATE OR DELETE ON product_option_values
+    DEFERRABLE INITIALLY DEFERRED
+    FOR EACH ROW EXECUTE FUNCTION validate_product_variant_option_shape()
+    """
+
+    execute """
+    CREATE CONSTRAINT TRIGGER variants_option_values_variant_shape_check
+    AFTER INSERT OR UPDATE OR DELETE ON variants_option_values
+    DEFERRABLE INITIALLY DEFERRED
+    FOR EACH ROW EXECUTE FUNCTION validate_product_variant_option_shape()
+    """
+
+    execute """
+    CREATE CONSTRAINT TRIGGER variants_variant_shape_check
+    AFTER INSERT OR UPDATE OR DELETE ON variants
+    DEFERRABLE INITIALLY DEFERRED
+    FOR EACH ROW EXECUTE FUNCTION validate_product_variant_option_shape()
+    """
+
+    execute """
+    CREATE CONSTRAINT TRIGGER products_variant_shape_check
+    AFTER INSERT OR UPDATE ON products
+    DEFERRABLE INITIALLY DEFERRED
+    FOR EACH ROW EXECUTE FUNCTION validate_product_variant_option_shape()
+    """
+
+    ## Product Images
 
     create table(:product_images, primary_key: false) do
       add :id, :binary_id, primary_key: true, default: fragment("uuidv7()")
@@ -622,7 +1042,6 @@ defmodule Harbor.Migration.V01 do
     drop_if_exists table(:payment_profiles)
     drop_if_exists table(:cart_items)
 
-    # Remove cart_id from orders before dropping carts
     alter table(:orders) do
       remove :cart_id
     end
@@ -632,7 +1051,6 @@ defmodule Harbor.Migration.V01 do
     drop_if_exists table(:orders)
     drop_if_exists table(:delivery_methods)
 
-    # Remove address FKs from customers before dropping addresses
     execute "ALTER TABLE customers DROP CONSTRAINT IF EXISTS customers_default_shipping_address_id_fkey"
 
     execute "ALTER TABLE customers DROP CONSTRAINT IF EXISTS customers_default_billing_address_id_fkey"
@@ -643,20 +1061,42 @@ defmodule Harbor.Migration.V01 do
     drop_if_exists table(:users_tokens)
     drop_if_exists table(:users)
 
-    # Remove default_variant_id FK from products before dropping variants
+    execute "DROP TRIGGER IF EXISTS harbor_settings_changed ON settings"
+    drop_if_exists table(:settings)
+
+    execute "DROP TRIGGER IF EXISTS products_variant_shape_check ON products"
+
+    execute "DROP TRIGGER IF EXISTS variants_variant_shape_check ON variants"
+
+    execute "DROP TRIGGER IF EXISTS variants_option_values_variant_shape_check ON variants_option_values"
+
+    execute "DROP TRIGGER IF EXISTS product_option_values_variant_shape_check ON product_option_values"
+
+    execute "DROP TRIGGER IF EXISTS product_options_variant_shape_check ON product_options"
+
+    execute "DROP FUNCTION IF EXISTS validate_product_variant_option_shape()"
+    execute "DROP FUNCTION IF EXISTS validate_product_variant_option_shape_for_product(uuid)"
+
     execute "ALTER TABLE products DROP CONSTRAINT IF EXISTS products_default_variant_id_fkey"
 
     drop_if_exists table(:product_images)
+    drop_if_exists table(:variant_property_values)
+    drop_if_exists table(:product_property_values)
     drop_if_exists table(:variants_option_values)
     drop_if_exists table(:variants)
-    drop_if_exists table(:option_values)
-    drop_if_exists table(:option_types)
+    drop_if_exists table(:product_option_values)
+    drop_if_exists table(:product_options)
+    drop_if_exists table(:product_type_properties)
+    drop_if_exists table(:property_options)
+    drop_if_exists table(:properties)
+    drop_if_exists table(:property_value_sets)
+    drop_if_exists table(:property_groups)
+    drop_if_exists table(:product_taxons)
     drop_if_exists table(:products)
-    drop_if_exists table(:categories)
+    drop_if_exists table(:taxons)
+    drop_if_exists table(:product_types)
+    drop_if_exists table(:brands)
     drop_if_exists table(:tax_codes)
-
-    execute "DROP TRIGGER IF EXISTS harbor_settings_changed ON settings"
-    drop_if_exists table(:settings)
 
     execute(Money.DDL.drop_money_with_currency())
   end

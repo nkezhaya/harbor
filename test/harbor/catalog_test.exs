@@ -3,8 +3,8 @@ defmodule Harbor.CatalogTest do
   import Harbor.CatalogFixtures
 
   alias Harbor.AccountsFixtures
-  alias Harbor.{Catalog, Repo}
-  alias Harbor.Catalog.{Category, Product, ProductImage}
+  alias Harbor.Catalog
+  alias Harbor.Catalog.{Product, ProductImage, Taxon}
   alias Harbor.TaxFixtures
 
   describe "list_products/2" do
@@ -26,14 +26,14 @@ defmodule Harbor.CatalogTest do
       assert product.id == active.id
     end
 
-    test "filters by category slug", %{scope: scope} do
-      cat1 = category_fixture(%{name: "Apparel"})
-      cat2 = category_fixture(%{name: "Electronics"})
+    test "filters by taxon slug", %{scope: scope} do
+      taxon_1 = taxon_fixture(%{name: "Apparel"})
+      taxon_2 = taxon_fixture(%{name: "Electronics"})
 
-      p1 = product_fixture(%{name: "Shirt", category_id: cat1.id})
-      _p2 = product_fixture(%{name: "Phone", category_id: cat2.id})
+      p1 = product_fixture(%{name: "Shirt", primary_taxon_id: taxon_1.id})
+      _p2 = product_fixture(%{name: "Phone", primary_taxon_id: taxon_2.id})
 
-      assert %{entries: [product]} = Catalog.list_products(scope, %{"category" => cat1.slug})
+      assert %{entries: [product]} = Catalog.list_products(scope, %{"taxon" => taxon_1.slug})
       assert product.id == p1.id
     end
 
@@ -121,8 +121,7 @@ defmodule Harbor.CatalogTest do
       product_fixture(%{name: "Zebra"})
       product_fixture(%{name: "Apple"})
 
-      assert %{entries: [first, second]} =
-               Catalog.list_products(scope, %{"sort" => "name_asc"})
+      assert %{entries: [first, second]} = Catalog.list_products(scope, %{"sort" => "name_asc"})
 
       assert first.name == "Apple"
       assert second.name == "Zebra"
@@ -172,8 +171,7 @@ defmodule Harbor.CatalogTest do
     test "clamps page to total_pages", %{scope: scope} do
       product_fixture()
 
-      assert %{page: 1, total_pages: 1} =
-               Catalog.list_products(scope, %{"page" => "999"})
+      assert %{page: 1, total_pages: 1} = Catalog.list_products(scope, %{"page" => "999"})
     end
 
     test "clamps per_page to 100", %{scope: scope} do
@@ -225,7 +223,8 @@ defmodule Harbor.CatalogTest do
   describe "create_product/1" do
     test "with valid data creates a product" do
       tax_code = TaxFixtures.get_general_tax_code!()
-      category = category_fixture()
+      taxon = taxon_fixture()
+      product_type = product_type_fixture()
 
       valid_attrs = %{
         name: "some name",
@@ -233,7 +232,8 @@ defmodule Harbor.CatalogTest do
         description: "some description",
         slug: "some slug",
         tax_code_id: tax_code.id,
-        category_id: category.id
+        primary_taxon_id: taxon.id,
+        product_type_id: product_type.id
       }
 
       assert {:ok, %Product{} = product} = Catalog.create_product(valid_attrs)
@@ -242,6 +242,7 @@ defmodule Harbor.CatalogTest do
       assert product.description == "some description"
       assert product.slug == "some-slug"
       assert product.tax_code_id == tax_code.id
+      assert product.variants == []
     end
 
     test "with invalid data returns error changeset" do
@@ -249,79 +250,130 @@ defmodule Harbor.CatalogTest do
                Catalog.create_product(%{name: nil, status: nil, description: nil, slug: nil})
     end
 
-    test "fails when default_variant_id does not belong to the product" do
-      other_product = product_fixture()
-      variant = List.first(other_product.variants)
-      tax_code = TaxFixtures.get_general_tax_code!()
-      category = category_fixture()
+    test "creates product-owned options without variants" do
+      taxon = taxon_fixture()
+      product_type = product_type_fixture()
 
       attrs = %{
-        name: "other product",
+        name: "Trail Shoe",
         status: :draft,
-        description: "desc",
-        category_id: category.id,
-        tax_code_id: tax_code.id,
-        default_variant_id: variant.id
-      }
-
-      assert {:error, changeset} = Catalog.create_product(attrs)
-      assert "does not exist" in errors_on(changeset).default_variant_id
-
-      attrs = %{attrs | default_variant_id: Ecto.UUID.generate()}
-      assert {:error, changeset} = Catalog.create_product(attrs)
-      assert "does not exist" in errors_on(changeset).default_variant_id
-    end
-
-    test "generates variants from option type permutations" do
-      category = category_fixture()
-
-      attrs = %{
-        name: "T-Shirt",
-        status: :active,
-        category_id: category.id,
-        option_types: [
+        primary_taxon_id: taxon.id,
+        product_type_id: product_type.id,
+        product_options: [
           %{
-            name: "Color",
-            position: 0,
+            name: "Size",
             values: [
-              %{name: "Red", position: 0},
-              %{name: "Blue", position: 1}
+              %{name: "8"},
+              %{name: "9"}
             ]
           },
           %{
-            name: "Size",
-            position: 1,
+            name: "Color",
             values: [
-              %{name: "S", position: 0},
-              %{name: "M", position: 1}
+              %{name: "Black"},
+              %{name: "White"}
             ]
           }
         ]
       }
 
       assert {:ok, product} = Catalog.create_product(attrs)
-      assert length(product.variants) == 4
-      assert product.default_variant_id
+      assert Enum.map(product.product_options, & &1.name) == ["Size", "Color"]
+      assert product.variants == []
+    end
 
-      product = Repo.preload(product, variants: :option_values)
+    test "rejects product options with no values" do
+      taxon = taxon_fixture()
+      product_type = product_type_fixture()
 
-      option_value_sets =
-        product.variants
-        |> Enum.map(fn variant ->
-          variant.option_values |> Enum.map(& &1.name) |> Enum.sort()
-        end)
-        |> Enum.sort()
+      attrs = %{
+        name: "Trail Shoe",
+        status: :draft,
+        primary_taxon_id: taxon.id,
+        product_type_id: product_type.id,
+        product_options: [
+          %{name: "Size", values: []}
+        ]
+      }
 
-      assert option_value_sets == [
-               ["Blue", "M"],
-               ["Blue", "S"],
-               ["M", "Red"],
-               ["Red", "S"]
+      assert {:error, changeset} = Catalog.create_product(attrs)
+      assert errors_on(changeset).product_options == [%{values: ["must have at least one value"]}]
+    end
+
+    test "rejects duplicate product option names regardless of case" do
+      taxon = taxon_fixture()
+      product_type = product_type_fixture()
+
+      attrs = %{
+        name: "Trail Shoe",
+        status: :draft,
+        primary_taxon_id: taxon.id,
+        product_type_id: product_type.id,
+        product_options: [
+          %{name: "Size", values: [%{name: "8"}]},
+          %{name: "size", values: [%{name: "9"}]}
+        ]
+      }
+
+      assert {:error, changeset} = Catalog.create_product(attrs)
+      assert errors_on(changeset).product_options == [%{}, %{name: ["has already been taken"]}]
+    end
+
+    test "rejects duplicate product option value names regardless of case" do
+      taxon = taxon_fixture()
+      product_type = product_type_fixture()
+
+      attrs = %{
+        name: "Trail Shoe",
+        status: :draft,
+        primary_taxon_id: taxon.id,
+        product_type_id: product_type.id,
+        product_options: [
+          %{name: "Size", values: [%{name: "Small"}, %{name: "small"}]}
+        ]
+      }
+
+      assert {:error, changeset} = Catalog.create_product(attrs)
+
+      assert errors_on(changeset).product_options == [
+               %{values: [%{}, %{name: ["has already been taken"]}]}
              ]
+    end
 
-      for variant <- product.variants do
-        assert length(variant.option_values) == 2
-      end
+    test "rejects active products without variants" do
+      taxon = taxon_fixture()
+      product_type = product_type_fixture()
+
+      attrs = %{
+        name: "Trail Shoe",
+        status: :active,
+        primary_taxon_id: taxon.id,
+        product_type_id: product_type.id
+      }
+
+      assert {:error, changeset} = Catalog.create_product(attrs)
+      assert errors_on(changeset).status == ["active products must have at least one variant"]
+    end
+
+    test "fails when default_variant_id does not belong to the product" do
+      other_product = product_fixture()
+      variant = List.first(other_product.variants)
+      tax_code = TaxFixtures.get_general_tax_code!()
+      taxon = taxon_fixture()
+      product_type = product_type_fixture()
+
+      attrs = %{
+        name: "other product",
+        status: :draft,
+        description: "desc",
+        primary_taxon_id: taxon.id,
+        tax_code_id: tax_code.id,
+        product_type_id: product_type.id,
+        default_variant_id: variant.id
+      }
+
+      assert {:error, changeset} = Catalog.create_product(attrs)
+      assert "does not exist" in errors_on(changeset).default_variant_id
     end
   end
 
@@ -365,6 +417,205 @@ defmodule Harbor.CatalogTest do
                Catalog.update_product(product, %{default_variant_id: variant.id})
 
       assert updated.default_variant_id == variant.id
+    end
+
+    test "changing product type does not rewrite product options" do
+      product_type = product_type_fixture()
+      replacement_product_type = product_type_fixture()
+
+      product =
+        product_with_options_fixture(
+          [{"Size", ["S", "M"]}, {"Color", ["Black", "White"]}],
+          %{product_type_id: product_type.id}
+        )
+
+      option_snapshot =
+        Enum.map(product.product_options, fn product_option ->
+          {product_option.name, Enum.map(product_option.values, & &1.name)}
+        end)
+
+      assert {:ok, product} =
+               Catalog.update_product(product, %{product_type_id: replacement_product_type.id})
+
+      assert product.product_type_id == replacement_product_type.id
+
+      assert Enum.map(product.product_options, fn product_option ->
+               {product_option.name, Enum.map(product_option.values, & &1.name)}
+             end) == option_snapshot
+    end
+
+    test "rejects option changes once variants exist" do
+      product = product_with_options_fixture([{"Size", ["S", "M"]}])
+
+      assert {:error, changeset} =
+               Catalog.update_product(product, %{
+                 product_options: [
+                   %{
+                     id: List.first(product.product_options).id,
+                     name: "Size",
+                     values: [%{name: "L"}]
+                   }
+                 ]
+               })
+
+      assert errors_on(changeset).product_options == ["cannot be changed once variants exist"]
+    end
+
+    test "rejects activating a product with no variants" do
+      product = product_fixture(%{status: :draft, variants: []})
+
+      assert {:error, changeset} = Catalog.update_product(product, %{status: :active})
+      assert errors_on(changeset).status == ["active products must have at least one variant"]
+    end
+  end
+
+  describe "update_product_variants/2" do
+    test "creates explicit variant rows without generating missing combinations" do
+      product = product_fixture(%{status: :draft, variants: []})
+
+      attrs = %{
+        variants: [
+          %{
+            sku: "tee-black-s",
+            price: Money.new(:USD, 20),
+            inventory_policy: :track_strict,
+            quantity_available: 5,
+            enabled: true
+          },
+          %{
+            sku: "tee-black-m",
+            price: Money.new(:USD, 20),
+            inventory_policy: :track_strict,
+            quantity_available: 4,
+            enabled: true
+          }
+        ]
+      }
+
+      assert {:ok, product} = Catalog.update_product_variants(product, attrs)
+      assert length(product.variants) == 2
+      assert product.default_variant_id
+    end
+
+    test "creates variant selections for persisted product options" do
+      product = product_fixture(%{status: :draft, variants: []})
+
+      assert {:ok, product} =
+               Catalog.update_product(product, %{
+                 product_options: [
+                   %{
+                     name: "Size",
+                     values: [%{name: "8"}, %{name: "9"}]
+                   },
+                   %{
+                     name: "Color",
+                     values: [%{name: "Black"}, %{name: "White"}]
+                   }
+                 ]
+               })
+
+      [size_option, color_option] = product.product_options
+      [small_value | _] = size_option.values
+      [black_value | _] = color_option.values
+
+      attrs = %{
+        variants: [
+          %{
+            sku: "trail-shoe-8-black",
+            price: Money.new(:USD, 80),
+            inventory_policy: :track_strict,
+            quantity_available: 10,
+            enabled: true,
+            variant_option_values: [
+              %{product_option_id: size_option.id, product_option_value_id: small_value.id},
+              %{product_option_id: color_option.id, product_option_value_id: black_value.id}
+            ]
+          }
+        ]
+      }
+
+      assert {:ok, product} = Catalog.update_product_variants(product, attrs)
+
+      assert Enum.map(product.variants, fn variant ->
+               variant.option_values
+               |> Enum.map(& &1.name)
+               |> Enum.sort()
+             end) == [["8", "Black"]]
+    end
+
+    test "rejects variants that do not cover every product option" do
+      product = product_fixture(%{status: :draft, variants: []})
+
+      assert {:ok, product} =
+               Catalog.update_product(product, %{
+                 product_options: [
+                   %{name: "Size", values: [%{name: "8"}]},
+                   %{name: "Color", values: [%{name: "Black"}]}
+                 ]
+               })
+
+      [size_option | _] = product.product_options
+      [small_value | _] = size_option.values
+
+      attrs = %{
+        variants: [
+          %{
+            sku: "trail-shoe-8",
+            price: Money.new(:USD, 80),
+            inventory_policy: :track_strict,
+            quantity_available: 10,
+            enabled: true,
+            variant_option_values: [
+              %{product_option_id: size_option.id, product_option_value_id: small_value.id}
+            ]
+          }
+        ]
+      }
+
+      Harbor.TestRepo.query!("""
+      SET CONSTRAINTS variants_option_values_variant_shape_check,
+                      variants_variant_shape_check,
+                      products_variant_shape_check IMMEDIATE
+      """)
+
+      error =
+        assert_raise Postgrex.Error, fn ->
+          Catalog.update_product_variants(product, attrs)
+        end
+
+      assert error.postgres.constraint == "variants_cover_all_product_options"
+    end
+
+    test "clears default_variant_id when deleting the default variant" do
+      product = product_with_options_fixture([{"Size", ["S", "M"]}])
+      default_variant = product.default_variant
+      other_variant = Enum.find(product.variants, &(&1.id != default_variant.id))
+
+      attrs = %{
+        "variants" => %{
+          "0" => %{"id" => default_variant.id},
+          "1" => %{"id" => other_variant.id}
+        },
+        "variants_sort" => ["0", "1"],
+        "variants_drop" => ["0"]
+      }
+
+      assert {:ok, product} = Catalog.update_product_variants(product, attrs)
+      assert product.default_variant_id == other_variant.id
+    end
+
+    test "rejects removing the last variant from an active product" do
+      product = product_fixture()
+      variant = List.first(product.variants)
+
+      attrs = %{
+        "variants" => %{"0" => %{"id" => variant.id}},
+        "variants_sort" => ["0"],
+        "variants_drop" => ["0"]
+      }
+
+      assert {:error, changeset} = Catalog.update_product_variants(product, attrs)
+      assert errors_on(changeset).status == ["active products must have at least one variant"]
     end
   end
 
@@ -453,138 +704,123 @@ defmodule Harbor.CatalogTest do
     end
   end
 
-  describe "list_categories/1" do
-    test "returns all categories for admins" do
-      admin_scope = AccountsFixtures.admin_scope_fixture()
-      category = category_fixture(%{})
+  describe "list_taxons/0" do
+    test "returns all taxons" do
+      taxon = taxon_fixture(%{})
 
-      assert Catalog.list_categories(admin_scope) == [category]
-    end
-
-    test "raises for non-admin scopes" do
-      user_scope = AccountsFixtures.user_scope_fixture()
-
-      assert_raise Harbor.UnauthorizedError, fn ->
-        Catalog.list_categories(user_scope)
-      end
+      assert Catalog.list_taxons() == [taxon]
     end
   end
 
-  describe "get_category!/2" do
-    test "returns the category with given id" do
-      admin_scope = AccountsFixtures.admin_scope_fixture()
-      category = category_fixture(%{})
-      assert Catalog.get_category!(admin_scope, category.id) == category
+  describe "get_taxon!/2" do
+    test "returns the taxon with given id" do
+      taxon = taxon_fixture(%{})
+      assert Catalog.get_taxon!(taxon.id) == taxon
     end
   end
 
-  describe "create_category/2" do
-    test "with valid data creates a category" do
+  describe "create_taxon/2" do
+    test "with valid data creates a taxon" do
       admin_scope = AccountsFixtures.admin_scope_fixture()
-      tax_code = TaxFixtures.get_general_tax_code!()
 
       valid_attrs = %{
         name: "some name",
         position: 42,
-        slug: "some slug",
-        tax_code_id: tax_code.id
+        slug: "some slug"
       }
 
-      assert {:ok, %Category{} = category} = Catalog.create_category(admin_scope, valid_attrs)
-      assert category.name == "some name"
-      assert category.position == 42
-      assert category.slug == "some-slug"
+      assert {:ok, taxon} = Catalog.create_taxon(admin_scope, valid_attrs)
+      assert taxon.name == "some name"
+      assert taxon.position == 42
+      assert taxon.slug == "some-slug"
     end
 
     test "with invalid data returns error changeset" do
       admin_scope = AccountsFixtures.admin_scope_fixture()
 
       assert {:error, %Ecto.Changeset{}} =
-               Catalog.create_category(admin_scope, %{name: nil, position: nil, slug: nil})
+               Catalog.create_taxon(admin_scope, %{name: nil, position: nil, slug: nil})
     end
 
     test "raises for non-admin scopes" do
       user_scope = AccountsFixtures.user_scope_fixture()
-      tax_code = TaxFixtures.get_general_tax_code!()
 
       assert_raise Harbor.UnauthorizedError, fn ->
-        Catalog.create_category(user_scope, %{name: "foo", tax_code_id: tax_code.id})
+        Catalog.create_taxon(user_scope, %{name: "foo"})
       end
     end
   end
 
-  describe "update_category/3" do
-    test "with valid data updates the category" do
+  describe "update_taxon/3" do
+    test "with valid data updates the taxon" do
       admin_scope = AccountsFixtures.admin_scope_fixture()
-      category = category_fixture(%{})
+      taxon = taxon_fixture(%{})
       update_attrs = %{name: "some updated name", position: 43, slug: "some updated slug"}
 
-      assert {:ok, %Category{} = category} =
-               Catalog.update_category(admin_scope, category, update_attrs)
-
-      assert category.name == "some updated name"
-      assert category.position == 43
-      assert category.slug == "some-updated-slug"
+      assert {:ok, taxon} = Catalog.update_taxon(admin_scope, taxon, update_attrs)
+      assert taxon.name == "some updated name"
+      assert taxon.position == 43
+      assert taxon.slug == "some-updated-slug"
     end
 
     test "with invalid data returns error changeset" do
       admin_scope = AccountsFixtures.admin_scope_fixture()
-      category = category_fixture(%{})
+      taxon = taxon_fixture(%{})
 
       assert {:error, %Ecto.Changeset{}} =
-               Catalog.update_category(admin_scope, category, %{
+               Catalog.update_taxon(admin_scope, taxon, %{
                  name: nil,
                  position: nil,
                  slug: nil
                })
 
-      assert category == Catalog.get_category!(admin_scope, category.id)
+      assert taxon == Catalog.get_taxon!(taxon.id)
     end
 
     test "raises for non-admin scopes" do
-      category = category_fixture(%{})
+      taxon = taxon_fixture(%{})
       user_scope = AccountsFixtures.user_scope_fixture()
 
       assert_raise Harbor.UnauthorizedError, fn ->
-        Catalog.update_category(user_scope, category, %{name: "updated"})
+        Catalog.update_taxon(user_scope, taxon, %{name: "updated"})
       end
     end
   end
 
-  describe "delete_category/2" do
-    test "deletes the category" do
+  describe "delete_taxon/2" do
+    test "deletes the taxon" do
       admin_scope = AccountsFixtures.admin_scope_fixture()
-      category = category_fixture(%{})
-      assert {:ok, %Category{}} = Catalog.delete_category(admin_scope, category)
+      taxon = taxon_fixture(%{})
+      assert {:ok, %Taxon{}} = Catalog.delete_taxon(admin_scope, taxon)
 
       assert_raise Ecto.NoResultsError, fn ->
-        Catalog.get_category!(admin_scope, category.id)
+        Catalog.get_taxon!(taxon.id)
       end
     end
 
     test "raises for non-admin scopes" do
-      category = category_fixture(%{})
+      taxon = taxon_fixture(%{})
       user_scope = AccountsFixtures.user_scope_fixture()
 
       assert_raise Harbor.UnauthorizedError, fn ->
-        Catalog.delete_category(user_scope, category)
+        Catalog.delete_taxon(user_scope, taxon)
       end
     end
   end
 
-  describe "change_category/3" do
-    test "returns a category changeset" do
+  describe "change_taxon/3" do
+    test "returns a taxon changeset" do
       admin_scope = AccountsFixtures.admin_scope_fixture()
-      category = category_fixture(%{})
-      assert %Ecto.Changeset{} = Catalog.change_category(admin_scope, category)
+      taxon = taxon_fixture(%{})
+      assert %Ecto.Changeset{} = Catalog.change_taxon(admin_scope, taxon)
     end
 
     test "raises for non-admin scopes" do
-      category = category_fixture(%{})
+      taxon = taxon_fixture(%{})
       user_scope = AccountsFixtures.user_scope_fixture()
 
       assert_raise Harbor.UnauthorizedError, fn ->
-        Catalog.change_category(user_scope, category)
+        Catalog.change_taxon(user_scope, taxon)
       end
     end
   end

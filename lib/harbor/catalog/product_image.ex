@@ -1,6 +1,8 @@
 defmodule Harbor.Catalog.ProductImage do
   @moduledoc """
-  Ecto schema for product images with attachment handling.
+  A product image stores media attached to a
+  [Product](`Harbor.Catalog.Product`), along with its upload state and display
+  order.
   """
   use Harbor.Schema
 

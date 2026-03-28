@@ -24,6 +24,9 @@ defmodule Harbor.Web.Admin.ProductLive.Show do
             <.icon name="hero-arrow-left" />
             <span class="sr-only">Back to products</span>
           </.button>
+          <.button navigate={admin_path(@socket, "/products/#{@product.id}/variants")}>
+            <.icon name="hero-queue-list" /> Edit variants
+          </.button>
           <.button
             variant="primary"
             navigate={admin_path(@socket, "/products/#{@product.id}/edit?return_to=show")}
@@ -38,6 +41,8 @@ defmodule Harbor.Web.Admin.ProductLive.Show do
         <:item title="Slug">{@product.slug}</:item>
         <:item title="Description">{@product.description}</:item>
         <:item title="Status">{@product.status}</:item>
+        <:item title="Primary Taxon">{@product.primary_taxon && @product.primary_taxon.name}</:item>
+        <:item title="Product Type">{@product.product_type && @product.product_type.name}</:item>
       </.list>
     </AdminLayouts.app>
     """

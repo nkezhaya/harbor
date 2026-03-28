@@ -32,7 +32,7 @@ defmodule Harbor.Web.Layouts do
     doc: "the current [scope](https://hexdocs.pm/phoenix/scopes.html)"
 
   attr :cart, Harbor.Checkout.Cart, default: nil
-  attr :root_categories, :list, default: [], doc: "top-level product categories for navigation"
+  attr :root_taxons, :list, default: [], doc: "top-level product taxons for navigation"
   slot :inner_block, required: true
 
   def app(assigns) do
@@ -69,11 +69,11 @@ defmodule Harbor.Web.Layouts do
 
         <nav class="mt-8 space-y-6 text-base font-medium text-gray-900">
           <a
-            :for={category <- @root_categories}
-            href={"/shop/#{category.slug}"}
+            :for={taxon <- @root_taxons}
+            href={"/shop/#{taxon.slug}"}
             class="block"
           >
-            {category.name}
+            {taxon.name}
           </a>
         </nav>
 
@@ -121,11 +121,11 @@ defmodule Harbor.Web.Layouts do
             <div class="hidden lg:flex lg:h-full lg:items-center lg:justify-center">
               <div class="flex gap-10 text-sm font-medium text-gray-700">
                 <a
-                  :for={category <- @root_categories}
-                  href={"/shop/#{category.slug}"}
+                  :for={taxon <- @root_taxons}
+                  href={"/shop/#{taxon.slug}"}
                   class="transition hover:text-gray-900"
                 >
-                  {category.name}
+                  {taxon.name}
                 </a>
               </div>
             </div>

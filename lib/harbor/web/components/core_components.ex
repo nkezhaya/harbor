@@ -161,7 +161,7 @@ defmodule Harbor.Web.CoreComponents do
     ~H"""
     <div class="overflow-hidden bg-white shadow-sm sm:rounded-lg dark:bg-gray-800/50 dark:shadow-none dark:outline dark:-outline-offset-1 dark:outline-white/10">
       <div
-        :if={@title != [] || @actions != []}
+        :if={@title != [] || @action != []}
         class="border-b border-gray-200 px-4 py-5 sm:px-6 dark:border-white/10"
       >
         <div class="-mt-2 -ml-4 flex flex-wrap items-center justify-between sm:flex-nowrap">
@@ -171,9 +171,9 @@ defmodule Harbor.Web.CoreComponents do
             </h3>
           </div>
           <div class="mt-2 ml-4 shrink-0">
-            <%= for action <- @action do %>
+            <div :for={action <- @action} class="contents">
               {render_slot(action)}
-            <% end %>
+            </div>
           </div>
         </div>
       </div>
@@ -256,27 +256,67 @@ defmodule Harbor.Web.CoreComponents do
     ~H"""
     <div class="space-y-1.5">
       <input type="hidden" name={@name} value="false" disabled={@rest[:disabled]} />
-      <div class="flex items-start gap-3">
-        <input
-          type="checkbox"
-          id={@id}
-          name={@name}
-          value="true"
-          checked={@checked}
-          class={
-            @class ||
-              "col-start-1 row-start-1 size-4 shrink-0 appearance-none rounded-sm border border-gray-300 bg-white checked:border-indigo-600 checked:bg-indigo-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:border-gray-300 disabled:bg-gray-100 dark:border-white/10 dark:bg-white/5 dark:checked:border-indigo-500 dark:checked:bg-indigo-500 dark:focus-visible:outline-indigo-500"
-          }
-          {@rest}
-        />
-        <label
-          :if={@label}
-          for={@id}
-          class="text-sm/6 font-medium text-gray-900 dark:text-white"
-        >
-          {@label}
-        </label>
+      <div class="flex gap-3">
+        <div class="flex h-6 shrink-0 items-center">
+          <div class="group grid size-4 grid-cols-1">
+            <input
+              type="checkbox"
+              id={@id}
+              name={@name}
+              value="true"
+              checked={@checked}
+              class={[
+                @class || checkbox_input_base_class(),
+                @errors != [] && (@error_class || checkbox_input_error_class())
+              ]}
+              {@rest}
+            />
+            <svg
+              viewBox="0 0 14 14"
+              fill="none"
+              class="pointer-events-none col-start-1 row-start-1 size-3.5 self-center justify-self-center stroke-white group-has-disabled:stroke-gray-950/25 dark:group-has-disabled:stroke-white/25"
+            >
+              <path
+                d="M3 8L6 11L11 3.5"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="opacity-0 group-has-checked:opacity-100"
+              />
+            </svg>
+          </div>
+        </div>
+        <div class="text-sm/6">
+          <label :if={@label} for={@id} class="font-medium text-gray-900 dark:text-white">
+            {@label}
+          </label>
+          <.error :for={msg <- @errors}>{msg}</.error>
+        </div>
       </div>
+    </div>
+    """
+  end
+
+  def input(%{type: "select", multiple: true} = assigns) do
+    ~H"""
+    <div class="space-y-1.5">
+      <label :if={@label} for={@id} class="block text-sm/6 font-medium text-gray-900 dark:text-white">
+        {@label}
+      </label>
+      <input type="hidden" name={@name} value="" />
+      <select
+        id={@id}
+        name={@name}
+        class={[
+          @class || select_input_base_class(),
+          "min-h-32 pr-3",
+          @errors != [] && (@error_class || select_input_error_class())
+        ]}
+        multiple
+        {@rest}
+      >
+        {Phoenix.HTML.Form.options_for_select(@options, @value)}
+      </select>
       <.error :for={msg <- @errors}>{msg}</.error>
     </div>
     """
@@ -372,6 +412,14 @@ defmodule Harbor.Web.CoreComponents do
     "text-red-900 outline-red-300 focus-visible:outline-red-500 dark:text-red-300 dark:outline-red-500/50 dark:focus-visible:outline-red-400"
   end
 
+  defp checkbox_input_base_class do
+    "col-start-1 row-start-1 appearance-none rounded-sm border border-gray-300 bg-white checked:border-indigo-600 checked:bg-indigo-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:border-gray-300 disabled:bg-gray-100 disabled:checked:bg-gray-100 dark:border-white/10 dark:bg-white/5 dark:checked:border-indigo-500 dark:checked:bg-indigo-500 dark:focus-visible:outline-indigo-500 dark:disabled:border-white/5 dark:disabled:bg-white/10 dark:disabled:checked:bg-white/10 forced-colors:appearance-auto"
+  end
+
+  defp checkbox_input_error_class do
+    "border-red-300 focus-visible:outline-red-500 dark:border-red-500/50 dark:focus-visible:outline-red-400"
+  end
+
   defp textarea_input_base_class do
     "block w-full min-h-[8rem] rounded-md bg-white px-3 py-2 text-base text-gray-900 shadow-xs outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-indigo-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:outline-white/10 dark:placeholder:text-gray-500 dark:focus-visible:outline-indigo-500"
   end
@@ -380,7 +428,12 @@ defmodule Harbor.Web.CoreComponents do
     text_input_error_class()
   end
 
-  defp error(assigns) do
+  @doc """
+  Renders an error message.
+  """
+  slot :inner_block, required: true
+
+  def error(assigns) do
     ~H"""
     <p class="flex items-center gap-2 text-sm text-red-600 dark:text-red-400">
       <.icon name="hero-exclamation-circle" class="size-4" />
@@ -408,9 +461,9 @@ defmodule Harbor.Web.CoreComponents do
         </p>
       </div>
       <div :if={@actions != []} class="flex shrink-0 flex-wrap items-center gap-3 sm:flex-nowrap">
-        <%= for action <- @actions do %>
+        <div :for={action <- @actions} class="contents">
           {render_slot(action)}
-        <% end %>
+        </div>
       </div>
     </header>
     """
@@ -493,9 +546,9 @@ defmodule Harbor.Web.CoreComponents do
               class="whitespace-nowrap px-4 py-4 text-right text-sm font-semibold last:pr-6"
             >
               <div class="flex justify-end gap-3">
-                <%= for action <- @action do %>
+                <div :for={action <- @action} class="contents">
                   {render_slot(action, @row_item.(row))}
-                <% end %>
+                </div>
               </div>
             </td>
           </tr>
@@ -562,7 +615,7 @@ defmodule Harbor.Web.CoreComponents do
       <p :if={@subheader != []} class="mt-1 text-sm text-gray-500 dark:text-gray-400">
         {render_slot(@subheader)}
       </p>
-      <div :if={@action_label != []} class="mt-6">
+      <div class="mt-6">
         <.button variant="primary" {@rest}>
           <.icon name="hero-plus" class="-mx-0.5 size-5" />
           {@action_label}

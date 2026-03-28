@@ -11,13 +11,13 @@ defmodule Harbor.Catalog.ProductQuery do
   import Harbor.Authorization
   import Harbor.QueryMacros
 
-  alias Harbor.Catalog.{OptionType, OptionValue, Variant, VariantOptionValue}
+  alias Harbor.Catalog.Variant
 
   @primary_key false
   embedded_schema do
     field :search, :string
     field :status, Ecto.Enum, values: [:draft, :active, :archived]
-    field :category, :string
+    field :taxon, :string
     field :price_min, :integer
     field :price_max, :integer
     field :options, :map, default: %{}
@@ -56,7 +56,7 @@ defmodule Harbor.Catalog.ProductQuery do
   def apply(queryable, %__MODULE__{} = query) do
     queryable
     |> filter_by_status(query.status)
-    |> filter_by_category(query.category)
+    |> filter_by_taxon(query.taxon)
     |> filter_by_price_range(query.price_min, query.price_max)
     |> filter_by_options(query.options)
     |> filter_by_search(query.search)
@@ -66,12 +66,12 @@ defmodule Harbor.Catalog.ProductQuery do
   defp filter_by_status(q, nil), do: q
   defp filter_by_status(q, status), do: where(q, [p], p.status == ^status)
 
-  defp filter_by_category(q, nil), do: q
+  defp filter_by_taxon(q, nil), do: q
 
-  defp filter_by_category(q, slug) do
+  defp filter_by_taxon(q, slug) do
     q
-    |> join(:inner, [p], c in assoc(p, :category), as: :category)
-    |> where([category: c], c.slug == ^slug)
+    |> join(:inner, [p], t in assoc(p, :taxons), as: :taxon)
+    |> where([taxon: t], t.slug == ^slug)
   end
 
   defp filter_by_price_range(q, nil, nil), do: q
@@ -97,27 +97,49 @@ defmodule Harbor.Catalog.ProductQuery do
 
   defp filter_by_options(q, options) do
     q =
-      if has_named_binding?(q, :product),
-        do: q,
-        else: from(p in q, as: :product)
+      if has_named_binding?(q, :product) do
+        q
+      else
+        from(p in q, as: :product)
+      end
 
-    Enum.reduce(options, q, fn {type_slug, value_slugs}, acc ->
-      values = String.split(to_string(value_slugs), ",", trim: true)
-      filter_by_option_group(acc, type_slug, values)
-    end)
+    groups =
+      options
+      |> Enum.reduce([], fn {option_name, value_names}, groups ->
+        case String.split(value_names, ",", trim: true) do
+          [] -> groups
+          values -> [{option_name, values} | groups]
+        end
+      end)
+      |> Enum.reverse()
+
+    case groups do
+      [] -> q
+      _ -> where(q, exists(option_match_subquery(groups)))
+    end
   end
 
-  defp filter_by_option_group(q, type_slug, value_slugs) do
-    sub =
-      Variant
-      |> join(:inner, [v], vov in VariantOptionValue, on: vov.variant_id == v.id, as: :vov)
-      |> join(:inner, [vov: vov], ov in OptionValue, on: ov.id == vov.option_value_id, as: :ov)
-      |> join(:inner, [ov: ov], ot in OptionType, on: ot.id == ov.option_type_id, as: :ot)
-      |> where([ot: ot, ov: ov], ot.slug == ^type_slug and ov.slug in ^value_slugs)
-      |> where([v], v.product_id == parent_as(:product).id)
-      |> select([], 1)
+  defp option_match_subquery(groups) do
+    group_count = length(groups)
 
-    where(q, exists(sub))
+    Variant
+    |> where([v], v.product_id == parent_as(:product).id and v.enabled)
+    |> join(:inner, [v], vov in assoc(v, :variant_option_values), as: :vov)
+    |> join(:inner, [vov: vov], po in assoc(vov, :product_option), as: :po)
+    |> join(:inner, [vov: vov], pov in assoc(vov, :product_option_value), as: :pov)
+    |> where(^option_filter_dynamic(groups))
+    |> group_by([v], v.id)
+    |> having([po: po], count(po.name, :distinct) == ^group_count)
+    |> select([], 1)
+  end
+
+  defp option_filter_dynamic(groups) do
+    Enum.reduce(groups, dynamic(false), fn {option_name, value_names}, dynamic_acc ->
+      dynamic(
+        [po: po, pov: pov],
+        ^dynamic_acc or (po.name == ^option_name and pov.name in ^value_names)
+      )
+    end)
   end
 
   defp filter_by_search(q, nil), do: q

@@ -7,28 +7,43 @@ defmodule Harbor.CatalogFixtures do
   alias Harbor.TaxFixtures
 
   def product_fixture(attrs \\ %{}) do
-    category = category_fixture()
+    taxon = taxon_fixture()
+    product_type = product_type_fixture()
 
-    {:ok, product} =
+    attrs =
       attrs
       |> Enum.into(%{
         description: "some description",
         name: "some name",
         status: :active,
-        category_id: category.id
+        primary_taxon_id: taxon.id,
+        product_type_id: product_type.id
       })
       |> put_default_variants()
-      |> Catalog.create_product()
 
-    product
+    final_status = Map.fetch!(attrs, :status)
+    variants = Map.get(attrs, :variants, [])
+    create_status = if final_status == :active and variants != [], do: :draft, else: final_status
+
+    create_attrs =
+      attrs
+      |> Map.drop([:variants, :status])
+      |> Map.put(:status, create_status)
+
+    {:ok, product} = Catalog.create_product(create_attrs)
+    product = Catalog.get_product!(product.id)
+    product = maybe_update_variants(product, variants)
+    product = maybe_update_status(product, create_status, final_status)
+
+    Catalog.get_product!(product.id)
   end
 
-  defp put_default_variants(%{option_types: _} = attrs), do: attrs
+  defp put_default_variants(%{variants: _} = attrs), do: attrs
 
   defp put_default_variants(attrs) do
     Map.put_new(attrs, :variants, [
       %{
-        sku: "sku-#{System.unique_integer()}",
+        sku: "sku-#{System.unique_integer([:positive])}",
         price: Money.new(:USD, 40),
         inventory_policy: :track_strict,
         quantity_available: 10,
@@ -37,39 +52,42 @@ defmodule Harbor.CatalogFixtures do
     ])
   end
 
-  @doc """
-  Creates a product with option types and option values attached to its variant.
-
-  Returns the product with `:option_types` and `:variants` preloaded. Each
-  option type gets values, and the product's first variant is linked to the
-  first value of each option type.
-
-  ## Example
-
-      product_with_options_fixture([
-        {"Color", ["Red", "Blue"]},
-        {"Size", ["Small", "Large"]}
-      ])
-  """
   def product_with_options_fixture(option_specs, product_attrs \\ %{}) do
-    option_types =
-      Enum.with_index(option_specs, fn {type_name, value_names}, type_pos ->
-        %{
-          name: type_name,
-          position: type_pos,
-          values: Enum.with_index(value_names, fn name, pos -> %{name: name, position: pos} end)
-        }
-      end)
+    taxon = if Map.has_key?(product_attrs, :primary_taxon_id), do: nil, else: taxon_fixture()
 
-    product_attrs
-    |> Map.put(:option_types, option_types)
-    |> product_fixture()
+    product_type =
+      if Map.has_key?(product_attrs, :product_type_id), do: nil, else: product_type_fixture()
+
+    final_status = Map.get(product_attrs, :status, :active)
+
+    create_attrs =
+      product_attrs
+      |> Map.drop([:status])
+      |> Enum.into(%{
+        description: "some description",
+        name: "some name #{System.unique_integer([:positive])}",
+        status: :draft,
+        primary_taxon_id: taxon && taxon.id,
+        product_type_id: product_type && product_type.id,
+        product_options: build_product_options(option_specs)
+      })
+
+    {:ok, product} = Catalog.create_product(create_attrs)
+    product = Catalog.get_product!(product.id)
+
+    {:ok, product} =
+      Catalog.update_product_variants(product, %{
+        variants: build_variants(product.product_options)
+      })
+
+    product = maybe_update_status(product, :draft, final_status)
+
+    Catalog.get_product!(product.id)
   end
 
   def variant_fixture(attrs \\ %{}) do
     %{variants: [variant | _]} = product_fixture(attrs)
-
-    variant
+    Harbor.Repo.preload(variant, [:option_values, :product])
   end
 
   def product_image_fixture(attrs \\ %{}) do
@@ -88,19 +106,90 @@ defmodule Harbor.CatalogFixtures do
     image
   end
 
-  def category_fixture(attrs \\ %{}) do
+  def taxon_fixture(attrs \\ %{}) do
     scope = AccountsFixtures.admin_scope_fixture()
+
+    attrs =
+      Enum.into(attrs, %{
+        name: "some name-#{System.unique_integer([:positive])}",
+        parent_ids: []
+      })
+
+    {:ok, taxon} = Catalog.create_taxon(scope, attrs)
+
+    taxon
+  end
+
+  def product_type_fixture(attrs \\ %{}) do
     tax_code = TaxFixtures.get_general_tax_code!()
 
     attrs =
       Enum.into(attrs, %{
-        name: "some name-#{System.unique_integer()}",
-        parent_ids: [],
+        name: "Default Product Type #{System.unique_integer([:positive])}",
         tax_code_id: tax_code.id
       })
 
-    {:ok, category} = Catalog.create_category(scope, attrs)
+    {:ok, product_type} = Catalog.create_product_type(attrs)
+    product_type
+  end
 
-    category
+  defp maybe_update_variants(product, []), do: product
+
+  defp maybe_update_variants(product, variants) do
+    {:ok, product} = Catalog.update_product_variants(product, %{variants: variants})
+    product
+  end
+
+  defp maybe_update_status(product, status, status), do: product
+
+  defp maybe_update_status(product, _current_status, final_status) do
+    {:ok, product} = Catalog.update_product(product, %{status: final_status})
+    product
+  end
+
+  defp build_product_options(option_specs) do
+    Enum.with_index(option_specs, fn {option_name, value_names}, option_position ->
+      %{
+        name: option_name,
+        position: option_position,
+        values:
+          Enum.with_index(value_names, fn value_name, value_position ->
+            %{
+              name: value_name,
+              position: value_position
+            }
+          end)
+      }
+    end)
+  end
+
+  defp build_variants(product_options) do
+    product_options
+    |> Enum.map(& &1.values)
+    |> cartesian_product()
+    |> Enum.with_index(fn product_option_values, index ->
+      %{
+        sku: "sku-#{System.unique_integer([:positive])}-#{index}",
+        price: Money.new(:USD, 40),
+        inventory_policy: :track_strict,
+        quantity_available: 10,
+        enabled: true,
+        variant_option_values:
+          Enum.map(product_option_values, fn product_option_value ->
+            %{
+              product_option_id: product_option_value.product_option_id,
+              product_option_value_id: product_option_value.id
+            }
+          end)
+      }
+    end)
+  end
+
+  defp cartesian_product([]), do: [[]]
+
+  defp cartesian_product([head | tail]) do
+    for value <- head, rest <- cartesian_product(tail) do
+      [value | rest]
+    end
   end
 end

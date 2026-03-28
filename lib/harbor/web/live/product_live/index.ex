@@ -32,7 +32,7 @@ defmodule Harbor.Web.ProductLive.Index do
     <Layouts.app
       flash={@flash}
       current_scope={@current_scope}
-      root_categories={@root_categories}
+      root_taxons={@root_taxons}
       cart={@cart}
     >
       <h2 class="sr-only">Products</h2>

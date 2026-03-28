@@ -17,7 +17,7 @@ defmodule Harbor.Web.Admin.OrderLive.Show do
         Order {@order.number}
         <:subtitle>
           <span class={status_badge_classes(@order.status)}>
-            {Phoenix.Naming.humanize(@order.status)}
+            {humanize(@order.status)}
           </span>
         </:subtitle>
         <:actions>

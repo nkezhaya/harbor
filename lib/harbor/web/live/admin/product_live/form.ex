@@ -3,13 +3,13 @@ defmodule Harbor.Web.Admin.ProductLive.Form do
   Admin LiveView for creating and editing products.
   """
   use Harbor.Web, :live_view
-  import Phoenix.HTML.Form, only: [input_name: 2, normalize_value: 2]
+
+  import Phoenix.HTML.Form, only: [input_name: 2]
 
   alias Ecto.Changeset
   alias Harbor.{Catalog, Config, Tax, Util}
   alias Harbor.Catalog.Forms.MediaUpload
-  alias Harbor.Catalog.{OptionType, OptionValue, Product, Variant}
-  alias Harbor.Repo
+  alias Harbor.Catalog.{Product, ProductOptionValue}
 
   @impl true
   def render(assigns) do
@@ -33,46 +33,52 @@ defmodule Harbor.Web.Admin.ProductLive.Form do
         phx-submit="save"
         class="space-y-6"
       >
-        <.input field={@form[:name]} type="text" label="Name" />
-        <.input field={@form[:description]} type="textarea" label="Description" />
-        <.input
-          field={@form[:status]}
-          type="select"
-          label="Status"
-          prompt="Choose a value"
-          options={Ecto.Enum.values(Product, :status)}
-        />
-
-        <.input
-          field={@form[:category_id]}
-          type="select"
-          label="Category"
-          prompt="Choose a category"
-          options={@category_options}
-        />
-
-        <.input
-          field={@form[:tax_code_id]}
-          type="select"
-          label="Tax Code"
-          prompt="Choose a tax code"
-          options={@tax_code_options}
-        />
-
-        <.inputs_for
-          :let={variant_form}
-          :if={@form[:option_types].value == []}
-          field={@form[:variants]}
-          append={if @has_variants?, do: [], else: [%Variant{}]}
-        >
+        <div class="grid gap-6 lg:grid-cols-2">
+          <.input field={@form[:name]} type="text" label="Name" />
           <.input
-            field={variant_form[:price]}
-            type="text"
-            label="Price"
-            placeholder="0.00"
-            value={format_money_input(variant_form[:price].value)}
+            field={@form[:status]}
+            type="select"
+            label="Status"
+            prompt="Choose a value"
+            options={Ecto.Enum.values(Product, :status)}
           />
-        </.inputs_for>
+        </div>
+
+        <.input field={@form[:description]} type="textarea" label="Description" />
+
+        <div class="grid gap-6 lg:grid-cols-2">
+          <.input
+            field={@form[:taxon_ids]}
+            type="select"
+            label="Taxons"
+            options={@taxon_options}
+            multiple
+          />
+
+          <.input
+            field={@form[:primary_taxon_id]}
+            type="select"
+            label="Primary Taxon"
+            prompt="Choose a primary taxon"
+            options={@primary_taxon_options}
+          />
+
+          <.input
+            field={@form[:product_type_id]}
+            type="select"
+            label="Product Type"
+            prompt="Choose a product type"
+            options={@product_type_options}
+          />
+
+          <.input
+            field={@form[:tax_code_id]}
+            type="select"
+            label="Tax Override"
+            prompt="Choose a tax code"
+            options={@tax_code_options}
+          />
+        </div>
 
         <div class="col-span-full">
           <label class="block text-sm/6 font-medium text-gray-900 dark:text-white">
@@ -113,7 +119,48 @@ defmodule Harbor.Web.Admin.ProductLive.Form do
           <.media_upload_item :for={media_upload <- @media_uploads} media_upload={media_upload} />
         </ul>
 
-        <.variants_card form={@form} />
+        <.options_card form={@form} product={@product} />
+
+        <.card>
+          <:title>Variants</:title>
+          <:body>
+            <div class="space-y-4">
+              <div class="rounded-lg bg-gray-50 p-4 text-sm text-gray-600">
+                Variants are edited on a separate page for saved products. This keeps product option IDs database-generated and avoids editing variants in the new-product flow.
+              </div>
+
+              <%= if @product.id do %>
+                <div class="flex flex-wrap items-center gap-3">
+                  <.button
+                    variant="primary"
+                    navigate={admin_path(@socket, "/products/#{@product.id}/variants")}
+                  >
+                    Edit Variants
+                  </.button>
+                  <p class="text-sm text-gray-600">
+                    <%= case @product.variants do %>
+                      <% [] -> %>
+                        {gettext(
+                          "No variants yet. Add at least one variant before activating the product."
+                        )}
+                      <% variants -> %>
+                        {ngettext(
+                          "%{count} variant configured.",
+                          "%{count} variants configured.",
+                          length(variants)
+                        )}
+                    <% end %>
+                  </p>
+                </div>
+              <% else %>
+                <div class="text-sm text-gray-600">
+                  Save this product first, then add variants.
+                </div>
+              <% end %>
+            </div>
+          </:body>
+        </.card>
+
         <footer class="flex flex-wrap items-center gap-3 pt-4">
           <.button phx-disable-with="Saving..." variant="primary">Save Product</.button>
           <.button navigate={return_path(@socket, @return_to, @product)}>Cancel</.button>
@@ -124,23 +171,16 @@ defmodule Harbor.Web.Admin.ProductLive.Form do
   end
 
   defp media_upload_item(assigns) do
-    class = [
-      "flex justify-between items-center gap-x-6 py-4 px-4 border border-dashed border-gray-900/25 dark:border-white/25 rounded-lg",
-      "drag-item:focus-within:ring-0 drag-item:focus-within:ring-offset-0",
-      "drag-ghost:bg-zinc-300 drag-ghost:border-0 drag-ghost:ring-0"
-    ]
-
-    class =
-      if assigns.media_upload.delete do
-        class ++ ["hidden"]
-      else
-        class
-      end
-
-    assigns = assign(assigns, :class, class)
-
     ~H"""
-    <li class={@class} data-sortable_id={@media_upload.id}>
+    <li
+      class={[
+        "flex items-center justify-between gap-x-6 rounded-lg border border-dashed border-gray-900/25 px-4 py-4 dark:border-white/25",
+        "drag-item:focus-within:ring-0 drag-item:focus-within:ring-offset-0",
+        "drag-ghost:border-0 drag-ghost:bg-zinc-300 drag-ghost:ring-0",
+        @media_upload.delete && "hidden"
+      ]}
+      data-sortable_id={@media_upload.id}
+    >
       <div class="flex items-center gap-3 overflow-hidden">
         <div class="cursor-grab drag-handle">
           <.icon name="grip-vertical" class="size-5 text-gray-950 dark:gray-200" />
@@ -173,6 +213,7 @@ defmodule Harbor.Web.Admin.ProductLive.Form do
       <.button
         type="button"
         variant="link"
+        size="custom"
         phx-click="remove_media_upload"
         phx-value-id={@media_upload.id}
         data-slot="button"
@@ -188,77 +229,155 @@ defmodule Harbor.Web.Admin.ProductLive.Form do
     """
   end
 
-  defp variants_card(assigns) do
+  attr :form, Phoenix.HTML.Form, required: true
+  attr :product, Product, required: true
+
+  defp options_card(assigns) do
+    assigns = assign(assigns, :has_variants?, assigns.product.variants != [])
+
     ~H"""
-    <.card hide_body={@form[:option_types].value == []}>
-      <:title>Variants</:title>
-      <:action>
-        <.button variant="primary" label>
-          <.icon name="hero-plus-circle" class="size-5" /> Add Option Type
-          <input type="checkbox" name={input_name(@form, :option_types_sort) <> "[]"} class="hidden" />
+    <.card>
+      <:title>Options</:title>
+      <:action :if={not @has_variants?}>
+        <.button
+          type="button"
+          variant="primary"
+          name={input_name(@form, :product_options_sort) <> "[]"}
+          value="new"
+          phx-click={JS.dispatch("change")}
+        >
+          <.icon name="hero-plus-circle" class="size-5" /> Add Product Option
         </.button>
       </:action>
       <:body>
-        <div id="variants-card" phx-hook="Sortable" data-list_id="option_types">
-          <.inputs_for :let={option_types_form} field={@form[:option_types]}>
-            <div class="flex pt-2 pb-4 drag-item" data-sortable_id={option_types_form.id}>
-              <div class="w-8 flex-none cursor-grab drag-handle">
-                <div class="mt-9">
-                  <.icon name="grip-vertical" class="size-5 text-gray-950 dark:gray-200" />
+        <div class="space-y-6">
+          <.error :for={error <- @form[:product_options].errors}>{translate_error(error)}</.error>
+
+          <%= if @has_variants? do %>
+            <div class="rounded-lg bg-gray-50 p-4 text-sm text-gray-600">
+              Product options are locked once variants exist. Edit variants on the separate variant page, or remove variants before changing the option structure.
+            </div>
+
+            <div class="space-y-4">
+              <div
+                :for={product_option <- @product.product_options}
+                class="rounded-xl border border-gray-200 p-5 dark:border-white/10"
+              >
+                <h4 class="text-sm font-medium text-gray-900 dark:text-white">
+                  {product_option.name}
+                </h4>
+
+                <div class="mt-3 flex flex-wrap gap-2">
+                  <span
+                    :for={value <- product_option.values}
+                    class="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-sm text-gray-700 dark:bg-white/10 dark:text-gray-200"
+                  >
+                    {value.name}
+                  </span>
                 </div>
               </div>
+            </div>
+          <% else %>
+            <input type="hidden" name={input_name(@form, :product_options_drop) <> "[]"} />
 
-              <div class="flex-1">
+            <div
+              :if={@form[:product_options].value == []}
+              class="rounded-lg bg-gray-50 p-4 text-sm text-gray-600"
+            >
+              Add product options like Size or Color here. Each named option must include at least one value.
+            </div>
+
+            <.inputs_for :let={product_option_form} field={@form[:product_options]}>
+              <div class="rounded-xl border border-gray-200 p-5 dark:border-white/10">
                 <input
                   type="hidden"
-                  name={input_name(@form, :option_types_sort) <> "[]"}
-                  value={option_types_form.index}
+                  name={product_option_form[:id].name}
+                  value={product_option_form[:id].value}
+                />
+                <input
+                  type="hidden"
+                  name={input_name(@form, :product_options_sort) <> "[]"}
+                  value={product_option_form.index}
                 />
 
-                <.input
-                  field={option_types_form[:name]}
-                  type="text"
-                  label="Option Name"
-                  placeholder="Size"
-                />
+                <div class="flex items-start justify-between gap-4">
+                  <div class="flex-1">
+                    <.input field={product_option_form[:name]} label="Option Name" placeholder="Size" />
+                  </div>
 
-                <h6 class="block text-sm/6 font-medium text-gray-900 dark:text-white pt-2">
-                  Option Types
-                </h6>
-                <.inputs_for
-                  :let={values_form}
-                  field={option_types_form[:values]}
-                  append={[%OptionValue{}]}
-                >
-                  <div
-                    :if={not normalize_value("checkbox", values_form[:delete].value)}
-                    class="flex pb-1"
+                  <.button
+                    type="button"
+                    variant="link"
+                    name={input_name(@form, :product_options_drop) <> "[]"}
+                    value={product_option_form.index}
+                    phx-click={JS.dispatch("change")}
+                    class="mt-8"
                   >
-                    <div class="flex-1">
-                      <.input field={values_form[:name]} type="text" placeholder="Small" />
-                    </div>
+                    <.icon name="hero-trash" class="size-5" />
+                  </.button>
+                </div>
 
-                    <.button variant="link" label>
-                      <div
-                        class="justify-center whitespace-nowrap outline-none -me-2 size-8"
-                        aria-label="Remove option type"
-                      >
-                        <.icon
-                          name="hero-trash"
-                          class="mx-auto size-5 text-gray-950 dark:text-gray-500"
-                        />
-                      </div>
-                      <.input
-                        field={values_form[:delete]}
-                        type="checkbox"
-                        class="hidden"
-                      />
+                <div class="mt-4">
+                  <div class="flex items-center justify-between">
+                    <h4 class="text-sm font-medium text-gray-900 dark:text-white">Values</h4>
+
+                    <.button
+                      type="button"
+                      variant="link"
+                      name={input_name(product_option_form, :values_sort) <> "[]"}
+                      value="new"
+                      phx-click={JS.dispatch("change")}
+                    >
+                      <.icon name="hero-plus-circle" class="size-4" /> Add Value
                     </.button>
                   </div>
-                </.inputs_for>
+
+                  <input
+                    type="hidden"
+                    name={input_name(product_option_form, :values_drop) <> "[]"}
+                  />
+
+                  <div class="mt-3 space-y-3">
+                    <.inputs_for
+                      :let={value_form}
+                      field={product_option_form[:values]}
+                      append={[%ProductOptionValue{}]}
+                    >
+                      <div class="flex items-start gap-3">
+                        <input
+                          type="hidden"
+                          name={value_form[:id].name}
+                          value={value_form[:id].value}
+                        />
+                        <input
+                          type="hidden"
+                          name={input_name(product_option_form, :values_sort) <> "[]"}
+                          value={value_form.index}
+                        />
+                        <div class="flex-1">
+                          <.input field={value_form[:name]} type="text" placeholder="Small" />
+                        </div>
+
+                        <.button
+                          type="button"
+                          variant="link"
+                          name={input_name(product_option_form, :values_drop) <> "[]"}
+                          value={value_form.index}
+                          phx-click={JS.dispatch("change")}
+                          class="mt-2"
+                        >
+                          <.icon name="hero-trash" class="size-5" />
+                        </.button>
+                      </div>
+                    </.inputs_for>
+                    <.error :for={error <- product_option_form[:values].errors}>
+                      {translate_error(error)}
+                    </.error>
+                  </div>
+                </div>
               </div>
-            </div>
-          </.inputs_for>
+            </.inputs_for>
+          <% end %>
         </div>
       </:body>
     </.card>
@@ -271,7 +390,8 @@ defmodule Harbor.Web.Admin.ProductLive.Form do
      socket
      |> assign(:return_to, return_to(params["return_to"]))
      |> assign(:tax_code_options, tax_code_options())
-     |> assign(:category_options, category_options(socket.assigns.current_scope))
+     |> assign(:taxon_options, taxon_options())
+     |> assign(:product_type_options, product_type_options())
      |> allow_upload(:media_asset,
        accept: ~w(.jpg .jpeg .png .mp4),
        auto_upload: true,
@@ -295,10 +415,10 @@ defmodule Harbor.Web.Admin.ProductLive.Form do
     |> Changeset.apply_action(:insert)
     |> case do
       {:ok, media_upload} ->
-        media_uploads = socket.assigns.media_uploads ++ [media_upload]
+        socket = update(socket, :media_uploads, &(&1 ++ [media_upload]))
         url = presigned_url(media_upload)
         meta = %{uploader: "S3", key: media_upload.key, url: url}
-        {:ok, meta, assign(socket, media_uploads: media_uploads)}
+        {:ok, meta, socket}
 
       {:error, _changeset} ->
         {:error, %{}, socket}
@@ -321,20 +441,18 @@ defmodule Harbor.Web.Admin.ProductLive.Form do
     url
   end
 
-  defp handle_progress(:media_asset, entry, socket) do
-    if entry.done? do
-      id = entry.uuid
+  defp handle_progress(:media_asset, %{done?: true, uuid: id}, socket) do
+    media_uploads =
+      Enum.map(socket.assigns.media_uploads, fn
+        %{id: ^id} = media_upload -> %{media_upload | status: :complete}
+        media_upload -> media_upload
+      end)
 
-      media_uploads =
-        Enum.map(socket.assigns.media_uploads, fn
-          %{id: ^id} = media_upload -> %{media_upload | status: :complete}
-          media_upload -> media_upload
-        end)
+    {:noreply, assign(socket, :media_uploads, media_uploads)}
+  end
 
-      {:noreply, assign(socket, media_uploads: media_uploads)}
-    else
-      {:noreply, socket}
-    end
+  defp handle_progress(:media_asset, _entry, socket) do
+    {:noreply, socket}
   end
 
   defp tax_code_options do
@@ -343,9 +461,15 @@ defmodule Harbor.Web.Admin.ProductLive.Form do
     end
   end
 
-  defp category_options(scope) do
-    for category <- Catalog.list_categories(scope) do
-      {category.name, category.id}
+  defp taxon_options do
+    for taxon <- Catalog.list_taxons() do
+      {taxon.name, taxon.id}
+    end
+  end
+
+  defp product_type_options do
+    for product_type <- Catalog.list_product_types() do
+      {product_type.name, product_type.id}
     end
   end
 
@@ -353,22 +477,17 @@ defmodule Harbor.Web.Admin.ProductLive.Form do
   defp return_to(_), do: "index"
 
   defp apply_action(socket, :edit, %{"id" => id}) do
-    product =
-      id
-      |> Catalog.get_product!()
-      |> Repo.preload([:images, :variants, option_types: [:values]])
-
-    media_uploads = Enum.map(product.images, &MediaUpload.from_product_image/1)
+    product = Catalog.get_product!(id)
 
     socket
     |> assign(:page_title, "Edit Product")
     |> assign(:product, product)
-    |> assign(:media_uploads, media_uploads)
+    |> assign(:media_uploads, Enum.map(product.images, &MediaUpload.from_product_image/1))
     |> assign_form(Catalog.change_product(product))
   end
 
   defp apply_action(socket, :new, _params) do
-    product = %Product{option_types: [], images: [], variants: []}
+    product = %Product{images: [], product_options: [], variants: [], product_taxons: []}
 
     socket
     |> assign(:page_title, "New Product")
@@ -380,11 +499,13 @@ defmodule Harbor.Web.Admin.ProductLive.Form do
   @impl true
   def handle_event("sortable:reposition", %{"ids" => ids}, socket) do
     media_uploads =
-      Enum.sort_by(socket.assigns.media_uploads, fn media_upload ->
-        Enum.find_index(ids, &(&1 == media_upload.id))
+      socket.assigns.media_uploads
+      |> Enum.sort_by(fn media_upload -> Enum.find_index(ids, &(&1 == media_upload.id)) end)
+      |> Enum.with_index(fn media_upload, position ->
+        %{media_upload | position: position}
       end)
 
-    {:noreply, assign(socket, media_uploads: media_uploads)}
+    {:noreply, assign(socket, :media_uploads, media_uploads)}
   end
 
   def handle_event("remove_media_upload", %{"id" => id}, socket) do
@@ -394,25 +515,7 @@ defmodule Harbor.Web.Admin.ProductLive.Form do
         media_upload -> media_upload
       end)
 
-    {:noreply, assign(socket, media_uploads: media_uploads)}
-  end
-
-  def handle_event("add_option_type", _params, socket) do
-    socket =
-      update(socket, :form, fn %{source: changeset} ->
-        option_types = Changeset.get_assoc(changeset, :option_types)
-
-        new_option_type = %OptionType{
-          position: length(option_types),
-          values: []
-        }
-
-        changeset
-        |> Changeset.put_assoc(:option_types, option_types ++ [new_option_type])
-        |> to_form()
-      end)
-
-    {:noreply, socket}
+    {:noreply, assign(socket, :media_uploads, media_uploads)}
   end
 
   def handle_event("validate", %{"product" => product_params}, socket) do
@@ -449,21 +552,23 @@ defmodule Harbor.Web.Admin.ProductLive.Form do
   defp put_success_flash(socket, :edit),
     do: put_flash(socket, :info, "Product updated successfully")
 
-  defp assign_form(socket, %Changeset{} = changeset) do
-    has_variants? =
-      case Changeset.get_assoc(changeset, :variants) do
-        [_ | _] -> true
-        _ -> false
+  defp assign_form(socket, changeset) do
+    primary_taxon_options =
+      case Changeset.get_field(changeset, :taxon_ids) do
+        [] ->
+          socket.assigns.taxon_options
+
+        taxon_ids ->
+          Enum.filter(socket.assigns.taxon_options, fn {_name, taxon_id} ->
+            taxon_id in taxon_ids
+          end)
       end
 
-    assign(socket, has_variants?: has_variants?, form: to_form(changeset, as: :product))
+    socket
+    |> assign(:primary_taxon_options, primary_taxon_options)
+    |> assign(:form, to_form(changeset, as: :product))
   end
 
   defp return_path(socket, "index", _product), do: admin_path(socket, "/products")
   defp return_path(socket, "show", product), do: admin_path(socket, "/products/#{product.id}")
-
-  defp format_money_input(%Money{} = money),
-    do: Money.to_string!(money, symbol: false, fractional_digits: 2)
-
-  defp format_money_input(_), do: nil
 end

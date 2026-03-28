@@ -48,7 +48,7 @@ defmodule Harbor.Web.Admin.OrderLive.Index do
             navigate={admin_path(@socket, "/orders?status=#{status}")}
             class={tab_classes(@status_filter == status)}
           >
-            {Phoenix.Naming.humanize(status)}
+            {humanize(status)}
           </.link>
         </nav>
 
@@ -62,7 +62,7 @@ defmodule Harbor.Web.Admin.OrderLive.Index do
           <:col :let={{_id, order}} label="Email">{order.email}</:col>
           <:col :let={{_id, order}} label="Status">
             <span class={status_badge_classes(order.status)}>
-              {Phoenix.Naming.humanize(order.status)}
+              {humanize(order.status)}
             </span>
           </:col>
           <:col :let={{_id, order}} label="Total">{order.total_price}</:col>
