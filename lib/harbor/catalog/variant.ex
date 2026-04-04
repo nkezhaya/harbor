@@ -53,6 +53,31 @@ defmodule Harbor.Catalog.Variant do
     ])
     |> assoc_constraint(:product)
     |> assoc_constraint(:tax_code)
+    |> check_constraint(:variant_option_values,
+      name: :variants_match_product_options,
+      message: "must use only this product's option values"
+    )
+    |> check_constraint(:variant_option_values,
+      name: :variants_cover_all_product_options,
+      message: "must cover all product options"
+    )
+    |> check_constraint(:variant_option_values,
+      name: :master_variant_must_be_optionless,
+      message: "cannot be present for master variants"
+    )
+    |> check_constraint(:base,
+      name: :simple_products_only_allow_master_variant,
+      message: "Cannot create new variants without product options."
+    )
+    |> check_constraint(:enabled,
+      name: :optioned_products_master_variant_not_purchasable,
+      message: "must be false when product options exist"
+    )
+    |> check_constraint(:enabled,
+      name: :active_products_must_have_purchasable_variant,
+      message:
+        "cannot be false when this would leave the active product without a purchasable variant"
+    )
     |> check_constraint(:price,
       name: :price_gte_zero,
       message: "must be greater than or equal to 0"

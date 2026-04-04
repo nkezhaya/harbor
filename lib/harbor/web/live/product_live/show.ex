@@ -26,7 +26,7 @@ defmodule Harbor.Web.ProductLive.Show do
               <li :if={@product.primary_taxon}>
                 <div class="flex items-center">
                   <.link
-                    navigate={"/products?taxon=#{@product.primary_taxon.slug}"}
+                    navigate={"/shop/#{@product.primary_taxon.slug}"}
                     class="mr-2 text-sm font-medium text-gray-900 hover:text-indigo-600"
                   >
                     {@product.primary_taxon.name}
@@ -288,14 +288,13 @@ defmodule Harbor.Web.ProductLive.Show do
   @impl true
   def handle_params(%{"slug" => slug}, _uri, socket) do
     product = Catalog.get_storefront_product_by_slug!(slug)
-    enabled_variants = product.variants
     option_groups = build_option_groups(product)
 
     {:noreply,
      socket
      |> assign(
        product: product,
-       enabled_variants: enabled_variants,
+       enabled_variants: product.enabled_variants,
        option_groups: option_groups,
        selected_image: List.first(product.images)
      )
@@ -415,13 +414,11 @@ defmodule Harbor.Web.ProductLive.Show do
   defp assign_selection(socket, selected_options) do
     option_groups = socket.assigns.option_groups
     enabled_variants = socket.assigns.enabled_variants
-    default_variant_id = socket.assigns.product.default_variant_id
 
     selected_variant =
       cond do
         option_groups == [] ->
-          Enum.find(enabled_variants, &(&1.id == default_variant_id)) ||
-            List.first(enabled_variants)
+          List.first(enabled_variants)
 
         Enum.all?(option_groups, &Map.has_key?(selected_options, &1.id)) ->
           exact_matching_variant(enabled_variants, selected_options)

@@ -5,7 +5,9 @@ defmodule Harbor.Checkout do
   import Ecto.Query
   import Harbor.{Authorization, QueryMacros, Util}
 
+  alias Ecto.Changeset
   alias Harbor.Accounts.{Scope, User}
+  alias Harbor.Catalog.Variant
   alias Harbor.Checkout.{Cart, CartItem, Pricing, Session, Steps}
   alias Harbor.Customers.Customer
   alias Harbor.{Notifier, Orders, Repo, Tax}
@@ -159,6 +161,7 @@ defmodule Harbor.Checkout do
 
     %CartItem{cart_id: cart.id}
     |> CartItem.changeset(params)
+    |> validate_variant_enabled()
     |> Repo.insert(
       returning: true,
       on_conflict: conflict_query,
@@ -201,6 +204,7 @@ defmodule Harbor.Checkout do
   def create_cart_item(%Cart{} = cart, attrs) do
     %CartItem{cart_id: cart.id}
     |> CartItem.changeset(attrs)
+    |> validate_variant_enabled()
     |> Repo.insert()
   end
 
@@ -224,6 +228,22 @@ defmodule Harbor.Checkout do
     CartItem.changeset(cart_item, attrs)
   end
 
+  defp validate_variant_enabled(changeset) do
+    variant_id = Changeset.get_field(changeset, :variant_id)
+
+    if is_nil(variant_id) or enabled_variant?(variant_id) do
+      changeset
+    else
+      Changeset.add_error(changeset, :variant_id, "is no longer available")
+    end
+  end
+
+  defp enabled_variant?(variant_id) do
+    Variant
+    |> where([v], v.id == ^variant_id and v.enabled)
+    |> Repo.exists?()
+  end
+
   ## Sessions
 
   @doc """
@@ -235,14 +255,15 @@ defmodule Harbor.Checkout do
   associations required by pricing and tax calculations.
   """
   @spec create_session(Scope.t(), Cart.t()) ::
-          {:ok, Session.t()} | {:error, Ecto.Changeset.t()}
+          {:ok, Session.t()} | {:error, Changeset.t()}
   def create_session(%Scope{} = scope, %Cart{} = cart) do
     ensure_authorized!(scope, cart)
 
-    cart = Repo.preload(cart, items: [:variant])
+    cart = Repo.preload(cart, items: [variant: :product])
 
     Repo.transact(fn ->
-      with {:ok, order} <- create_draft_order(cart) do
+      with :ok <- validate_purchasability(cart, scope),
+           {:ok, order} <- create_draft_order(cart) do
         session =
           %Session{order_id: order.id}
           |> Session.changeset(%{})
@@ -251,6 +272,33 @@ defmodule Harbor.Checkout do
         {:ok, preload_session(session)}
       end
     end)
+  end
+
+  defp validate_purchasability(%{items: items} = cart_or_order, scope) do
+    changeset =
+      Enum.reduce(items, Changeset.change(cart_or_order), fn item, changeset ->
+        case purchasability_error(item, scope) do
+          nil ->
+            changeset
+
+          {message, reason} ->
+            Changeset.add_error(changeset, :base, message, item: item, reason: reason)
+        end
+      end)
+
+    if changeset.valid? do
+      :ok
+    else
+      {:error, changeset}
+    end
+  end
+
+  defp purchasability_error(item, _scope) do
+    if item.variant.enabled do
+      nil
+    else
+      {"#{item.variant.product.name} is no longer available", :disabled}
+    end
   end
 
   defp create_draft_order(%Cart{} = cart) do
@@ -299,8 +347,6 @@ defmodule Harbor.Checkout do
     end
   end
 
-  @type receipt_error :: :not_found
-
   @doc """
   Fetches a completed checkout session for receipt display.
 
@@ -308,7 +354,7 @@ defmodule Harbor.Checkout do
   given scope, otherwise returns `{:error, reason}`.
   """
   @spec get_completed_session(Scope.t(), Ecto.UUID.t()) ::
-          {:ok, Session.t()} | {:error, receipt_error()}
+          {:ok, Session.t()} | {:error, :not_found}
   def get_completed_session(%Scope{} = scope, id) do
     case Repo.get_by(Session, id: id, status: :completed) do
       nil ->
@@ -360,7 +406,7 @@ defmodule Harbor.Checkout do
   customer, or `{:error, changeset}` when validation fails.
   """
   @spec complete_contact_step(Scope.t(), Session.t(), map()) ::
-          {:ok, Session.t(), Scope.t()} | {:error, Ecto.Changeset.t()} | {:error, term()}
+          {:ok, Session.t(), Scope.t()} | {:error, Changeset.t()} | {:error, term()}
   defdelegate complete_contact_step(scope, session, params), to: Steps
 
   @doc """
@@ -371,7 +417,7 @@ defmodule Harbor.Checkout do
   `{:error, changeset}` when validation fails.
   """
   @spec complete_shipping_step(Scope.t(), Session.t(), map()) ::
-          {:ok, Session.t()} | {:error, Ecto.Changeset.t()} | {:error, term()}
+          {:ok, Session.t()} | {:error, Changeset.t()} | {:error, term()}
   defdelegate complete_shipping_step(scope, session, params), to: Steps
 
   @doc """
@@ -450,18 +496,26 @@ defmodule Harbor.Checkout do
     if session.status == :completed do
       {:ok, session.order}
     else
-      do_submit_checkout(session)
+      with :ok <- validate_purchasability(session.order, scope) do
+        do_submit_checkout(session)
+      end
     end
   end
 
   defp do_submit_checkout(%Session{} = session) do
-    if Settings.tax_enabled?() do
-      case update_tax_calculation(session) do
-        {:ok, session} -> do_complete_and_submit(session)
-        error -> error
-      end
-    else
+    changeset = Order.submit_changeset(session.order, %{}, Scope.for_system())
+
+    with {:ok, _order} <- Changeset.apply_action(changeset, :update),
+         {:ok, session} <- update_tax_calculation_if_enabled(session) do
       do_complete_and_submit(session)
+    end
+  end
+
+  defp update_tax_calculation_if_enabled(%Session{} = session) do
+    if Settings.tax_enabled?() do
+      update_tax_calculation(session)
+    else
+      {:ok, session}
     end
   end
 

@@ -109,7 +109,7 @@ defmodule Harbor.Migration.V01 do
       add :product_type_id, references(:product_types, type: :binary_id), null: false
       add :primary_taxon_id, references(:taxons, type: :binary_id), null: false
       add :tax_code_id, references(:tax_codes, type: :binary_id)
-      add :default_variant_id, :binary_id
+      add :master_variant_id, :binary_id
 
       timestamps()
     end
@@ -318,12 +318,12 @@ defmodule Harbor.Migration.V01 do
     execute "ALTER TABLE variants ADD CONSTRAINT variants_primary UNIQUE (id, product_id)"
 
     execute """
-    ALTER TABLE products ADD CONSTRAINT products_default_variant_id_fkey
-      FOREIGN KEY (default_variant_id, id) REFERENCES variants(id, product_id)
+    ALTER TABLE products ADD CONSTRAINT products_master_variant_id_fkey
+      FOREIGN KEY (master_variant_id, id) REFERENCES variants(id, product_id)
       DEFERRABLE INITIALLY IMMEDIATE
     """
 
-    create index(:products, [:default_variant_id])
+    create index(:products, [:master_variant_id])
 
     create table(:variants_option_values, primary_key: false) do
       add :id, :binary_id, primary_key: true, default: fragment("uuidv7()")
@@ -453,15 +453,22 @@ defmodule Harbor.Migration.V01 do
       invalid_variant_id uuid;
       invalid_product_option_id uuid;
       product_status text;
+      product_option_count integer;
+      master_variant_id uuid;
     BEGIN
       IF p_product_id IS NULL THEN
         RETURN;
       END IF;
 
-      SELECT p.status
-      INTO product_status
+      SELECT p.status, p.master_variant_id
+      INTO product_status, master_variant_id
       FROM products p
       WHERE p.id = p_product_id;
+
+      SELECT COUNT(*)
+      INTO product_option_count
+      FROM product_options po
+      WHERE po.product_id = p_product_id;
 
       SELECT po.id
       INTO invalid_product_option_id
@@ -476,7 +483,12 @@ defmodule Harbor.Migration.V01 do
 
       IF invalid_product_option_id IS NOT NULL THEN
         RAISE EXCEPTION 'product option % has no values for product %', invalid_product_option_id, p_product_id
-          USING CONSTRAINT = 'product_options_must_have_values';
+          USING ERRCODE = 'check_violation', CONSTRAINT = 'product_options_must_have_values';
+      END IF;
+
+      IF master_variant_id IS NULL THEN
+        RAISE EXCEPTION 'product % must have a master variant', p_product_id
+          USING ERRCODE = 'check_violation', CONSTRAINT = 'products_must_have_master_variant';
       END IF;
 
       SELECT v.id
@@ -494,33 +506,80 @@ defmodule Harbor.Migration.V01 do
 
       IF invalid_variant_id IS NOT NULL THEN
         RAISE EXCEPTION 'variant % uses an option not configured for product %', invalid_variant_id, p_product_id
-          USING CONSTRAINT = 'variants_match_product_options';
+          USING ERRCODE = 'check_violation', CONSTRAINT = 'variants_match_product_options';
       END IF;
 
-      SELECT v.id
-      INTO invalid_variant_id
-      FROM variants v
-      WHERE v.product_id = p_product_id
-        AND (
-          (SELECT COUNT(*) FROM product_options po WHERE po.product_id = p_product_id)
-          <>
-          (SELECT COUNT(*) FROM variants_option_values vov WHERE vov.variant_id = v.id)
-        )
-      LIMIT 1;
-
-      IF invalid_variant_id IS NOT NULL THEN
-        RAISE EXCEPTION 'variant % does not cover all required product options for product %', invalid_variant_id, p_product_id
-          USING CONSTRAINT = 'variants_cover_all_product_options';
+      IF EXISTS (
+        SELECT 1
+        FROM variants_option_values vov
+        WHERE vov.variant_id = master_variant_id
+      ) THEN
+        RAISE EXCEPTION 'master variant % must not have option values for product %', master_variant_id, p_product_id
+          USING ERRCODE = 'check_violation', CONSTRAINT = 'master_variant_must_be_optionless';
       END IF;
 
-      IF product_status = 'active'
-         AND NOT EXISTS (
-           SELECT 1
-           FROM variants v
-           WHERE v.product_id = p_product_id
-         ) THEN
-        RAISE EXCEPTION 'active product % must have at least one variant', p_product_id
-          USING CONSTRAINT = 'active_products_must_have_variants';
+      IF product_option_count = 0 THEN
+        SELECT v.id
+        INTO invalid_variant_id
+        FROM variants v
+        WHERE v.product_id = p_product_id
+          AND v.id != master_variant_id
+        LIMIT 1;
+
+        IF invalid_variant_id IS NOT NULL THEN
+          RAISE EXCEPTION 'simple product % cannot have non-master variants such as %', p_product_id, invalid_variant_id
+            USING ERRCODE = 'check_violation', CONSTRAINT = 'simple_products_only_allow_master_variant';
+        END IF;
+      ELSE
+        SELECT v.id
+        INTO invalid_variant_id
+        FROM variants v
+        WHERE v.product_id = p_product_id
+          AND v.id != master_variant_id
+          AND (
+            (SELECT COUNT(*) FROM variants_option_values vov WHERE vov.variant_id = v.id) = 0
+            OR
+            (SELECT COUNT(*) FROM variants_option_values vov WHERE vov.variant_id = v.id) != product_option_count
+          )
+        LIMIT 1;
+
+        IF invalid_variant_id IS NOT NULL THEN
+          RAISE EXCEPTION 'variant % does not cover all required product options for product %', invalid_variant_id, p_product_id
+            USING ERRCODE = 'check_violation', CONSTRAINT = 'variants_cover_all_product_options';
+        END IF;
+
+        IF EXISTS (
+          SELECT 1
+          FROM variants v
+          WHERE v.id = master_variant_id
+            AND v.enabled
+        ) THEN
+          RAISE EXCEPTION 'master variant % is not purchasable for optioned product %', master_variant_id, p_product_id
+            USING ERRCODE = 'check_violation', CONSTRAINT = 'optioned_products_master_variant_not_purchasable';
+        END IF;
+      END IF;
+
+      IF product_status = 'active' THEN
+        IF product_option_count = 0 THEN
+          IF NOT EXISTS (
+            SELECT 1
+            FROM variants v
+            WHERE v.id = master_variant_id
+              AND v.enabled
+          ) THEN
+            RAISE EXCEPTION 'active simple product % must have an enabled master variant', p_product_id
+              USING ERRCODE = 'check_violation', CONSTRAINT = 'active_products_must_have_purchasable_variant';
+          END IF;
+        ELSIF NOT EXISTS (
+          SELECT 1
+          FROM variants v
+          WHERE v.product_id = p_product_id
+            AND v.id != master_variant_id
+            AND v.enabled
+        ) THEN
+          RAISE EXCEPTION 'active optioned product % must have an enabled non-master variant', p_product_id
+            USING ERRCODE = 'check_violation', CONSTRAINT = 'active_products_must_have_purchasable_variant';
+        END IF;
       END IF;
     END;
     $$
@@ -1077,7 +1136,7 @@ defmodule Harbor.Migration.V01 do
     execute "DROP FUNCTION IF EXISTS validate_product_variant_option_shape()"
     execute "DROP FUNCTION IF EXISTS validate_product_variant_option_shape_for_product(uuid)"
 
-    execute "ALTER TABLE products DROP CONSTRAINT IF EXISTS products_default_variant_id_fkey"
+    execute "ALTER TABLE products DROP CONSTRAINT IF EXISTS products_master_variant_id_fkey"
 
     drop_if_exists table(:product_images)
     drop_if_exists table(:variant_property_values)

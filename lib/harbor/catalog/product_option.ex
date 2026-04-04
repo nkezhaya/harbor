@@ -30,8 +30,11 @@ defmodule Harbor.Catalog.ProductOption do
       with: &ProductOptionValue.changeset/3
     )
     |> validate_required([:name, :position])
-    |> validate_has_values()
     |> assoc_constraint(:product)
+    |> check_constraint(:values,
+      name: :product_options_must_have_values,
+      message: "must be present."
+    )
     |> check_constraint(:position,
       name: :position_gte_zero,
       message: "must be greater than or equal to 0"
@@ -43,13 +46,5 @@ defmodule Harbor.Catalog.ProductOption do
     product_option
     |> change(position: position)
     |> changeset(attrs)
-  end
-
-  defp validate_has_values(changeset) do
-    if is_nil(get_field(changeset, :name)) or get_assoc(changeset, :values, :struct) != [] do
-      changeset
-    else
-      add_error(changeset, :values, "must have at least one value")
-    end
   end
 end

@@ -16,7 +16,7 @@ defmodule Harbor.TaxTest do
   describe "create_calculation/1" do
     setup do
       product = product_fixture()
-      variant = List.first(product.variants)
+      variant = product.master_variant
       scope = guest_scope_fixture(customer: false)
       cart = cart_fixture(scope)
       cart_item = cart_item_fixture(cart, %{variant_id: variant.id, quantity: 1})

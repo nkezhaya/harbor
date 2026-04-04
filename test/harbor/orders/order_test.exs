@@ -16,7 +16,7 @@ defmodule Harbor.Orders.OrderTest do
         order
         |> Order.changeset(%{delivery_method_id: delivery_method.id}, scope)
         |> Repo.update!()
-        |> Repo.preload([:customer, :shipping_address, :delivery_method])
+        |> Repo.preload([:customer, :shipping_address, :delivery_method, :items])
 
       attrs = %{
         status: :pending,

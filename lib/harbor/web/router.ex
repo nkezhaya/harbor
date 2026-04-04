@@ -47,7 +47,7 @@ defmodule Harbor.Web.Router do
         ] do
         live "/", Harbor.Web.HomeLive, :index
         live "/products", Harbor.Web.ProductLive.Index, :index
-        live "/shop/:slug", Harbor.Web.ProductLive.Index, :index
+        live "/shop/:taxon", Harbor.Web.ProductLive.Index, :index
         live "/products/:slug", Harbor.Web.ProductLive.Show, :show
         live "/cart", Harbor.Web.CartLive.Show, :show
         live "/checkout/:id", Harbor.Web.CheckoutLive.Form, :form

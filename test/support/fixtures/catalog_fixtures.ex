@@ -19,11 +19,10 @@ defmodule Harbor.CatalogFixtures do
         primary_taxon_id: taxon.id,
         product_type_id: product_type.id
       })
-      |> put_default_variants()
+      |> put_master_variant()
 
     final_status = Map.fetch!(attrs, :status)
-    variants = Map.get(attrs, :variants, [])
-    create_status = if final_status == :active and variants != [], do: :draft, else: final_status
+    create_status = if final_status == :active, do: :draft, else: final_status
 
     create_attrs =
       attrs
@@ -31,25 +30,25 @@ defmodule Harbor.CatalogFixtures do
       |> Map.put(:status, create_status)
 
     {:ok, product} = Catalog.create_product(create_attrs)
-    product = Catalog.get_product!(product.id)
-    product = maybe_update_variants(product, variants)
     product = maybe_update_status(product, create_status, final_status)
 
     Catalog.get_product!(product.id)
   end
 
-  defp put_default_variants(%{variants: _} = attrs), do: attrs
+  defp put_master_variant(%{variants: [master_variant | _]} = attrs) do
+    Map.put_new(attrs, :master_variant, master_variant)
+  end
 
-  defp put_default_variants(attrs) do
-    Map.put_new(attrs, :variants, [
-      %{
-        sku: "sku-#{System.unique_integer([:positive])}",
-        price: Money.new(:USD, 40),
-        inventory_policy: :track_strict,
-        quantity_available: 10,
-        enabled: true
-      }
-    ])
+  defp put_master_variant(%{variants: []} = attrs), do: attrs
+
+  defp put_master_variant(attrs) do
+    Map.put_new(attrs, :master_variant, %{
+      sku: "sku-#{System.unique_integer([:positive])}",
+      price: Money.new(:USD, 40),
+      inventory_policy: :track_strict,
+      quantity_available: 10,
+      enabled: true
+    })
   end
 
   def product_with_options_fixture(option_specs, product_attrs \\ %{}) do
@@ -86,8 +85,8 @@ defmodule Harbor.CatalogFixtures do
   end
 
   def variant_fixture(attrs \\ %{}) do
-    %{variants: [variant | _]} = product_fixture(attrs)
-    Harbor.Repo.preload(variant, [:option_values, :product])
+    product = product_fixture(attrs)
+    Harbor.Repo.preload(product.master_variant, [:option_values, :product])
   end
 
   def product_image_fixture(attrs \\ %{}) do
@@ -131,13 +130,6 @@ defmodule Harbor.CatalogFixtures do
 
     {:ok, product_type} = Catalog.create_product_type(attrs)
     product_type
-  end
-
-  defp maybe_update_variants(product, []), do: product
-
-  defp maybe_update_variants(product, variants) do
-    {:ok, product} = Catalog.update_product_variants(product, %{variants: variants})
-    product
   end
 
   defp maybe_update_status(product, status, status), do: product

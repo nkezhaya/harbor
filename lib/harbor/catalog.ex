@@ -79,7 +79,7 @@ defmodule Harbor.Catalog do
   Returns a paginated list of products matching the given params.
 
   Non-admin scopes are restricted to active products. Results include
-  the `:default_variant` and first ready `:images` preloaded.
+  the `:master_variant` and first ready `:images` preloaded.
   """
   @spec list_products(Scope.t(), map()) :: %{
           entries: [Product.t()],
@@ -93,7 +93,7 @@ defmodule Harbor.Catalog do
 
     Product
     |> ProductQuery.apply(query)
-    |> preload([:default_variant, images: ^storefront_image_query()])
+    |> preload([:master_variant, images: ^storefront_image_query()])
     |> Repo.paginate(query)
   end
 
@@ -103,21 +103,15 @@ defmodule Harbor.Catalog do
       variant_option_values: [:product_option, :product_option_value]
     ]
 
-    enabled_variants_query =
-      Variant
-      |> where([v], v.enabled)
-      |> order_by([v], asc: v.inserted_at)
-      |> preload(^variant_preload)
-
     Product
     |> where([p], p.slug == ^slug and p.status == :active)
     |> preload([
       :brand,
       :primary_taxon,
       product_options: :values,
-      default_variant: ^variant_preload,
       images: ^storefront_gallery_query(),
-      variants: ^enabled_variants_query
+      master_variant: ^variant_preload,
+      enabled_variants: ^variant_preload
     ])
     |> Repo.one!()
   end
@@ -173,100 +167,147 @@ defmodule Harbor.Catalog do
   end
 
   def change_product(%Product{} = product, attrs \\ %{}) do
-    product
-    |> Repo.preload([:product_taxons, :variants, product_options: :values])
-    |> put_taxon_ids()
-    |> Product.changeset(attrs)
+    product_with_master_variant_changeset(product, attrs)
   end
 
   def change_product_variants(%Product{} = product, attrs \\ %{}) do
-    product
-    |> Repo.preload(product_options: :values, variants: :variant_option_values)
-    |> Product.variant_changeset(attrs)
+    product =
+      Repo.preload(
+        product,
+        [
+          product_options: :values,
+          variants: {non_master_variants_query(product), :variant_option_values}
+        ],
+        force: true
+      )
+
+    Product.variant_changeset(product, attrs)
   end
 
+  # FIXME: This function is doing a ton of duplicate work. Should be drastically
+  # simplified after master_variant_id is removed.
   defp persist_product(%Product{} = product, attrs) do
     changeset =
       product
-      |> change_product(attrs)
+      |> product_with_master_variant_changeset(attrs)
       |> sync_taxons()
-      |> validate_active_product_has_variants()
 
-    with {:ok, product} <- Repo.insert_or_update(changeset),
-         {:ok, product} <- ensure_default_variant(product) do
-      {:ok, preload_product(product)}
+    if changeset.valid? do
+      master_variant_changeset = Ecto.Changeset.get_assoc(changeset, :master_variant, :changeset)
+
+      with {:ok, product} <-
+             product
+             |> product_changeset(attrs)
+             |> sync_taxons()
+             |> Repo.insert_or_update(),
+           {:ok, product} <- upsert_master_variant(product, master_variant_changeset) do
+        {:ok, preload_product(product)}
+      end
+    else
+      {:error, changeset}
     end
   end
 
   defp persist_product_variants(%Product{} = product, attrs) do
-    changeset =
-      product
-      |> change_product_variants(attrs)
-      |> clear_default_variant_if_deleted()
-      |> validate_active_product_has_variants()
-
-    with {:ok, product} <- Repo.update(changeset),
-         {:ok, product} <- ensure_default_variant(product) do
+    with {:ok, product} <-
+           product
+           |> change_product_variants(attrs)
+           |> Repo.update() do
       {:ok, preload_product(product)}
     end
   end
 
-  # NOTE: Ugly hacks while waiting for master variants. To be removed.
-  defp validate_active_product_has_variants(changeset) do
-    case Ecto.Changeset.apply_changes(changeset) do
-      %Product{status: :active, variants: []} ->
-        Ecto.Changeset.add_error(
-          changeset,
-          :status,
-          "active products must have at least one variant"
-        )
+  defp upsert_master_variant(%Product{} = product, master_variant_changeset) do
+    product = Repo.preload(product, :master_variant)
 
-      _ ->
-        changeset
-    end
-  end
+    case product.master_variant do
+      nil ->
+        with {:ok, master_variant} <-
+               create_master_variant(product, master_variant_changes(master_variant_changeset)) do
+          product
+          |> Ecto.Changeset.change(master_variant_id: master_variant.id)
+          |> Repo.update()
+        end
 
-  defp clear_default_variant_if_deleted(changeset) do
-    default_variant_id = Ecto.Changeset.get_field(changeset, :default_variant_id)
-
-    cond do
-      is_nil(default_variant_id) ->
-        changeset
-
-      default_variant_survives?(changeset, default_variant_id) ->
-        changeset
-
-      true ->
-        Ecto.Changeset.put_change(changeset, :default_variant_id, nil)
-    end
-  end
-
-  defp default_variant_survives?(changeset, default_variant_id) do
-    changeset
-    |> Ecto.Changeset.get_assoc(:variants, :struct)
-    |> Enum.any?(&(&1.id == default_variant_id))
-  end
-
-  defp ensure_default_variant(%Product{} = product) do
-    product = Repo.preload(product, :variants)
-
-    default_variant =
-      Enum.find(product.variants, &(&1.id == product.default_variant_id)) ||
-        Enum.find(product.variants, & &1.enabled) ||
-        List.first(product.variants)
-
-    cond do
-      is_nil(default_variant) ->
-        {:ok, product}
-
-      product.default_variant_id == default_variant.id ->
-        {:ok, product}
-
-      true ->
-        product
-        |> Ecto.Changeset.change(default_variant_id: default_variant.id)
+      master_variant ->
+        master_variant
+        |> Variant.changeset(master_variant_changes(master_variant_changeset))
         |> Repo.update()
+        |> case do
+          {:ok, _master_variant} -> {:ok, product}
+          {:error, changeset} -> {:error, changeset}
+        end
     end
+  end
+
+  defp product_changeset(%Product{} = product, attrs) do
+    product =
+      Repo.preload(
+        product,
+        [
+          :product_taxons,
+          variants: non_master_variants_query(product),
+          product_options: :values
+        ],
+        force: true
+      )
+
+    product
+    |> put_taxon_ids()
+    |> Product.changeset(attrs)
+  end
+
+  defp product_with_master_variant_changeset(%Product{} = product, attrs) do
+    product =
+      Repo.preload(
+        product,
+        [
+          :product_taxons,
+          :master_variant,
+          variants: non_master_variants_query(product),
+          product_options: :values
+        ],
+        force: true
+      )
+
+    product
+    |> put_taxon_ids()
+    |> put_master_variant()
+    |> Product.with_master_variant_changeset(attrs)
+  end
+
+  defp create_master_variant(%Product{} = product, attrs) do
+    %Variant{product_id: product.id, tax_code_id: product.tax_code_id, price: Money.new(:USD, 0)}
+    |> Variant.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  defp put_master_variant(%Product{} = product) do
+    default_master_variant = %Variant{tax_code_id: product.tax_code_id, price: Money.new(:USD, 0)}
+    %{product | master_variant: product.master_variant || default_master_variant}
+  end
+
+  # TODO: Should be removed after master_variant_id is removed.
+  defp master_variant_changes(master_variant_changeset) do
+    Enum.reduce(
+      [:sku, :price, :quantity_available, :enabled, :inventory_policy, :tax_code_id],
+      %{},
+      fn field, changes ->
+        case Ecto.Changeset.fetch_change(master_variant_changeset, field) do
+          {:ok, value} -> Map.put(changes, field, value)
+          :error -> changes
+        end
+      end
+    )
+  end
+
+  # TODO: Should be removed after master_variant_id is removed.
+  defp non_master_variants_query(%Product{master_variant_id: nil}) do
+    Variant
+  end
+
+  defp non_master_variants_query(%Product{} = product) do
+    where(Variant, [variant], variant.id != ^product.master_variant_id)
   end
 
   defp sync_taxons(changeset) do
@@ -311,16 +352,18 @@ defmodule Harbor.Catalog do
         :product_type,
         :primary_taxon,
         :images,
-        default_variant: [
+        master_variant: [
           :option_values,
           variant_option_values: [:product_option, :product_option_value]
         ],
         product_taxons: :taxon,
         product_options: :values,
-        variants: [
-          :option_values,
-          variant_option_values: [:product_option, :product_option_value]
-        ],
+        variants:
+          {non_master_variants_query(product),
+           [
+             :option_values,
+             variant_option_values: [:product_option, :product_option_value]
+           ]},
         product_property_values: [:property, :property_option]
       ],
       force: true
