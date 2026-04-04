@@ -13,7 +13,7 @@ defmodule Harbor.Web.Admin.ProductLive.VariantForm do
   def render(assigns) do
     assigns =
       assigns
-      |> assign(:has_variants?, Changeset.get_assoc(assigns.form.source, :variants) != [])
+      |> assign(:has_product_options?, assigns.product.product_options != [])
       |> assign(:product_options_by_id, Map.new(assigns.product.product_options, &{&1.id, &1}))
 
     ~H"""
@@ -43,7 +43,7 @@ defmodule Harbor.Web.Admin.ProductLive.VariantForm do
       >
         <.card>
           <:title>Variants</:title>
-          <:action>
+          <:action :if={@has_product_options?}>
             <.button
               type="button"
               variant="primary"
@@ -57,19 +57,21 @@ defmodule Harbor.Web.Admin.ProductLive.VariantForm do
           <:body>
             <div class="space-y-6">
               <div class="rounded-lg bg-gray-50 p-4 text-sm text-gray-600">
-                Product options are managed on the product editor. This page only manages persisted variants.
+                Product options are managed on the product editor. Edit only the purchasable variants here.
               </div>
 
-              <.error :for={error <- @form[:status].errors}>{translate_error(error)}</.error>
               <.error :for={error <- @form[:variants].errors}>{translate_error(error)}</.error>
 
               <input type="hidden" name={input_name(@form, :variants_drop) <> "[]"} />
 
-              <.inputs_for
-                :let={variant_form}
-                field={@form[:variants]}
-                append={if @has_variants?, do: [], else: [blank_variant()]}
+              <div
+                :if={@form[:variants].value == []}
+                class="rounded-lg border border-dashed border-gray-300 p-5 text-sm text-gray-600"
               >
+                No variants yet.
+              </div>
+
+              <.inputs_for :let={variant_form} field={@form[:variants]}>
                 <.variant_fields
                   form={@form}
                   variant_form={variant_form}
@@ -95,12 +97,23 @@ defmodule Harbor.Web.Admin.ProductLive.VariantForm do
   def mount(%{"id" => id}, _session, socket) do
     product = Catalog.get_product!(id)
 
-    {:ok,
-     socket
-     |> assign(:page_title, "Edit Variants")
-     |> assign(:product, product)
-     |> assign(:tax_code_options, tax_code_options())
-     |> assign_form(Catalog.change_product_variants(product))}
+    socket =
+      if product.product_options == [] do
+        socket
+        |> put_flash(
+          :error,
+          "This product has no variants to edit here. Edit price and tax code on the product page."
+        )
+        |> push_navigate(to: admin_path(socket, "/products/#{product.id}"))
+      else
+        socket
+        |> assign(:page_title, "Edit Variants")
+        |> assign(:product, product)
+        |> assign(:tax_code_options, tax_code_options())
+        |> assign_form(Catalog.change_product_variants(product))
+      end
+
+    {:ok, socket}
   end
 
   @impl true
@@ -161,7 +174,6 @@ defmodule Harbor.Web.Admin.ProductLive.VariantForm do
             type="text"
             label="Price"
             placeholder="0.00"
-            value={format_money_input(input_value(@variant_form, :price))}
           />
 
           <.input
@@ -277,23 +289,9 @@ defmodule Harbor.Web.Admin.ProductLive.VariantForm do
     end)
   end
 
-  defp blank_variant do
-    %Variant{enabled: true, inventory_policy: :not_tracked, variant_option_values: []}
-  end
-
   defp blank_variant_option_values(product_options) do
     Enum.map(product_options, fn product_option ->
       %VariantOptionValue{product_option_id: product_option.id}
     end)
   end
-
-  defp format_money_input(%Money{} = money) do
-    money
-    |> Money.to_decimal()
-    |> Decimal.round(2)
-    |> Decimal.to_string(:normal)
-  end
-
-  defp format_money_input(value) when is_binary(value), do: value
-  defp format_money_input(_), do: nil
 end

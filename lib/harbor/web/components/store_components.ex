@@ -20,8 +20,8 @@ defmodule Harbor.Web.StoreComponents do
       <h3 class="mt-4 text-sm text-gray-700">{@product.name}</h3>
 
       <p class="mt-1 text-lg font-medium text-gray-900">
-        <%= if @product.default_variant do %>
-          {@product.default_variant.price}
+        <%= if @product.master_variant do %>
+          {@product.master_variant.price}
         <% end %>
       </p>
     </a>

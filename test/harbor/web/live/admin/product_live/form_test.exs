@@ -78,10 +78,19 @@ defmodule Harbor.Web.Admin.ProductLive.FormTest do
     assert has_element?(view, "#product_product_options_0_values_1_name")
   end
 
-  test "shows separate variant workflow on the product editor", %{conn: conn, product: product} do
+  test "shows product pricing fields inline on the product editor", %{
+    conn: conn,
+    product: product
+  } do
     {:ok, view, _html} = live(conn, "/admin/products/#{product.id}/edit")
 
-    assert has_element?(view, "#product-form", "Variants are edited on a separate page")
+    assert has_element?(view, "[name='product[master_variant][price]']")
+    refute has_element?(view, "[name='product[master_variant][tax_code_id]']")
+    refute has_element?(view, "#product-form", "Master Variant")
+    refute has_element?(view, "[name='product[master_variant][sku]']")
+    refute has_element?(view, "[name='product[master_variant][quantity_available]']")
+    refute has_element?(view, "[name='product[master_variant][inventory_policy]']")
+    refute has_element?(view, "[name='product[master_variant][enabled]']")
     assert has_element?(view, "a", "Edit Variants")
     refute has_element?(view, "#product_variants_0_sku")
   end
@@ -182,32 +191,6 @@ defmodule Harbor.Web.Admin.ProductLive.FormTest do
     assert has_element?(show_live, "h1", "Product new name")
   end
 
-  test "shows an error when a named option has no values", %{conn: conn, product: product} do
-    {:ok, view, _html} = live(conn, "/admin/products/#{product.id}/edit")
-
-    params = %{
-      "name" => product.name,
-      "description" => product.description,
-      "status" => to_string(product.status),
-      "product_type_id" => product.product_type_id,
-      "primary_taxon_id" => product.primary_taxon_id,
-      "taxon_ids" => [product.primary_taxon_id],
-      "product_options" => %{
-        "0" => %{
-          "name" => "Size",
-          "values_sort" => []
-        }
-      },
-      "product_options_sort" => ["0"]
-    }
-
-    view
-    |> element("#product-form")
-    |> render_change(%{"product" => params})
-
-    assert has_element?(view, "p", "must have at least one value")
-  end
-
   test "shows duplicate option name errors on submit", %{conn: conn, product: product} do
     {:ok, view, _html} = live(conn, "/admin/products/#{product.id}/edit")
 
@@ -246,17 +229,33 @@ defmodule Harbor.Web.Admin.ProductLive.FormTest do
     assert has_element?(view, "p", "has already been taken")
   end
 
-  test "shows an error when activating a product without variants", %{
-    conn: conn,
-    product: product
-  } do
+  test "updates the master variant on the product editor", %{conn: conn} do
+    product = product_fixture(%{status: :draft, variants: []})
+
     {:ok, view, _html} = live(conn, "/admin/products/#{product.id}/edit")
 
-    view
-    |> form("#product-form", product: %{status: "active"})
-    |> render_submit()
+    params = %{
+      "name" => product.name,
+      "description" => product.description,
+      "status" => to_string(product.status),
+      "primary_taxon_id" => product.primary_taxon_id,
+      "taxon_ids" => [product.primary_taxon_id],
+      "product_type_id" => product.product_type_id,
+      "master_variant" => %{
+        "id" => product.master_variant_id,
+        "price" => "25.00"
+      }
+    }
 
-    assert has_element?(view, "p", "active products must have at least one variant")
+    assert {:ok, _index_live, _html} =
+             view
+             |> element("#product-form")
+             |> render_submit(%{"product" => params})
+             |> follow_redirect(conn, "/admin/products")
+
+    product = Harbor.Catalog.get_product!(product.id)
+
+    assert product.master_variant.price == Money.new(:USD, "25.00")
   end
 
   defp image_ids_by_position(product) do

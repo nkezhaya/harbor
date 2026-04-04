@@ -8,8 +8,7 @@ defmodule Harbor.Orders.Order do
   alias Harbor.Accounts.Scope
   alias Harbor.Authorization
   alias Harbor.Checkout.Cart
-  alias Harbor.Customers.Address
-  alias Harbor.Customers.Customer
+  alias Harbor.Customers.{Address, Customer}
   alias Harbor.Orders.OrderItem
   alias Harbor.Shipping.DeliveryMethod
 

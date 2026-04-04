@@ -82,7 +82,7 @@ defmodule Harbor.Web.CartLive.Show do
       |> assign(:variant, variant)
       |> assign(:variant_description, Variant.description(variant))
       |> assign(:price, variant.price)
-      |> assign(:form, to_form(CartItem.changeset(assigns.cart_item, %{})))
+      |> assign(:form, to_form(Checkout.change_cart_item(assigns.cart_item)))
 
     ~H"""
     <li id={@id} class="flex py-6 sm:py-10">

@@ -166,6 +166,50 @@ defmodule Harbor.CheckoutTest do
       assert price == variant.price
     end
 
+    test "rejects carts with disabled variants" do
+      scope = guest_scope_fixture(customer: false)
+      cart = cart_fixture(scope)
+      product = product_with_options_fixture([{"Size", ["S", "M"]}], %{name: "Shirt"})
+      variant = Enum.find(product.variants, & &1.enabled)
+
+      cart_item_fixture(cart, %{variant_id: variant.id})
+
+      variant
+      |> Harbor.Catalog.Variant.changeset(%{enabled: false})
+      |> Repo.update!()
+
+      assert {:error, changeset} = Checkout.create_session(scope, cart)
+
+      assert errors_on(changeset).base == [
+               "#{product.name} is no longer available"
+             ]
+    end
+
+    test "adds errors for all disabled variants in the cart" do
+      scope = guest_scope_fixture(customer: false)
+      cart = cart_fixture(scope)
+      shirt = variant_fixture(name: "shirt")
+      hat = variant_fixture(name: "hat")
+
+      cart_item_fixture(cart, %{variant_id: shirt.id})
+      cart_item_fixture(cart, %{variant_id: hat.id})
+
+      shirt
+      |> Harbor.Catalog.Variant.changeset(%{enabled: false})
+      |> Repo.update!()
+
+      hat
+      |> Harbor.Catalog.Variant.changeset(%{enabled: false})
+      |> Repo.update!()
+
+      assert {:error, changeset} = Checkout.create_session(scope, cart)
+
+      errors = errors_on(changeset).base
+      assert [_, _] = errors
+      assert "shirt is no longer available" in errors
+      assert "hat is no longer available" in errors
+    end
+
     test "creates a new session per checkout", %{scope: scope, cart: cart} do
       {:ok, session} = Checkout.create_session(scope, cart)
       {:ok, other_session} = Checkout.create_session(scope, cart)
@@ -392,6 +436,15 @@ defmodule Harbor.CheckoutTest do
       assert cart_item.variant_id == variant.id
     end
 
+    test "rejects the master variant for an optioned product", %{cart: cart} do
+      product = product_with_options_fixture([{"Size", ["S"]}])
+
+      assert {:error, changeset} =
+               Checkout.create_cart_item(cart, %{variant_id: product.master_variant_id})
+
+      assert errors_on(changeset).variant_id == ["is no longer available"]
+    end
+
     test "with invalid data returns error changeset", %{cart: cart} do
       assert {:error, %Ecto.Changeset{}} = Checkout.create_cart_item(cart, %{quantity: nil})
     end
@@ -411,6 +464,16 @@ defmodule Harbor.CheckoutTest do
       assert cart_item.quantity == 1
       assert cart.last_touched_at
       assert cart.expires_at
+    end
+
+    test "rejects the master variant for an optioned product" do
+      scope = guest_scope_fixture(customer: false)
+      product = product_with_options_fixture([{"Size", ["S"]}])
+
+      assert {:error, changeset} =
+               Checkout.add_item_to_cart(scope, %{"variant_id" => product.master_variant_id})
+
+      assert errors_on(changeset).variant_id == ["is no longer available"]
     end
 
     test "increments the quantity when the variant already exists", %{
@@ -435,6 +498,23 @@ defmodule Harbor.CheckoutTest do
                Checkout.update_cart_item(scope, cart_item, update_attrs)
 
       assert cart_item.quantity == 43
+    end
+
+    test "allows updating a cart item whose variant was later disabled" do
+      scope = guest_scope_fixture(customer: false)
+      cart = cart_fixture(scope)
+      product = product_with_options_fixture([{"Size", ["S", "M"]}])
+      variant = Enum.find(product.variants, & &1.enabled)
+      cart_item = cart_item_fixture(cart, %{variant_id: variant.id})
+
+      variant
+      |> Harbor.Catalog.Variant.changeset(%{enabled: false})
+      |> Repo.update!()
+
+      assert {:ok, %CartItem{} = cart_item} =
+               Checkout.update_cart_item(scope, cart_item, %{quantity: 2})
+
+      assert cart_item.quantity == 2
     end
 
     test "with invalid data returns error changeset", %{scope: scope, cart_item: cart_item} do
@@ -544,6 +624,52 @@ defmodule Harbor.CheckoutTest do
       session = Repo.get!(Session, session.id)
       assert session.status == :completed
       assert session.order_id == order.id
+    end
+
+    test "rejects checkout when an item variant was disabled after the session was created" do
+      user = user_fixture()
+      scope = user_scope_fixture(user)
+      cart = cart_fixture(scope)
+      product = product_with_options_fixture([{"Size", ["S", "M"]}], %{name: "Shirt"})
+      variant = Enum.find(product.variants, & &1.enabled)
+      cart_item_fixture(cart, %{variant_id: variant.id, quantity: 1})
+      delivery_method = delivery_method_fixture(%{price: Money.new(:USD, 1)})
+
+      address =
+        address_fixture(scope, %{
+          first_name: "Jessie",
+          last_name: "Doe",
+          line1: "Main St",
+          city: "Town",
+          region: "OR",
+          postal_code: "97205",
+          country: "US",
+          phone: "555-1010"
+        })
+
+      {:ok, session} = Checkout.create_session(scope, cart)
+      order = session.order
+
+      order
+      |> Order.changeset(
+        %{
+          billing_address_id: address.id,
+          shipping_address_id: address.id,
+          delivery_method_id: delivery_method.id
+        },
+        scope
+      )
+      |> Repo.update!()
+
+      variant
+      |> Harbor.Catalog.Variant.changeset(%{enabled: false})
+      |> Repo.update!()
+
+      assert {:error, changeset} = Checkout.submit_checkout(scope, session)
+
+      assert errors_on(changeset).base == [
+               "#{product.name} is no longer available"
+             ]
     end
 
     test "is idempotent when called multiple times for the same session" do

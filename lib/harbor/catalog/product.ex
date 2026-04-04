@@ -36,7 +36,7 @@ defmodule Harbor.Catalog.Product do
     belongs_to :product_type, ProductType
     belongs_to :primary_taxon, Taxon
     belongs_to :tax_code, TaxCode
-    belongs_to :default_variant, Variant, foreign_key: :default_variant_id
+    belongs_to :master_variant, Variant, foreign_key: :master_variant_id
 
     has_many :images, ProductImage, preload_order: [:position], on_replace: :delete
     has_many :product_taxons, ProductTaxon, preload_order: [:position], on_replace: :delete
@@ -44,6 +44,10 @@ defmodule Harbor.Catalog.Product do
     has_many :product_options, ProductOption, preload_order: [:position], on_replace: :delete
     has_many :product_property_values, ProductPropertyValue, on_replace: :delete
     has_many :variants, Variant, on_replace: :delete
+
+    has_many :enabled_variants, Variant,
+      where: [enabled: true],
+      preload_order: [asc: :inserted_at]
 
     timestamps()
   end
@@ -61,8 +65,7 @@ defmodule Harbor.Catalog.Product do
       :product_type_id,
       :primary_taxon_id,
       :taxon_ids,
-      :tax_code_id,
-      :default_variant_id
+      :tax_code_id
     ])
     |> cast_assoc(:images)
     |> cast_assoc(:product_options,
@@ -81,15 +84,27 @@ defmodule Harbor.Catalog.Product do
       name: :products_primary_taxon_in_taxons,
       message: "must be one of the selected taxons"
     )
-    |> foreign_key_constraint(:default_variant_id, name: :products_default_variant_id_fkey)
     |> check_constraint(:status,
-      name: :active_products_must_have_variants,
-      message: "active products must have at least one variant"
+      name: :active_products_must_have_purchasable_variant,
+      message: "cannot be active without a purchasable variant"
     )
   end
 
+  def with_master_variant_changeset(product, attrs) do
+    product
+    |> changeset(attrs)
+    |> cast_assoc(:master_variant)
+  end
+
   defp validate_product_options_locked(changeset) do
-    if get_assoc(changeset, :variants) != [] and changed?(changeset, :product_options) do
+    master_variant_id = get_field(changeset, :master_variant_id)
+
+    variants_locked? =
+      Enum.any?(get_assoc(changeset, :variants), fn variant ->
+        get_field(variant, :id) != master_variant_id
+      end)
+
+    if variants_locked? and changed?(changeset, :product_options) do
       add_error(changeset, :product_options, "cannot be changed once variants exist")
     else
       changeset
@@ -100,9 +115,9 @@ defmodule Harbor.Catalog.Product do
     product
     |> cast(attrs, [])
     |> cast_assoc(:variants, sort_param: :variants_sort, drop_param: :variants_drop)
-    |> check_constraint(:status,
-      name: :active_products_must_have_variants,
-      message: "active products must have at least one variant"
+    |> check_constraint(:variants,
+      name: :active_products_must_have_purchasable_variant,
+      message: "must include a purchasable variant while the product is active"
     )
   end
 end

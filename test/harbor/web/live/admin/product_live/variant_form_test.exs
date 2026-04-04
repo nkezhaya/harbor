@@ -65,48 +65,70 @@ defmodule Harbor.Web.Admin.ProductLive.VariantFormTest do
            end) == [["8", "Black"]]
   end
 
-  test "renders one option select per persisted product option", %{conn: conn} do
+  test "redirects simple products back to the product editor", %{conn: conn} do
+    product = product_fixture(%{status: :draft})
+
+    to = "/admin/products/#{product.id}"
+
+    assert {:error, {:live_redirect, %{to: ^to, flash: flash}}} =
+             live(conn, "/admin/products/#{product.id}/variants")
+
+    assert flash["error"] ==
+             "This product has no variants to edit here. Edit price and tax code on the product page."
+  end
+
+  test "renders option selects for purchasable variants", %{conn: conn} do
     product =
-      product_fixture(%{
-        status: :draft,
-        variants: [],
-        product_options: [
-          %{name: "Size", values: [%{name: "8"}]},
-          %{name: "Color", values: [%{name: "Black"}]}
-        ]
-      })
+      product_with_options_fixture([{"Size", ["8"]}, {"Color", ["Black"]}], %{status: :draft})
 
     {:ok, view, _html} = live(conn, "/admin/products/#{product.id}/variants")
 
     assert has_element?(
              view,
-             "#product_variants_0_variant_option_values_0_product_option_value_id"
-           )
-
-    assert has_element?(
-             view,
-             "#product_variants_0_variant_option_values_1_product_option_value_id"
+             "select[name='product[variants][0][variant_option_values][0][product_option_value_id]']"
            )
   end
 
-  test "shows validation when removing the last variant from an active product", %{conn: conn} do
+  test "keeps the master variant hidden while editing variants", %{conn: conn} do
     product = product_with_options_fixture([{"Size", ["S"]}])
     variant = List.first(product.variants)
+    [variant_option_value] = variant.variant_option_values
 
     {:ok, view, _html} = live(conn, "/admin/products/#{product.id}/variants")
 
     params = %{
       "variants" => %{
-        "0" => %{"id" => variant.id}
+        "0" => %{
+          "id" => variant.id,
+          "sku" => variant.sku,
+          "price" => "45.00",
+          "quantity_available" => Integer.to_string(variant.quantity_available),
+          "enabled" => to_string(variant.enabled),
+          "inventory_policy" => to_string(variant.inventory_policy),
+          "variant_option_values" => %{
+            "0" => %{
+              "id" => variant_option_value.id,
+              "product_option_id" => variant_option_value.product_option_id,
+              "product_option_value_id" => variant_option_value.product_option_value_id
+            }
+          }
+        }
       },
-      "variants_sort" => ["0"],
-      "variants_drop" => ["0"]
+      "variants_sort" => ["0"]
     }
 
-    view
-    |> element("#product-variants-form")
-    |> render_submit(%{"product" => params})
+    assert {:ok, _show_live, _html} =
+             view
+             |> element("#product-variants-form")
+             |> render_submit(%{"product" => params})
+             |> follow_redirect(conn, "/admin/products/#{product.id}")
 
-    assert has_element?(view, "p", "active products must have at least one variant")
+    product = Catalog.get_product!(product.id)
+
+    assert product.master_variant.id == product.master_variant_id
+
+    assert Enum.any?(product.variants, fn updated_variant ->
+             updated_variant.price == Money.new(:USD, "45.00")
+           end)
   end
 end

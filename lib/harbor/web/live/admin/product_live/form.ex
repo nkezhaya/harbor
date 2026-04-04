@@ -78,6 +78,15 @@ defmodule Harbor.Web.Admin.ProductLive.Form do
             prompt="Choose a tax code"
             options={@tax_code_options}
           />
+
+          <.inputs_for :let={master_variant_form} field={@form[:master_variant]}>
+            <.input
+              field={master_variant_form[:price]}
+              type="text"
+              label="Price"
+              placeholder="0.00"
+            />
+          </.inputs_for>
         </div>
 
         <div class="col-span-full">
@@ -126,7 +135,7 @@ defmodule Harbor.Web.Admin.ProductLive.Form do
           <:body>
             <div class="space-y-4">
               <div class="rounded-lg bg-gray-50 p-4 text-sm text-gray-600">
-                Variants are edited on a separate page for saved products. This keeps product option IDs database-generated and avoids editing variants in the new-product flow.
+                Create, edit, and remove additional variants on the variants page.
               </div>
 
               <%= if @product.id do %>
@@ -138,23 +147,16 @@ defmodule Harbor.Web.Admin.ProductLive.Form do
                     Edit Variants
                   </.button>
                   <p class="text-sm text-gray-600">
-                    <%= case @product.variants do %>
-                      <% [] -> %>
-                        {gettext(
-                          "No variants yet. Add at least one variant before activating the product."
-                        )}
-                      <% variants -> %>
-                        {ngettext(
-                          "%{count} variant configured.",
-                          "%{count} variants configured.",
-                          length(variants)
-                        )}
-                    <% end %>
+                    {ngettext(
+                      "%{count} additional variant configured.",
+                      "%{count} additional variants configured.",
+                      length(@product.variants)
+                    )}
                   </p>
                 </div>
               <% else %>
                 <div class="text-sm text-gray-600">
-                  Save this product first, then add variants.
+                  Save this product first. Then you can add variants here if this product needs them.
                 </div>
               <% end %>
             </div>
@@ -228,9 +230,6 @@ defmodule Harbor.Web.Admin.ProductLive.Form do
     </li>
     """
   end
-
-  attr :form, Phoenix.HTML.Form, required: true
-  attr :product, Product, required: true
 
   defp options_card(assigns) do
     assigns = assign(assigns, :has_variants?, assigns.product.variants != [])
@@ -542,7 +541,7 @@ defmodule Harbor.Web.Admin.ProductLive.Form do
          |> push_navigate(to: return_path(socket, socket.assigns.return_to, product))}
 
       {:error, %Changeset{} = changeset} ->
-        {:noreply, assign_form(socket, changeset)}
+        {:noreply, assign_form(socket, Map.put(changeset, :action, :validate))}
     end
   end
 

@@ -22,6 +22,16 @@ defmodule Harbor.Web.ProductLive.ShowTest do
     assert has_element?(view, "p", "Cozy throw blanket.")
   end
 
+  test "auto-selects the master variant for a simple product", %{conn: conn} do
+    product = product_fixture(%{name: "Simple Tee"})
+
+    {:ok, view, _html} = live(conn, "/products/#{product.slug}")
+
+    assert has_element?(view, "h1", "Simple Tee")
+    assert has_element?(view, "button[phx-click=add_to_cart]", "Add to bag")
+    assert has_element?(view, "#details-heading")
+  end
+
   test "selects variants through option groups", %{conn: conn} do
     product =
       product_with_options_fixture([
@@ -71,12 +81,12 @@ defmodule Harbor.Web.ProductLive.ShowTest do
     sparse_product = Harbor.Catalog.get_storefront_product_by_slug!(product.slug)
 
     source_variant =
-      Enum.find(sparse_product.variants, fn variant ->
+      Enum.find(sparse_product.enabled_variants, fn variant ->
         Enum.sort(Enum.map(variant.option_values, & &1.name)) == ["Black", "S"]
       end)
 
     target_variant =
-      Enum.find(sparse_product.variants, fn variant ->
+      Enum.find(sparse_product.enabled_variants, fn variant ->
         Enum.sort(Enum.map(variant.option_values, & &1.name)) == ["M", "White"]
       end)
 

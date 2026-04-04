@@ -170,7 +170,7 @@ defmodule Harbor.Catalog.ProductQuery do
     if has_named_binding?(q, :variant) do
       q
     else
-      join(q, :inner, [p], v in assoc(p, :default_variant), as: :variant)
+      join(q, :inner, [p], v in assoc(p, :master_variant), as: :variant)
     end
   end
 end
