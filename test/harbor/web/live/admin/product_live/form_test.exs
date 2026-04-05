@@ -242,7 +242,7 @@ defmodule Harbor.Web.Admin.ProductLive.FormTest do
       "taxon_ids" => [product.primary_taxon_id],
       "product_type_id" => product.product_type_id,
       "master_variant" => %{
-        "id" => product.master_variant_id,
+        "id" => product.master_variant.id,
         "price" => "25.00"
       }
     }

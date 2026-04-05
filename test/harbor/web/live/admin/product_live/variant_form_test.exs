@@ -125,7 +125,7 @@ defmodule Harbor.Web.Admin.ProductLive.VariantFormTest do
 
     product = Catalog.get_product!(product.id)
 
-    assert product.master_variant.id == product.master_variant_id
+    assert product.master_variant.master
 
     assert Enum.any?(product.variants, fn updated_variant ->
              updated_variant.price == Money.new(:USD, "45.00")

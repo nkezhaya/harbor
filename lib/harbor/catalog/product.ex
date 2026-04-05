@@ -36,14 +36,14 @@ defmodule Harbor.Catalog.Product do
     belongs_to :product_type, ProductType
     belongs_to :primary_taxon, Taxon
     belongs_to :tax_code, TaxCode
-    belongs_to :master_variant, Variant, foreign_key: :master_variant_id
 
+    has_one :master_variant, Variant, where: [master: true]
     has_many :images, ProductImage, preload_order: [:position], on_replace: :delete
     has_many :product_taxons, ProductTaxon, preload_order: [:position], on_replace: :delete
     has_many :taxons, through: [:product_taxons, :taxon]
     has_many :product_options, ProductOption, preload_order: [:position], on_replace: :delete
     has_many :product_property_values, ProductPropertyValue, on_replace: :delete
-    has_many :variants, Variant, on_replace: :delete
+    has_many :variants, Variant, where: [master: false], on_replace: :delete
 
     has_many :enabled_variants, Variant,
       where: [enabled: true],
@@ -93,18 +93,28 @@ defmodule Harbor.Catalog.Product do
   def with_master_variant_changeset(product, attrs) do
     product
     |> changeset(attrs)
-    |> cast_assoc(:master_variant)
+    |> cast_assoc(:master_variant, with: &Variant.master_changeset/2)
+    |> ensure_master_variant()
+  end
+
+  defp ensure_master_variant(changeset) do
+    case get_assoc(changeset, :master_variant) do
+      nil ->
+        master_variant =
+          changeset
+          |> apply_changes()
+          |> Ecto.build_assoc(:master_variant)
+          |> Variant.master_changeset(%{})
+
+        put_assoc(changeset, :master_variant, master_variant)
+
+      _master_variant ->
+        changeset
+    end
   end
 
   defp validate_product_options_locked(changeset) do
-    master_variant_id = get_field(changeset, :master_variant_id)
-
-    variants_locked? =
-      Enum.any?(get_assoc(changeset, :variants), fn variant ->
-        get_field(variant, :id) != master_variant_id
-      end)
-
-    if variants_locked? and changed?(changeset, :product_options) do
+    if get_assoc(changeset, :variants) != [] and changed?(changeset, :product_options) do
       add_error(changeset, :product_options, "cannot be changed once variants exist")
     else
       changeset

@@ -3,7 +3,7 @@ defmodule Harbor.Constraints.CatalogTest do
 
   import Harbor.CatalogFixtures
 
-  alias Harbor.Catalog.Product
+  alias Harbor.Catalog.{Product, Variant}
   alias Harbor.TestRepo
 
   test "product_options_must_have_values is enforced by the database" do
@@ -50,9 +50,8 @@ defmodule Harbor.Constraints.CatalogTest do
     error =
       assert_raise Postgrex.Error, fn ->
         TestRepo.transact(fn ->
-          from(v in Harbor.Catalog.Variant,
-            where: v.product_id == ^product.id and v.id != ^product.master_variant_id
-          )
+          Variant
+          |> where([v], v.product_id == ^product.id and not v.master)
           |> TestRepo.update_all(set: [enabled: false])
 
           product

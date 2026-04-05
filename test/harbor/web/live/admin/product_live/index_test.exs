@@ -144,7 +144,7 @@ defmodule Harbor.Web.Admin.ProductLive.IndexTest do
            ]
 
     assert Enum.map(product.product_options, & &1.name) == ["Size", "Color"]
-    assert product.master_variant_id
+    assert product.master_variant.master
     assert product.variants == []
   end
 

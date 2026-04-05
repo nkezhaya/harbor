@@ -242,7 +242,7 @@ defmodule Harbor.CatalogTest do
       assert product.description == "some description"
       assert product.slug == "some-slug"
       assert product.tax_code_id == tax_code.id
-      assert product.master_variant_id
+      assert product.master_variant.master
       assert product.variants == []
     end
 
@@ -280,7 +280,7 @@ defmodule Harbor.CatalogTest do
 
       assert {:ok, product} = Catalog.create_product(attrs)
       assert Enum.map(product.product_options, & &1.name) == ["Size", "Color"]
-      assert product.master_variant_id
+      assert product.master_variant.master
       assert product.variants == []
     end
 
@@ -363,7 +363,7 @@ defmodule Harbor.CatalogTest do
       assert {:ok, %Product{} = product} =
                Catalog.update_product(product, %{
                  master_variant: %{
-                   id: product.master_variant_id,
+                   id: product.master_variant.id,
                    sku: "tee-master",
                    price: Money.new(:USD, 20),
                    inventory_policy: :track_strict,

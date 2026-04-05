@@ -109,7 +109,6 @@ defmodule Harbor.Migration.V01 do
       add :product_type_id, references(:product_types, type: :binary_id), null: false
       add :primary_taxon_id, references(:taxons, type: :binary_id), null: false
       add :tax_code_id, references(:tax_codes, type: :binary_id)
-      add :master_variant_id, :binary_id
 
       timestamps()
     end
@@ -296,6 +295,7 @@ defmodule Harbor.Migration.V01 do
       add :price, :money_with_currency, null: false
       add :quantity_available, :integer, default: 0, null: false
       add :enabled, :boolean, null: false, default: false
+      add :master, :boolean, null: false, default: false
       add :inventory_policy, :string, null: false, default: "not_tracked"
       add :tax_code_id, references(:tax_codes, type: :binary_id)
 
@@ -304,6 +304,12 @@ defmodule Harbor.Migration.V01 do
 
     create index(:variants, [:product_id])
     create index(:variants, [:product_id, :enabled])
+
+    create unique_index(:variants, [:product_id],
+             where: "master",
+             name: :variants_one_master_per_product
+           )
+
     create unique_index(:variants, [:sku], where: "sku IS NOT NULL")
 
     create constraint(:variants, :price_gte_zero, check: "(price).amount >= 0")
@@ -312,18 +318,6 @@ defmodule Harbor.Migration.V01 do
     create constraint(:variants, :inventory_policy_allowed,
              check: "inventory_policy IN ('not_tracked', 'track_strict', 'track_allow')"
            )
-
-    # This seems redundant, but is required so we can create a composite foreign
-    # key on the products table based on (variants.id, variants.product_id)
-    execute "ALTER TABLE variants ADD CONSTRAINT variants_primary UNIQUE (id, product_id)"
-
-    execute """
-    ALTER TABLE products ADD CONSTRAINT products_master_variant_id_fkey
-      FOREIGN KEY (master_variant_id, id) REFERENCES variants(id, product_id)
-      DEFERRABLE INITIALLY IMMEDIATE
-    """
-
-    create index(:products, [:master_variant_id])
 
     create table(:variants_option_values, primary_key: false) do
       add :id, :binary_id, primary_key: true, default: fragment("uuidv7()")
@@ -460,10 +454,17 @@ defmodule Harbor.Migration.V01 do
         RETURN;
       END IF;
 
-      SELECT p.status, p.master_variant_id
-      INTO product_status, master_variant_id
+      SELECT p.status
+      INTO product_status
       FROM products p
       WHERE p.id = p_product_id;
+
+      SELECT v.id
+      INTO master_variant_id
+      FROM variants v
+      WHERE v.product_id = p_product_id
+        AND v.master
+      LIMIT 1;
 
       SELECT COUNT(*)
       INTO product_option_count
@@ -523,7 +524,7 @@ defmodule Harbor.Migration.V01 do
         INTO invalid_variant_id
         FROM variants v
         WHERE v.product_id = p_product_id
-          AND v.id != master_variant_id
+          AND NOT v.master
         LIMIT 1;
 
         IF invalid_variant_id IS NOT NULL THEN
@@ -535,7 +536,7 @@ defmodule Harbor.Migration.V01 do
         INTO invalid_variant_id
         FROM variants v
         WHERE v.product_id = p_product_id
-          AND v.id != master_variant_id
+          AND NOT v.master
           AND (
             (SELECT COUNT(*) FROM variants_option_values vov WHERE vov.variant_id = v.id) = 0
             OR
@@ -551,7 +552,8 @@ defmodule Harbor.Migration.V01 do
         IF EXISTS (
           SELECT 1
           FROM variants v
-          WHERE v.id = master_variant_id
+          WHERE v.product_id = p_product_id
+            AND v.master
             AND v.enabled
         ) THEN
           RAISE EXCEPTION 'master variant % is not purchasable for optioned product %', master_variant_id, p_product_id
@@ -564,7 +566,8 @@ defmodule Harbor.Migration.V01 do
           IF NOT EXISTS (
             SELECT 1
             FROM variants v
-            WHERE v.id = master_variant_id
+            WHERE v.product_id = p_product_id
+              AND v.master
               AND v.enabled
           ) THEN
             RAISE EXCEPTION 'active simple product % must have an enabled master variant', p_product_id
@@ -574,7 +577,7 @@ defmodule Harbor.Migration.V01 do
           SELECT 1
           FROM variants v
           WHERE v.product_id = p_product_id
-            AND v.id != master_variant_id
+            AND NOT v.master
             AND v.enabled
         ) THEN
           RAISE EXCEPTION 'active optioned product % must have an enabled non-master variant', p_product_id
@@ -1135,8 +1138,6 @@ defmodule Harbor.Migration.V01 do
 
     execute "DROP FUNCTION IF EXISTS validate_product_variant_option_shape()"
     execute "DROP FUNCTION IF EXISTS validate_product_variant_option_shape_for_product(uuid)"
-
-    execute "ALTER TABLE products DROP CONSTRAINT IF EXISTS products_master_variant_id_fkey"
 
     drop_if_exists table(:product_images)
     drop_if_exists table(:variant_property_values)

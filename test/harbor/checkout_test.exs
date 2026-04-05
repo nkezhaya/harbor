@@ -440,7 +440,7 @@ defmodule Harbor.CheckoutTest do
       product = product_with_options_fixture([{"Size", ["S"]}])
 
       assert {:error, changeset} =
-               Checkout.create_cart_item(cart, %{variant_id: product.master_variant_id})
+               Checkout.create_cart_item(cart, %{variant_id: product.master_variant.id})
 
       assert errors_on(changeset).variant_id == ["is no longer available"]
     end
@@ -471,7 +471,7 @@ defmodule Harbor.CheckoutTest do
       product = product_with_options_fixture([{"Size", ["S"]}])
 
       assert {:error, changeset} =
-               Checkout.add_item_to_cart(scope, %{"variant_id" => product.master_variant_id})
+               Checkout.add_item_to_cart(scope, %{"variant_id" => product.master_variant.id})
 
       assert errors_on(changeset).variant_id == ["is no longer available"]
     end

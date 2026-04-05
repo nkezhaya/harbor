@@ -18,6 +18,7 @@ defmodule Harbor.Catalog.Variant do
     field :price, Money.Ecto.Composite.Type
     field :quantity_available, :integer, default: 0
     field :enabled, :boolean, default: false
+    field :master, :boolean, default: false
 
     field :inventory_policy, Ecto.Enum,
       values: [:not_tracked, :track_strict, :track_allow],
@@ -87,6 +88,21 @@ defmodule Harbor.Catalog.Variant do
       message: "must be greater than or equal to 0"
     )
     |> unique_constraint(:sku)
+  end
+
+  @doc false
+  def master_changeset(variant, attrs) do
+    variant
+    |> change(%{master: true})
+    |> put_new_price()
+    |> changeset(attrs)
+  end
+
+  defp put_new_price(changeset) do
+    case get_field(changeset, :price) do
+      nil -> put_change(changeset, :price, Money.new(:USD, 0))
+      _ -> changeset
+    end
   end
 
   @doc """
