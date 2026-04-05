@@ -14,6 +14,10 @@ hooks.Sortable = {
     })
   },
 
+  destroyed() {
+    this.sorter?.destroy()
+  },
+
   onEnd() {
     const nodes = this.el.querySelectorAll("[data-sortable_id]")
     const listId = this.el.dataset.list_id
