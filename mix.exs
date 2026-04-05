@@ -41,7 +41,7 @@ defmodule Harbor.MixProject do
 
   defp package do
     [
-      files: ~w(lib assets priv mix.exs README.md LICENSE.md CHANGELOG.md),
+      files: ~w(lib assets dist priv/gettext mix.exs README.md LICENSE.md CHANGELOG.md),
       licenses: ["MIT"],
       links: %{"GitHub" => "https://github.com/nkezhaya/harbor"}
     ]
@@ -121,12 +121,12 @@ defmodule Harbor.MixProject do
       "ecto.reset": ["ecto.drop", "ecto.create"],
       test: ["ecto.create --quiet", "test"],
       "assets.setup": ["tailwind.install --if-missing", "esbuild.install --if-missing"],
-      "assets.build": ["tailwind harbor", "esbuild harbor", "esbuild admin"],
+      "assets.build": ["tailwind harbor", "tailwind admin", "esbuild harbor", "esbuild admin"],
       "assets.deploy": [
         "tailwind harbor --minify",
+        "tailwind admin --minify",
         "esbuild harbor --minify",
-        "esbuild admin --minify",
-        "phx.digest"
+        "esbuild admin --minify"
       ],
       precommit: [
         "compile --warnings-as-errors",

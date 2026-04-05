@@ -87,11 +87,14 @@ Application.put_env(:harbor, DemoWeb.Endpoint,
   ],
   watchers: [
     esbuild: {Esbuild, :install_and_run, [:harbor, ~w(--sourcemap=inline --watch)]},
-    tailwind: {Tailwind, :install_and_run, [:harbor, ~w(--watch)]}
+    esbuild_admin: {Esbuild, :install_and_run, [:admin, ~w(--sourcemap=inline --watch)]},
+    tailwind: {Tailwind, :install_and_run, [:harbor, ~w(--watch)]},
+    tailwind_admin: {Tailwind, :install_and_run, [:admin, ~w(--watch)]}
   ],
   live_reload: [
     web_console_logger: true,
     patterns: [
+      ~r"dist/.*(js|css)$",
       ~r"priv/static/(?!uploads/).*(js|css|png|jpeg|jpg|gif|svg)$",
       ~r"priv/gettext/.*(po)$",
       ~r"lib/harbor/web/(?:controllers|live|components|router)/?.*\.(ex|heex)$"

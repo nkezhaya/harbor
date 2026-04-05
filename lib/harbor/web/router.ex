@@ -142,6 +142,9 @@ defmodule Harbor.Web.Router do
       scope unquote(path) do
         pipe_through [:harbor_require_admin]
 
+        get "/assets/admin-css-:md5", Harbor.Web.AdminAssets, :css
+        get "/assets/admin-js-:md5", Harbor.Web.AdminAssets, :js
+
         live_session :harbor_admin,
           on_mount: [
             {Harbor.Web.UserAuth, :require_admin},

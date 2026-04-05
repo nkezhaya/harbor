@@ -3,8 +3,13 @@
 
 @import "tailwindcss" source(none);
 @source "../css";
+@source not "../css/admin.css";
 @source "../js";
+@source not "../js/admin.js";
 @source "../../lib/harbor/web";
+@source not "../../lib/harbor/web/components/admin_layouts.ex";
+@source not "../../lib/harbor/web/components/admin_layouts";
+@source not "../../lib/harbor/web/live/admin";
 
 /* A Tailwind plugin that makes "hero-#{ICON}" classes available.
    The heroicons installation itself is managed by your mix.exs */

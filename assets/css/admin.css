@@ -1,0 +1,10 @@
+@import "tailwindcss" source(none);
+@source "../../lib/harbor/web/components/admin_layouts.ex";
+@source "../../lib/harbor/web/components/admin_layouts";
+@source "../../lib/harbor/web/components/core_components.ex";
+@source "../../lib/harbor/web/components/layouts.ex";
+@source "../../lib/harbor/web/live/admin";
+
+@plugin "../vendor/heroicons";
+
+@import "./harbor.css";

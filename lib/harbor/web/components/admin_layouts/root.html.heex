@@ -7,8 +7,8 @@
     <.live_title default="Admin · Harbor" suffix="">
       {assigns[:page_title]}
     </.live_title>
-    <link phx-track-static rel="stylesheet" href="/assets/css/app.css" />
-    <script defer phx-track-static type="text/javascript" src="/assets/js/app.js">
+    <link rel="stylesheet" href={asset_path(@conn, :css)} />
+    <script defer type="module" src={asset_path(@conn, :js)}>
     </script>
   </head>
   <body class="min-h-full antialiased">

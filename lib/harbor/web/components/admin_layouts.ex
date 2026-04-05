@@ -4,7 +4,14 @@ defmodule Harbor.Web.AdminLayouts do
   """
   use Harbor.Web, :html
 
+  alias Harbor.Web.AdminAssets
+
   embed_templates "admin_layouts/*"
+
+  defp asset_path(conn, asset) when asset in [:css, :js] do
+    hash = AdminAssets.current_hash(asset)
+    admin_path(conn, "/assets/admin-#{asset}-#{hash}")
+  end
 
   @doc """
   Renders the admin app layout with a responsive sidebar.
