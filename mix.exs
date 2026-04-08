@@ -41,7 +41,7 @@ defmodule Harbor.MixProject do
 
   defp package do
     [
-      files: ~w(lib assets dist priv/gettext mix.exs README.md LICENSE.md CHANGELOG.md),
+      files: ~w(lib assets dist priv/gettext mix.exs README.md LICENSE),
       licenses: ["MIT"],
       links: %{"GitHub" => "https://github.com/nkezhaya/harbor"}
     ]
