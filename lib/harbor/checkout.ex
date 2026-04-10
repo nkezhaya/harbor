@@ -406,7 +406,7 @@ defmodule Harbor.Checkout do
   customer, or `{:error, changeset}` when validation fails.
   """
   @spec complete_contact_step(Scope.t(), Session.t(), map()) ::
-          {:ok, Session.t(), Scope.t()} | {:error, Changeset.t()} | {:error, term()}
+          {:ok, Session.t(), Scope.t()} | {:error, Changeset.t()}
   defdelegate complete_contact_step(scope, session, params), to: Steps
 
   @doc """
@@ -417,8 +417,19 @@ defmodule Harbor.Checkout do
   `{:error, changeset}` when validation fails.
   """
   @spec complete_shipping_step(Scope.t(), Session.t(), map()) ::
-          {:ok, Session.t()} | {:error, Changeset.t()} | {:error, term()}
+          {:ok, Session.t()} | {:error, Changeset.t()}
   defdelegate complete_shipping_step(scope, session, params), to: Steps
+
+  @doc """
+  Completes the delivery step by validating the selected delivery method and
+  persisting it on the checkout order.
+
+  Returns `{:ok, session}` with the updated order on success, or
+  `{:error, changeset}` when validation fails.
+  """
+  @spec complete_delivery_step(Scope.t(), Session.t(), map()) ::
+          {:ok, Session.t()} | {:error, Changeset.t()}
+  defdelegate complete_delivery_step(scope, session, params), to: Steps
 
   @doc """
   Computes the ordered checkout steps for the given scope, order, and pricing.
