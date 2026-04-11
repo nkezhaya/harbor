@@ -5,7 +5,7 @@ defmodule Harbor.Web.CheckoutLive.Form do
   use Harbor.Web, :live_view
   import Harbor.Web.CheckoutComponents
 
-  alias Harbor.{Checkout, Customers}
+  alias Harbor.{Checkout, Customers, Shipping}
   alias Harbor.Customers.Customer
 
   @impl true
@@ -78,9 +78,19 @@ defmodule Harbor.Web.CheckoutLive.Form do
               label="Delivery"
               status={step_status(@steps, @session.current_step, :delivery)}
             >
-              <:summary>Standard delivery</:summary>
+              <:summary>
+                <div :if={@session.order.delivery_method} id="checkout-delivery-summary">
+                  <span class="block font-medium text-gray-700">
+                    {@session.order.delivery_method.name}
+                  </span>
+                  <span class="block">{@session.order.delivery_method.price}</span>
+                </div>
+              </:summary>
               <:body>
-                <.delivery_step next_step={next_step_for(@steps, :delivery)} />
+                <.delivery_step
+                  form={@delivery_form}
+                  delivery_methods={@delivery_methods}
+                />
               </:body>
             </.step>
             <.step
@@ -250,12 +260,10 @@ defmodule Harbor.Web.CheckoutLive.Form do
     """
   end
 
-  attr :form, :any, default: nil
-  attr :next_step, :atom, default: :payment
+  attr :form, Phoenix.HTML.Form, required: true
+  attr :delivery_methods, :list, required: true
 
   defp delivery_step(assigns) do
-    assigns = assign_new(assigns, :form, fn -> to_form(%{}) end)
-
     ~H"""
     <div>
       <.form
@@ -264,9 +272,44 @@ defmodule Harbor.Web.CheckoutLive.Form do
         class="space-y-4"
         phx-submit="delivery_submit"
       >
-        <p class="text-sm text-gray-700">Delivery options placeholder content.</p>
+        <fieldset
+          :if={@delivery_methods != []}
+          id="delivery-methods"
+          aria-describedby="delivery-method-errors"
+        >
+          <legend class="sr-only">Delivery method</legend>
 
-        <.continue_button id="delivery-continue">Continue to {@next_step}</.continue_button>
+          <div class="space-y-4">
+            <label
+              :for={delivery_method <- @delivery_methods}
+              class="relative block rounded-lg border border-gray-300 bg-white px-6 py-4 transition-colors has-checked:outline-2 has-checked:-outline-offset-2 has-checked:outline-indigo-600 has-focus-visible:outline-3 has-focus-visible:-outline-offset-1 hover:not-has-checked:border-gray-400 hover:not-has-checked:bg-gray-50"
+            >
+              <input
+                type="radio"
+                id={"delivery-method-#{delivery_method.id}"}
+                name={@form[:delivery_method_id].name}
+                value={delivery_method.id}
+                checked={@form[:delivery_method_id].value == delivery_method.id}
+                class="absolute inset-0 cursor-pointer appearance-none focus:outline-none"
+              />
+              <span class="flex items-center justify-between gap-4">
+                <span class="text-sm font-medium text-gray-900">{delivery_method.name}</span>
+                <span class="text-sm font-medium text-gray-900">{delivery_method.price}</span>
+              </span>
+            </label>
+          </div>
+        </fieldset>
+
+        <div id="delivery-method-errors" class="space-y-2">
+          <.error :for={error <- translate_errors(@form.source.errors, :base)}>{error}</.error>
+          <.error :for={error <- @form[:delivery_method_id].errors}>
+            {translate_error(error)}
+          </.error>
+        </div>
+
+        <.continue_button id="delivery-continue" disabled={@delivery_methods == []}>
+          Continue
+        </.continue_button>
       </.form>
     </div>
     """
@@ -329,8 +372,10 @@ defmodule Harbor.Web.CheckoutLive.Form do
          |> assign(:current_scope, current_scope)
          |> assign(:pricing, pricing)
          |> assign(:steps, steps)
+         |> assign(:delivery_methods, Shipping.list_delivery_methods())
          |> then(&assign(&1, :contact_form, contact_form(&1)))
-         |> then(&assign(&1, :shipping_form, shipping_form(&1)))}
+         |> then(&assign(&1, :shipping_form, shipping_form(&1)))
+         |> then(&assign(&1, :delivery_form, delivery_form(&1)))}
 
       {:error, error} ->
         {:ok, redirect_with_error(socket, error)}
@@ -395,8 +440,28 @@ defmodule Harbor.Web.CheckoutLive.Form do
     end
   end
 
-  def handle_event("delivery_submit", _params, socket) do
-    {:noreply, put_next_step(socket, :delivery)}
+  def handle_event("delivery_submit", params, socket) do
+    delivery_params = Map.get(params, "delivery", %{})
+    scope = socket.assigns.current_scope
+
+    case Checkout.complete_delivery_step(scope, socket.assigns.session, delivery_params) do
+      {:ok, session} ->
+        pricing = Checkout.build_pricing(session.order)
+        steps = Checkout.checkout_steps(scope, session.order, pricing)
+
+        {:noreply,
+         socket
+         |> assign(:session, session)
+         |> assign(:order, session.order)
+         |> assign(:pricing, pricing)
+         |> assign(:steps, steps)
+         |> then(&assign(&1, :delivery_form, delivery_form(&1)))
+         |> put_next_step(:delivery)}
+
+      {:error, changeset} ->
+        {:noreply,
+         assign(socket, :delivery_form, to_form(%{changeset | action: :validate}, as: :delivery))}
+    end
   end
 
   def handle_event("payment_submit", _params, socket) do
@@ -488,5 +553,11 @@ defmodule Harbor.Web.CheckoutLive.Form do
     scope
     |> Customers.change_address(address, params)
     |> to_form()
+  end
+
+  defp delivery_form(socket) do
+    socket.assigns.order
+    |> Ecto.Changeset.change()
+    |> to_form(as: :delivery)
   end
 end

@@ -105,6 +105,14 @@ defmodule Harbor.Orders.Order do
     |> denormalize_shipping_address()
   end
 
+  @doc false
+  def delivery_changeset(order, attrs) do
+    order
+    |> cast(attrs, [:delivery_method_id])
+    |> validate_required([:delivery_method_id])
+    |> foreign_key_constraint(:delivery_method_id)
+  end
+
   defp denormalize_email(changeset) do
     case get_assoc(changeset, :customer, :struct) do
       %Customer{email: email} -> put_change(changeset, :email, email)

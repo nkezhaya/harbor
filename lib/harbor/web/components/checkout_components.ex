@@ -49,11 +49,11 @@ defmodule Harbor.Web.CheckoutComponents do
           </div>
           <div class="flex justify-between">
             <dt>Shipping</dt>
-            <dd class="text-gray-900">{@pricing.shipping_price}</dd>
+            <dd id="checkout-summary-shipping" class="text-gray-900">{@pricing.shipping_price}</dd>
           </div>
           <div class="flex items-center justify-between border-t border-gray-200 pt-6 text-gray-900">
             <dt>Total</dt>
-            <dd class="text-base">{@pricing.total_price}</dd>
+            <dd id="checkout-summary-total" class="text-base">{@pricing.total_price}</dd>
           </div>
         </dl>
       </div>

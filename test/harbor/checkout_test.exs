@@ -366,6 +366,203 @@ defmodule Harbor.CheckoutTest do
     end
   end
 
+  describe "complete_delivery_step/3" do
+    test "persists the selected delivery method on the order" do
+      user = user_fixture()
+      scope = Scope.for_user(user)
+      customer_fixture(scope, %{email: user.email})
+      scope = Scope.for_user(user)
+      cart = cart_fixture(scope)
+      variant = variant_fixture()
+      cart_item_fixture(cart, %{variant_id: variant.id})
+      {:ok, session} = Checkout.create_session(scope, cart)
+
+      address =
+        address_fixture(scope, %{
+          first_name: "Jane",
+          last_name: "Doe",
+          line1: "1 Main St",
+          city: "Portland",
+          region: "OR",
+          postal_code: "97205",
+          country: "US",
+          phone: "555-0100"
+        })
+
+      {:ok, _order} =
+        Harbor.Orders.update_order(scope, session.order, %{shipping_address_id: address.id})
+
+      {:ok, session} = Checkout.get_session(scope, session.id)
+      delivery_method = delivery_method_fixture(%{price: Money.new(:USD, 15)})
+
+      assert {:ok, session} =
+               Checkout.complete_delivery_step(scope, session, %{
+                 "delivery_method_id" => delivery_method.id
+               })
+
+      assert session.order.delivery_method_id == delivery_method.id
+      assert session.order.delivery_method.id == delivery_method.id
+
+      assert Money.equal?(
+               Checkout.build_pricing(session.order).shipping_price,
+               delivery_method.price
+             )
+    end
+
+    test "returns a changeset when no delivery method is selected" do
+      user = user_fixture()
+      scope = Scope.for_user(user)
+      customer_fixture(scope, %{email: user.email})
+      scope = Scope.for_user(user)
+      cart = cart_fixture(scope)
+      variant = variant_fixture()
+      cart_item_fixture(cart, %{variant_id: variant.id})
+      {:ok, session} = Checkout.create_session(scope, cart)
+
+      address =
+        address_fixture(scope, %{
+          first_name: "Jane",
+          last_name: "Doe",
+          line1: "1 Main St",
+          city: "Portland",
+          region: "OR",
+          postal_code: "97205",
+          country: "US",
+          phone: "555-0100"
+        })
+
+      {:ok, _order} =
+        Harbor.Orders.update_order(scope, session.order, %{shipping_address_id: address.id})
+
+      {:ok, session} = Checkout.get_session(scope, session.id)
+      delivery_method_fixture()
+
+      assert {:error, changeset} = Checkout.complete_delivery_step(scope, session, %{})
+      assert errors_on(changeset).delivery_method_id == ["can't be blank"]
+      refute Repo.get!(Order, session.order.id).delivery_method_id
+    end
+
+    test "rejects delivery selection when delivery is not part of the checkout steps" do
+      user = user_fixture()
+      scope = Scope.for_user(user)
+      customer_fixture(scope, %{email: user.email})
+      scope = Scope.for_user(user)
+      cart = cart_fixture(scope)
+      variant = variant_fixture(%{physical_product: false})
+      cart_item_fixture(cart, %{variant_id: variant.id})
+      {:ok, session} = Checkout.create_session(scope, cart)
+      delivery_method = delivery_method_fixture()
+
+      assert {:error, changeset} =
+               Checkout.complete_delivery_step(scope, session, %{
+                 "delivery_method_id" => delivery_method.id
+               })
+
+      assert errors_on(changeset).base == ["Delivery is not available for this checkout."]
+      refute Repo.get!(Order, session.order.id).delivery_method_id
+    end
+
+    test "rejects delivery selection when delivery is disabled" do
+      assert {:ok, _settings} = Harbor.Settings.update(%{delivery_enabled: false})
+
+      user = user_fixture()
+      scope = Scope.for_user(user)
+      customer_fixture(scope, %{email: user.email})
+      scope = Scope.for_user(user)
+      cart = cart_fixture(scope)
+      variant = variant_fixture()
+      cart_item_fixture(cart, %{variant_id: variant.id})
+      {:ok, session} = Checkout.create_session(scope, cart)
+
+      address =
+        address_fixture(scope, %{
+          first_name: "Jane",
+          last_name: "Doe",
+          line1: "1 Main St",
+          city: "Portland",
+          region: "OR",
+          postal_code: "97205",
+          country: "US",
+          phone: "555-0100"
+        })
+
+      {:ok, _order} =
+        Harbor.Orders.update_order(scope, session.order, %{shipping_address_id: address.id})
+
+      {:ok, session} = Checkout.get_session(scope, session.id)
+      delivery_method = delivery_method_fixture()
+
+      assert {:error, changeset} =
+               Checkout.complete_delivery_step(scope, session, %{
+                 "delivery_method_id" => delivery_method.id
+               })
+
+      assert errors_on(changeset).base == ["Delivery is not available for this checkout."]
+      refute Repo.get!(Order, session.order.id).delivery_method_id
+    end
+
+    test "rejects delivery selection until earlier steps are complete" do
+      user = user_fixture()
+      scope = Scope.for_user(user)
+      customer_fixture(scope, %{email: user.email})
+      scope = Scope.for_user(user)
+      cart = cart_fixture(scope)
+      variant = variant_fixture()
+      cart_item_fixture(cart, %{variant_id: variant.id})
+      {:ok, session} = Checkout.create_session(scope, cart)
+      delivery_method = delivery_method_fixture()
+
+      assert {:error, changeset} =
+               Checkout.complete_delivery_step(scope, session, %{
+                 "delivery_method_id" => delivery_method.id
+               })
+
+      assert errors_on(changeset).base == [
+               "Complete the previous checkout steps before selecting a delivery method."
+             ]
+
+      refute Repo.get!(Order, session.order.id).delivery_method_id
+    end
+
+    test "returns a validation error when the selected delivery method was deleted" do
+      user = user_fixture()
+      scope = Scope.for_user(user)
+      customer_fixture(scope, %{email: user.email})
+      scope = Scope.for_user(user)
+      cart = cart_fixture(scope)
+      variant = variant_fixture()
+      cart_item_fixture(cart, %{variant_id: variant.id})
+      {:ok, session} = Checkout.create_session(scope, cart)
+
+      address =
+        address_fixture(scope, %{
+          first_name: "Jane",
+          last_name: "Doe",
+          line1: "1 Main St",
+          city: "Portland",
+          region: "OR",
+          postal_code: "97205",
+          country: "US",
+          phone: "555-0100"
+        })
+
+      {:ok, _order} =
+        Harbor.Orders.update_order(scope, session.order, %{shipping_address_id: address.id})
+
+      {:ok, session} = Checkout.get_session(scope, session.id)
+      delivery_method = delivery_method_fixture()
+      assert {:ok, _delivery_method} = Harbor.Shipping.delete_delivery_method(delivery_method)
+
+      assert {:error, changeset} =
+               Checkout.complete_delivery_step(scope, session, %{
+                 "delivery_method_id" => delivery_method.id
+               })
+
+      assert errors_on(changeset).delivery_method_id == ["does not exist"]
+      refute Repo.get!(Order, session.order.id).delivery_method_id
+    end
+  end
+
   describe "checkout_steps/3" do
     test "includes contact, shipping, and payment when required", %{scope: scope, cart: cart} do
       variant = variant_fixture()
@@ -416,6 +613,47 @@ defmodule Harbor.CheckoutTest do
 
       assert updated.current_step == :contact
       assert Repo.get!(Session, session.id).current_step == :contact
+    end
+
+    test "treats delivery as complete once a delivery method is selected" do
+      user = user_fixture()
+      scope = Scope.for_user(user)
+      customer_fixture(scope, %{email: user.email})
+      scope = Scope.for_user(user)
+      cart = cart_fixture(scope)
+      variant = variant_fixture()
+      cart_item_fixture(cart, %{variant_id: variant.id})
+      {:ok, session} = Checkout.create_session(scope, cart)
+
+      address =
+        address_fixture(scope, %{
+          first_name: "Jane",
+          last_name: "Doe",
+          line1: "1 Main St",
+          city: "Portland",
+          region: "OR",
+          postal_code: "97205",
+          country: "US",
+          phone: "555-0100"
+        })
+
+      delivery_method = delivery_method_fixture(%{price: Money.new(:USD, 15)})
+
+      {:ok, _order} =
+        Harbor.Orders.update_order(scope, session.order, %{
+          shipping_address_id: address.id,
+          delivery_method_id: delivery_method.id
+        })
+
+      {:ok, session} = Checkout.get_session(scope, session.id)
+      pricing = Checkout.build_pricing(session.order)
+      steps = Checkout.checkout_steps(scope, session.order, pricing)
+      {:ok, session} = Checkout.update_session(scope, session, %{current_step: :review})
+
+      updated = Checkout.ensure_valid_current_step!(scope, session, steps)
+
+      assert updated.current_step == :payment
+      assert Repo.get!(Session, session.id).current_step == :payment
     end
   end
 

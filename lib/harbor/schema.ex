@@ -39,6 +39,12 @@ defmodule Harbor.Schema do
     end
   end
 
+  def add_base_error(struct, error) do
+    struct
+    |> change()
+    |> add_error(:base, error)
+  end
+
   def put_delete_if_set(changeset) do
     case get_change(changeset, :delete) do
       true -> %{changeset | action: :delete}

@@ -9,7 +9,7 @@ defmodule Harbor.Checkout.Steps do
   alias Harbor.Orders.Order
 
   @spec complete_contact_step(Scope.t(), Session.t(), map()) ::
-          {:ok, Session.t(), Scope.t()} | {:error, Ecto.Changeset.t()} | {:error, term()}
+          {:ok, Session.t(), Scope.t()} | {:error, Ecto.Changeset.t()}
   def complete_contact_step(%Scope{} = scope, %Session{} = session, params) do
     session = Repo.preload(session, order: [:cart])
 
@@ -46,7 +46,7 @@ defmodule Harbor.Checkout.Steps do
   end
 
   @spec complete_shipping_step(Scope.t(), Session.t(), map()) ::
-          {:ok, Session.t()} | {:error, Ecto.Changeset.t()} | {:error, term()}
+          {:ok, Session.t()} | {:error, Ecto.Changeset.t()}
   def complete_shipping_step(%Scope{} = scope, %Session{} = session, params) do
     session = Repo.preload(session, order: [:cart, :shipping_address])
     ensure_authorized!(scope, session.order.cart)
@@ -64,6 +64,40 @@ defmodule Harbor.Checkout.Steps do
     case order.shipping_address do
       %Address{} = address -> Customers.update_address(scope, address, params)
       _ -> Customers.create_address(scope, params)
+    end
+  end
+
+  @spec complete_delivery_step(Scope.t(), Session.t(), map()) ::
+          {:ok, Session.t()} | {:error, Ecto.Changeset.t()}
+  def complete_delivery_step(%Scope{} = scope, %Session{} = session, params) do
+    session = Checkout.reload_session(session)
+    ensure_authorized!(scope, session.order.cart)
+
+    pricing = Checkout.build_pricing(session.order)
+    steps = checkout_steps(scope, session.order, pricing)
+    prior_steps = Enum.take_while(steps, &(&1 != :delivery))
+
+    changeset =
+      cond do
+        :delivery not in steps ->
+          Harbor.Schema.add_base_error(
+            session.order,
+            "Delivery is not available for this checkout."
+          )
+
+        Enum.any?(prior_steps, &(not did_complete?(session, &1))) ->
+          Harbor.Schema.add_base_error(
+            session.order,
+            "Complete the previous checkout steps before selecting a delivery method."
+          )
+
+        true ->
+          Order.delivery_changeset(session.order, params)
+      end
+
+    case Repo.update(changeset) do
+      {:ok, _order} -> {:ok, Checkout.reload_session(session)}
+      {:error, changeset} -> {:error, changeset}
     end
   end
 
@@ -136,6 +170,10 @@ defmodule Harbor.Checkout.Steps do
       %Address{} -> true
       _ -> false
     end
+  end
+
+  defp did_complete?(%Session{} = session, :delivery) do
+    not is_nil(session.order.delivery_method_id)
   end
 
   defp did_complete?(_session, _step), do: false
