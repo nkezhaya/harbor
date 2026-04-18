@@ -26,15 +26,76 @@ defmodule Harbor.CatalogTest do
       assert product.id == active.id
     end
 
-    test "filters by taxon slug", %{scope: scope} do
-      taxon_1 = taxon_fixture(%{name: "Apparel"})
-      taxon_2 = taxon_fixture(%{name: "Electronics"})
+    test "filters by taxon slug across the selected subtree", %{scope: scope} do
+      suffix = System.unique_integer([:positive])
+      parent = taxon_fixture(%{name: "Parent Taxon #{suffix}"})
 
-      p1 = product_fixture(%{name: "Shirt", primary_taxon_id: taxon_1.id})
-      _p2 = product_fixture(%{name: "Phone", primary_taxon_id: taxon_2.id})
+      child =
+        taxon_fixture(%{
+          name: "Child Taxon #{suffix}",
+          parent_id: parent.id,
+          parent_ids: [parent.id]
+        })
 
-      assert %{entries: [product]} = Catalog.list_products(scope, %{"taxon" => taxon_1.slug})
-      assert product.id == p1.id
+      direct = product_fixture(%{name: "A Direct Product #{suffix}", primary_taxon_id: parent.id})
+
+      descendant =
+        product_fixture(%{name: "B Descendant Product #{suffix}", primary_taxon_id: child.id})
+
+      _other = product_fixture(%{name: "C Other Product #{suffix}"})
+
+      assert %{entries: products, total: 2} =
+               Catalog.list_products(scope, %{"taxon" => parent.slug, "sort" => "name_asc"})
+
+      assert Enum.map(products, & &1.id) == [direct.id, descendant.id]
+    end
+
+    test "returns descendant products when the selected parent has no direct products", %{
+      scope: scope
+    } do
+      suffix = System.unique_integer([:positive])
+      parent = taxon_fixture(%{name: "Empty Parent #{suffix}"})
+
+      child =
+        taxon_fixture(%{
+          name: "Descendant Taxon #{suffix}",
+          parent_id: parent.id,
+          parent_ids: [parent.id]
+        })
+
+      product =
+        product_fixture(%{name: "Only Descendant Product #{suffix}", primary_taxon_id: child.id})
+
+      assert %{entries: [matched], total: 1} =
+               Catalog.list_products(scope, %{"taxon" => parent.slug})
+
+      assert matched.id == product.id
+    end
+
+    test "does not duplicate a product attached to both an ancestor and descendant taxon", %{
+      scope: scope
+    } do
+      suffix = System.unique_integer([:positive])
+      parent = taxon_fixture(%{name: "Ancestor Taxon #{suffix}"})
+
+      child =
+        taxon_fixture(%{
+          name: "Nested Taxon #{suffix}",
+          parent_id: parent.id,
+          parent_ids: [parent.id]
+        })
+
+      product =
+        product_fixture(%{
+          name: "Shared Product #{suffix}",
+          primary_taxon_id: parent.id,
+          taxon_ids: [parent.id, child.id]
+        })
+
+      assert %{entries: [matched], total: 1} =
+               Catalog.list_products(scope, %{"taxon" => parent.slug})
+
+      assert matched.id == product.id
     end
 
     test "filters by price range", %{scope: scope} do

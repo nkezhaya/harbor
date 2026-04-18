@@ -5,13 +5,16 @@ defmodule Harbor.Catalog.ProductQuery do
 
   Also responsible for applying those filters to a product queryable via
   `apply/2`.
+
+  Taxon filtering matches products assigned to the selected taxon or any of its
+  descendant taxons.
   """
   use Harbor.Schema
 
   import Harbor.Authorization
   import Harbor.QueryMacros
 
-  alias Harbor.Catalog.Variant
+  alias Harbor.Catalog.{ProductTaxon, Taxon, Variant}
 
   @primary_key false
   embedded_schema do
@@ -69,9 +72,27 @@ defmodule Harbor.Catalog.ProductQuery do
   defp filter_by_taxon(q, nil), do: q
 
   defp filter_by_taxon(q, slug) do
-    q
-    |> join(:inner, [p], t in assoc(p, :taxons), as: :taxon)
-    |> where([taxon: t], t.slug == ^slug)
+    q =
+      if has_named_binding?(q, :product) do
+        q
+      else
+        from(p in q, as: :product)
+      end
+
+    where(q, exists(taxon_match_subquery(slug)))
+  end
+
+  defp taxon_match_subquery(slug) do
+    ProductTaxon
+    |> where([product_taxon], product_taxon.product_id == parent_as(:product).id)
+    |> join(:inner, [product_taxon], assigned_taxon in assoc(product_taxon, :taxon))
+    |> join(:inner, [_product_taxon, _assigned_taxon], selected_taxon in Taxon,
+      on: selected_taxon.slug == ^slug
+    )
+    |> where(
+      [_product_taxon, assigned_taxon, selected_taxon],
+      assigned_taxon.id == selected_taxon.id or selected_taxon.id in assigned_taxon.parent_ids
+    )
   end
 
   defp filter_by_price_range(q, nil, nil), do: q

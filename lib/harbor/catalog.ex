@@ -77,8 +77,10 @@ defmodule Harbor.Catalog do
   @doc """
   Returns a paginated list of products matching the given params.
 
-  Non-admin scopes are restricted to active products. Results include
-  the `:master_variant` and first ready `:images` preloaded.
+  Non-admin scopes are restricted to active products. When filtered by taxon
+  slug, listings match products assigned to the selected taxon or any
+  descendant taxon. Results include the `:master_variant` and first ready
+  `:images` preloaded.
   """
   @spec list_products(Scope.t(), map()) :: %{
           entries: [Product.t()],
