@@ -6,7 +6,7 @@ defmodule Harbor.Web.CheckoutLive.Form do
   import Harbor.Web.CheckoutComponents
 
   alias Harbor.{Checkout, Customers, Shipping}
-  alias Harbor.Customers.Customer
+  alias Harbor.Customers.{Address, Customer}
 
   @impl true
   def render(assigns) do
@@ -548,7 +548,7 @@ defmodule Harbor.Web.CheckoutLive.Form do
         order.shipping_address
       else
         case Customers.list_addresses(scope) do
-          [] -> Ecto.build_assoc(scope.customer, :addresses, %{country: "US"})
+          [] -> %Address{country: "US"}
           [address | _] -> address
         end
       end

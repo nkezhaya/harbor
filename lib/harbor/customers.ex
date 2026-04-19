@@ -104,7 +104,9 @@ defmodule Harbor.Customers do
   Returns an `%Ecto.Changeset{}` for tracking customer changes.
   """
   def change_customer(%Scope{} = scope, %Customer{} = customer, attrs \\ %{}) do
-    ensure_authorized!(scope, customer)
+    if customer.id do
+      ensure_authorized!(scope, customer)
+    end
 
     Customer.changeset(customer, attrs, scope)
   end
@@ -118,11 +120,15 @@ defmodule Harbor.Customers do
   ## Addresses
 
   def list_addresses(%Scope{} = scope) do
-    ensure_authorized!(scope, scope.customer.id)
+    if customer_id = get_in(scope.customer.id) do
+      ensure_authorized!(scope, customer_id)
 
-    Address
-    |> where([a], a.customer_id == ^scope.customer.id)
-    |> Repo.all()
+      Address
+      |> where([a], a.customer_id == ^customer_id)
+      |> Repo.all()
+    else
+      []
+    end
   end
 
   def get_address!(%Scope{} = scope, id) do
@@ -156,7 +162,9 @@ defmodule Harbor.Customers do
   end
 
   def change_address(%Scope{} = scope, %Address{} = address, attrs \\ %{}) do
-    ensure_authorized!(scope, address.customer_id)
+    if address.id do
+      ensure_authorized!(scope, address.customer_id)
+    end
 
     Address.changeset(address, attrs, scope)
   end

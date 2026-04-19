@@ -214,6 +214,12 @@ defmodule Harbor.CustomersTest do
       customer = scope.customer
       assert %Ecto.Changeset{} = Customers.change_customer(scope, customer)
     end
+
+    test "returns a changeset for a new customer" do
+      scope = guest_scope_fixture(customer: false)
+
+      assert %Ecto.Changeset{} = Customers.change_customer(scope, %Customer{})
+    end
   end
 
   describe "list_addresses/0" do
@@ -221,6 +227,12 @@ defmodule Harbor.CustomersTest do
       scope = guest_scope_fixture()
       address = address_fixture(scope)
       assert Customers.list_addresses(scope) == [address]
+    end
+
+    test "returns an empty list when the scope has no customer" do
+      scope = guest_scope_fixture(customer: false)
+
+      assert Customers.list_addresses(scope) == []
     end
   end
 
@@ -339,6 +351,12 @@ defmodule Harbor.CustomersTest do
       address = address_fixture(scope)
 
       assert %Ecto.Changeset{} = Customers.change_address(scope, address)
+    end
+
+    test "returns a changeset for a new address" do
+      scope = guest_scope_fixture(customer: false)
+
+      assert %Ecto.Changeset{} = Customers.change_address(scope, %Address{country: "US"})
     end
   end
 
