@@ -29,7 +29,7 @@ defmodule Harbor.Web.ProductLive.ShowTest do
 
     assert has_element?(view, "h1", "Simple Tee")
     assert has_element?(view, "button[phx-click=add_to_cart]", "Add to bag")
-    assert has_element?(view, "#details-heading")
+    assert has_element?(view, "button[phx-value-variant_id='#{product.master_variant.id}']")
   end
 
   test "selects variants through option groups", %{conn: conn} do
@@ -59,7 +59,7 @@ defmodule Harbor.Web.ProductLive.ShowTest do
     |> element("button[phx-click=select-option]", "White")
     |> render_click()
 
-    assert has_element?(view, "dd", variant.sku)
+    assert has_element?(view, "button[phx-value-variant_id='#{variant.id}']")
   end
 
   test "changing an earlier option clears incompatible later selections", %{conn: conn} do
@@ -100,7 +100,7 @@ defmodule Harbor.Web.ProductLive.ShowTest do
     |> element("button[phx-click=select-option]", "Black")
     |> render_click()
 
-    assert has_element?(view, "dd", source_variant.sku)
+    assert has_element?(view, "button[phx-value-variant_id='#{source_variant.id}']")
     refute has_element?(view, "button[disabled]", "M")
 
     view
@@ -115,7 +115,7 @@ defmodule Harbor.Web.ProductLive.ShowTest do
     |> element("button[phx-click=select-option]", "White")
     |> render_click()
 
-    assert has_element?(view, "dd", target_variant.sku)
+    assert has_element?(view, "button[phx-value-variant_id='#{target_variant.id}']")
   end
 
   test "renders selectors for all images and allows selecting them", %{conn: conn} do

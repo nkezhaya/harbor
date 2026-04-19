@@ -216,37 +216,6 @@ defmodule Harbor.Web.ProductLive.Show do
                   <% end %>
                 </.button>
               </div>
-
-              <section
-                :if={@selected_variant}
-                aria-labelledby="details-heading"
-                class="mt-12 border-t border-gray-200 pt-8"
-              >
-                <h2 id="details-heading" class="text-sm font-medium text-gray-900">
-                  Selected variant
-                </h2>
-
-                <div class="mt-4">
-                  <dl class="space-y-3 text-sm text-gray-600">
-                    <div :if={@selected_variant.sku} class="flex items-center justify-between gap-4">
-                      <dt>SKU</dt>
-                      <dd class="font-medium text-gray-900">{@selected_variant.sku}</dd>
-                    </div>
-                    <div class="flex items-center justify-between gap-4">
-                      <dt>Inventory policy</dt>
-                      <dd class="font-medium text-gray-900">
-                        {humanize(@selected_variant.inventory_policy)}
-                      </dd>
-                    </div>
-                    <div class="flex items-center justify-between gap-4">
-                      <dt>Available quantity</dt>
-                      <dd class="font-medium text-gray-900">
-                        {@selected_variant.quantity_available}
-                      </dd>
-                    </div>
-                  </dl>
-                </div>
-              </section>
             </section>
           </div>
         </div>
