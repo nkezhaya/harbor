@@ -29,8 +29,8 @@ defmodule Harbor.Orders.OrderQuery do
       admin?(scope) ->
         changeset
 
-      scope.customer && scope.customer.id ->
-        put_change(changeset, :customer_id, scope.customer.id)
+      customer_id = get_in(scope.customer.id) ->
+        put_change(changeset, :customer_id, customer_id)
 
       true ->
         put_change(changeset, :customer_id, nil)

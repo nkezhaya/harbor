@@ -41,8 +41,8 @@ defmodule Harbor.Web.Admin.ProductLive.Show do
         <:item title="Slug">{@product.slug}</:item>
         <:item title="Description">{@product.description}</:item>
         <:item title="Status">{@product.status}</:item>
-        <:item title="Primary Taxon">{@product.primary_taxon && @product.primary_taxon.name}</:item>
-        <:item title="Product Type">{@product.product_type && @product.product_type.name}</:item>
+        <:item title="Primary Taxon">{get_in(@product.primary_taxon.name)}</:item>
+        <:item title="Product Type">{get_in(@product.product_type.name)}</:item>
       </.list>
     </AdminLayouts.app>
     """

@@ -167,8 +167,8 @@ defmodule Harbor.Orders.Order do
       Authorization.admin?(scope) ->
         changeset
 
-      scope.customer && scope.customer.id ->
-        put_change(changeset, :customer_id, scope.customer.id)
+      customer_id = get_in(scope.customer.id) ->
+        put_change(changeset, :customer_id, customer_id)
 
       true ->
         raise Harbor.UnauthorizedError

@@ -430,9 +430,9 @@ defmodule Harbor.Web.ProductLive.Show do
     assign(socket,
       selected_options: selected_options,
       selected_variant: selected_variant,
-      selected_variant_id: selected_variant && selected_variant.id,
+      selected_variant_id: get_in(selected_variant.id),
       in_stock?: variant_in_stock?(selected_variant),
-      has_price?: not is_nil(selected_variant) and not is_nil(selected_variant.price)
+      has_price?: not is_nil(get_in(selected_variant.price))
     )
   end
 

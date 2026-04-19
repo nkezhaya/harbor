@@ -5,7 +5,7 @@ defmodule Harbor.Checkout.Steps do
   alias Harbor.Accounts.Scope
   alias Harbor.{Checkout, Customers, Orders, Repo, Settings}
   alias Harbor.Checkout.{EnsurePaymentSetupWorker, Pricing, Session}
-  alias Harbor.Customers.{Address, Customer}
+  alias Harbor.Customers.Address
   alias Harbor.Orders.Order
 
   @spec complete_contact_step(Scope.t(), Session.t(), map()) ::
@@ -159,10 +159,7 @@ defmodule Harbor.Checkout.Steps do
   end
 
   defp did_complete?(%Session{} = session, :contact) do
-    case session.order.customer do
-      %Customer{email: email} -> is_binary(email)
-      _ -> false
-    end
+    is_binary(get_in(session.order.customer.email))
   end
 
   defp did_complete?(%Session{} = session, :shipping) do
