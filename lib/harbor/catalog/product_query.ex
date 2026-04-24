@@ -168,10 +168,26 @@ defmodule Harbor.Catalog.ProductQuery do
   defp filter_by_search(q, search) do
     term = "%#{search}%"
 
+    q = if has_named_binding?(q, :product), do: q, else: from(p in q, as: :product)
+
     where(
       q,
       [p],
-      fragment("word_similarity(?, ?) > 0.3", p.name, ^search) or ilike(p.description, ^term)
+      fragment("word_similarity(?, ?) > 0.3", p.name, ^search) or ilike(p.description, ^term) or
+        exists(sku_match_subquery(term))
+    )
+  end
+
+  defp sku_match_subquery(term) do
+    Variant
+    |> where(
+      [variant],
+      variant.product_id == parent_as(:product).id and
+        fragment(
+          "regexp_replace(?, '[-[:space:]]+', '', 'g') ILIKE regexp_replace(?, '[-[:space:]]+', '', 'g')",
+          variant.sku,
+          ^term
+        )
     )
   end
 

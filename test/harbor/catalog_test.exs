@@ -204,12 +204,69 @@ defmodule Harbor.CatalogTest do
       assert length(products) == 2
     end
 
-    test "searches by name", %{scope: scope} do
-      product_fixture(%{name: "Wool Blanket"})
+    test "searches by name, description, and SKU", %{scope: scope} do
+      suffix = System.unique_integer([:positive])
+      name_match = product_fixture(%{name: "Wool Blanket"})
+
+      description_match =
+        product_fixture(%{name: "Clay Bowl", description: "Finished with glaze-#{suffix}."})
+
+      sku_match =
+        product_fixture(%{
+          name: "Canvas Tote",
+          variants: [
+            %{
+              sku: "RS-#{suffix}-CANVAS",
+              price: Money.new(:USD, 40),
+              inventory_policy: :track_strict,
+              quantity_available: 10,
+              enabled: true
+            }
+          ]
+        })
+
       product_fixture(%{name: "Cotton Shirt"})
 
       assert %{entries: [product]} = Catalog.list_products(scope, %{"search" => "wool"})
-      assert product.name == "Wool Blanket"
+      assert product.id == name_match.id
+
+      assert %{entries: [product]} =
+               Catalog.list_products(scope, %{"search" => "glaze-#{suffix}"})
+
+      assert product.id == description_match.id
+
+      assert %{entries: [product]} =
+               Catalog.list_products(scope, %{"search" => "#{suffix}-CANVAS"})
+
+      assert product.id == sku_match.id
+    end
+
+    test "searches SKUs without caring about spaces or dashes", %{scope: scope} do
+      suffix = System.unique_integer([:positive])
+
+      products =
+        ["8502-C-#{suffix}", "8502 C #{suffix}", "8502C#{suffix}"]
+        |> Enum.map(fn sku ->
+          product_fixture(%{
+            name: "SKU product #{System.unique_integer([:positive])}",
+            variants: [
+              %{
+                sku: sku,
+                price: Money.new(:USD, 40),
+                inventory_policy: :track_strict,
+                quantity_available: 10,
+                enabled: true
+              }
+            ]
+          })
+        end)
+
+      expected_ids = products |> Enum.map(& &1.id) |> Enum.sort()
+
+      for search <- ["8502-c-#{suffix}", "8502c#{suffix}", "8502 c #{suffix}"] do
+        assert %{entries: entries} = Catalog.list_products(scope, %{"search" => search})
+        assert entries |> Enum.map(& &1.id) |> Enum.sort() == expected_ids
+      end
     end
 
     test "invalid params fall back to defaults", %{scope: scope} do
