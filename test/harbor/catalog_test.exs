@@ -241,6 +241,47 @@ defmodule Harbor.CatalogTest do
       assert %{per_page: 100} = Catalog.list_products(scope, %{"per_page" => "200"})
     end
 
+    test "preloads the first ready image per product and leaves products without ready images empty",
+         %{
+           scope: scope
+         } do
+      alpha = product_fixture(%{name: "Alpha"})
+      beta = product_fixture(%{name: "Beta"})
+      gamma = product_fixture(%{name: "Gamma"})
+
+      product_image_fixture(%{product_id: alpha.id, position: 0})
+
+      alpha_first_ready =
+        product_image_fixture(%{product_id: alpha.id, status: :ready, position: 1})
+
+      _alpha_second_ready =
+        product_image_fixture(%{product_id: alpha.id, status: :ready, position: 2})
+
+      beta_first_ready =
+        product_image_fixture(%{product_id: beta.id, status: :ready, position: 0})
+
+      _beta_second_ready =
+        product_image_fixture(%{product_id: beta.id, status: :ready, position: 1})
+
+      product_image_fixture(%{product_id: gamma.id, position: 0})
+
+      assert %{entries: [alpha_result, beta_result, gamma_result]} =
+               Catalog.list_products(scope, %{"sort" => "name_asc"})
+
+      assert alpha_result.id == alpha.id
+      assert Enum.map(alpha_result.images, & &1.id) == [alpha_first_ready.id]
+      assert Enum.map(alpha_result.images, & &1.status) == [:ready]
+      assert Enum.map(alpha_result.images, & &1.position) == [1]
+
+      assert beta_result.id == beta.id
+      assert Enum.map(beta_result.images, & &1.id) == [beta_first_ready.id]
+      assert Enum.map(beta_result.images, & &1.status) == [:ready]
+      assert Enum.map(beta_result.images, & &1.position) == [0]
+
+      assert gamma_result.id == gamma.id
+      assert gamma_result.images == []
+    end
+
     test "non-admin scope only sees active products" do
       guest_scope = Harbor.Accounts.Scope.for_guest()
 

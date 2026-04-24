@@ -118,10 +118,19 @@ defmodule Harbor.Catalog do
   end
 
   defp storefront_image_query do
+    ranking_query =
+      ProductImage
+      |> where([image], image.status == :ready)
+      |> select([image], %{
+        id: image.id,
+        row_number: over(row_number(), partition_by: image.product_id, order_by: image.position)
+      })
+
     ProductImage
-    |> where([i], i.status == :ready)
-    |> order_by([i], asc: i.position)
-    |> limit(1)
+    |> join(:inner, [image], ranked in subquery(ranking_query),
+      on: image.id == ranked.id and ranked.row_number <= 1
+    )
+    |> order_by([image], asc: image.position)
   end
 
   defp storefront_gallery_query do
