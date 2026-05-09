@@ -241,6 +241,19 @@ defmodule Harbor.CatalogTest do
       assert product.id == sku_match.id
     end
 
+    test "orders search results by relevance", %{scope: scope} do
+      description_match =
+        product_fixture(%{name: "Aardvark Bowl", description: "Soft wool finish"})
+
+      name_match = product_fixture(%{name: "Zebra Wool Blanket"})
+
+      assert %{entries: [product | _]} =
+               Catalog.list_products(scope, %{"search" => "wool", "sort" => "name_asc"})
+
+      assert product.id == name_match.id
+      assert product.id != description_match.id
+    end
+
     test "searches SKUs without caring about spaces or dashes", %{scope: scope} do
       suffix = System.unique_integer([:positive])
 

@@ -39,6 +39,7 @@ defmodule Harbor.Catalog.ProductQuery do
   def new(%Scope{} = scope, params \\ %{}) do
     %__MODULE__{}
     |> cast(params, __MODULE__.__schema__(:fields))
+    |> trim_fields(:search)
     |> apply_scope(scope)
     |> apply_changes()
   end
@@ -166,27 +167,62 @@ defmodule Harbor.Catalog.ProductQuery do
   defp filter_by_search(q, nil), do: q
 
   defp filter_by_search(q, search) do
-    term = "%#{search}%"
+    sku_search =
+      search
+      |> String.downcase()
+      |> String.replace(~r/[-\s]+/, "")
+
+    sku_pattern = "%#{sku_search}%"
 
     q = if has_named_binding?(q, :product), do: q, else: from(p in q, as: :product)
 
-    where(
-      q,
-      [p],
-      fragment("word_similarity(?, ?) > 0.3", p.name, ^search) or ilike(p.description, ^term) or
-        exists(sku_match_subquery(term))
-    )
+    match =
+      dynamic(
+        [p],
+        fragment("? @@ websearch_to_tsquery('english', ?)", field(p, :search_vector), ^search) or
+          fragment("? % ?", p.name, ^search)
+      )
+
+    match =
+      if sku_search == "" do
+        match
+      else
+        dynamic([p], ^match or exists(sku_match_subquery(sku_pattern)))
+      end
+
+    q
+    |> where(^match)
+    |> order_by_relevance(search, sku_search, sku_pattern)
   end
 
   defp sku_match_subquery(term) do
     Variant
     |> where(
-      [variant],
-      variant.product_id == parent_as(:product).id and
+      [v],
+      v.product_id == parent_as(:product).id and
+        fragment("lower(regexp_replace(?, '[-[:space:]]+', '', 'g')) ILIKE ?", v.sku, ^term)
+    )
+    |> select(1)
+  end
+
+  defp order_by_relevance(q, search, "", _sku_pattern) do
+    order_by_text_relevance(q, search)
+  end
+
+  defp order_by_relevance(q, search, _sku_search, sku_pattern) do
+    q
+    |> order_by(desc: exists(sku_match_subquery(sku_pattern)))
+    |> order_by_text_relevance(search)
+  end
+
+  defp order_by_text_relevance(q, search) do
+    order_by(q, [p],
+      desc: fragment("similarity(?, ?)", p.name, ^search),
+      desc:
         fragment(
-          "regexp_replace(?, '[-[:space:]]+', '', 'g') ILIKE regexp_replace(?, '[-[:space:]]+', '', 'g')",
-          variant.sku,
-          ^term
+          "ts_rank_cd(?, websearch_to_tsquery('english', ?))",
+          field(p, :search_vector),
+          ^search
         )
     )
   end
