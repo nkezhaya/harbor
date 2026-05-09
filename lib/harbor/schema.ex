@@ -34,9 +34,15 @@ defmodule Harbor.Schema do
 
   def trim_fields(changeset, field) when is_atom(field) do
     case get_field(changeset, field) do
-      string when is_binary(string) -> put_change(changeset, field, String.trim(string))
+      string when is_binary(string) -> put_trimmed_change(changeset, field, String.trim(string))
       _ -> changeset
     end
+  end
+
+  defp put_trimmed_change(%{empty_values: empty_values} = changeset, field, value) do
+    value = if value in empty_values, do: nil, else: value
+
+    put_change(changeset, field, value)
   end
 
   def add_base_error(struct, error) do
