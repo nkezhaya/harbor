@@ -179,8 +179,7 @@ defmodule Harbor.Catalog.ProductQuery do
     match =
       dynamic(
         [p],
-        fragment("? @@ websearch_to_tsquery('english', ?)", field(p, :search_vector), ^search) or
-          fragment("? % ?", p.name, ^search)
+        text_search_matches(field(p, :search_vector), ^search) or trigram_match(p.name, ^search)
       )
 
     match =
@@ -200,7 +199,7 @@ defmodule Harbor.Catalog.ProductQuery do
     |> where(
       [v],
       v.product_id == parent_as(:product).id and
-        fragment("lower(regexp_replace(?, '[-[:space:]]+', '', 'g')) ILIKE ?", v.sku, ^term)
+        ilike(lower(regexp_replace(v.sku, "[-[:space:]]+", "", "g")), ^term)
     )
     |> select(1)
   end
@@ -217,13 +216,8 @@ defmodule Harbor.Catalog.ProductQuery do
 
   defp order_by_text_relevance(q, search) do
     order_by(q, [p],
-      desc: fragment("similarity(?, ?)", p.name, ^search),
-      desc:
-        fragment(
-          "ts_rank_cd(?, websearch_to_tsquery('english', ?))",
-          field(p, :search_vector),
-          ^search
-        )
+      desc: trigram_similarity(p.name, ^search),
+      desc: text_search_rank(field(p, :search_vector), ^search)
     )
   end
 
