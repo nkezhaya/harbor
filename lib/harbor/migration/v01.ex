@@ -126,6 +126,18 @@ defmodule Harbor.Migration.V01 do
              name: :products_id_product_type_id_unique
            )
 
+    alter table(:products) do
+      add :search_vector,
+          :tsvector,
+          generated: """
+          ALWAYS AS (
+            setweight(to_tsvector('english', coalesce(name, '')), 'A') ||
+            setweight(to_tsvector('english', coalesce(description, '')), 'D')
+          ) STORED
+          """
+    end
+
+    execute "CREATE INDEX products_search_vector_gin ON products USING gin (search_vector)"
     execute "CREATE INDEX products_name_trgm ON products USING gin (name gin_trgm_ops)"
 
     ## Product Taxons
@@ -311,6 +323,12 @@ defmodule Harbor.Migration.V01 do
            )
 
     create unique_index(:variants, [:sku], where: "sku IS NOT NULL")
+
+    execute """
+    CREATE INDEX variants_sku_search_trgm
+    ON variants USING gin ((lower(regexp_replace(sku, '[-[:space:]]+', '', 'g'))) gin_trgm_ops)
+    WHERE sku IS NOT NULL
+    """
 
     create constraint(:variants, :price_gte_zero, check: "(price).amount >= 0")
     create constraint(:variants, :quantity_available_gte_zero, check: "quantity_available >= 0")
