@@ -1,4 +1,4 @@
-defmodule Harbor.Checkout.EnsurePaymentSetupWorker do
+defmodule Harbor.Checkout.EnsureCheckoutPaymentIntentWorker do
   @moduledoc """
   Ensures a payment profile exists for the customer and creates a payment
   intent for the provided checkout session.

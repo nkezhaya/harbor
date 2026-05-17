@@ -4,7 +4,7 @@ defmodule Harbor.Checkout.Steps do
 
   alias Harbor.Accounts.Scope
   alias Harbor.{Checkout, Customers, Orders, Repo, Settings}
-  alias Harbor.Checkout.{EnsurePaymentSetupWorker, Pricing, Session}
+  alias Harbor.Checkout.{EnsureCheckoutPaymentIntentWorker, Pricing, Session}
   alias Harbor.Customers.Address
   alias Harbor.Orders.Order
 
@@ -27,7 +27,7 @@ defmodule Harbor.Checkout.Steps do
         scope = Scope.attach_customer(scope, customer)
 
         if Settings.payments_enabled?() do
-          enqueue_payment_setup(customer.id, session.id)
+          enqueue_checkout_payment_intent(customer.id, session.id)
         end
 
         {:ok, {session, scope}}
@@ -39,9 +39,9 @@ defmodule Harbor.Checkout.Steps do
     end
   end
 
-  defp enqueue_payment_setup(customer_id, checkout_session_id) do
+  defp enqueue_checkout_payment_intent(customer_id, checkout_session_id) do
     %{"customer_id" => customer_id, "checkout_session_id" => checkout_session_id}
-    |> EnsurePaymentSetupWorker.new()
+    |> EnsureCheckoutPaymentIntentWorker.new()
     |> Harbor.Oban.insert()
   end
 
