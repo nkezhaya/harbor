@@ -221,16 +221,16 @@ defmodule Harbor.Catalog.ProductQuery do
     )
   end
 
-  defp apply_sort(q, :newest), do: order_by(q, [p], desc: p.inserted_at)
-  defp apply_sort(q, :name_asc), do: order_by(q, [p], asc: p.name)
-  defp apply_sort(q, :name_desc), do: order_by(q, [p], desc: p.name)
+  defp apply_sort(q, :newest), do: order_by(q, [p], desc: p.inserted_at, desc: p.id)
+  defp apply_sort(q, :name_asc), do: order_by(q, [p], asc: p.name, asc: p.id)
+  defp apply_sort(q, :name_desc), do: order_by(q, [p], desc: p.name, asc: p.id)
 
   defp apply_sort(q, sort) when sort in [:price_asc, :price_desc] do
     dir = if sort == :price_asc, do: :asc, else: :desc
 
     q
     |> ensure_variant_join()
-    |> order_by([variant: v], [{^dir, money_amount(v.price)}])
+    |> order_by([p, variant: v], [{^dir, money_amount(v.price)}, asc: p.id])
   end
 
   defp ensure_variant_join(q) do

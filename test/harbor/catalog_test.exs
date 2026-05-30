@@ -204,6 +204,31 @@ defmodule Harbor.CatalogTest do
       assert length(products) == 2
     end
 
+    test "paginates tied sort values deterministically", %{scope: scope} do
+      products =
+        for i <- 1..7 do
+          product_fixture(%{name: "Tied Product #{i}"})
+        end
+
+      ids = Enum.map(products, & &1.id)
+      tied_at = ~U[2024-01-01 00:00:00Z]
+
+      Enum.each(ids, fn id ->
+        Repo.update_all(from(p in Product, where: p.id == ^id), set: [inserted_at: tied_at])
+      end)
+
+      expected_ids = Enum.sort(ids, :desc)
+
+      assert %{entries: page_one} =
+               Catalog.list_products(scope, %{"per_page" => "5", "page" => "1"})
+
+      assert %{entries: page_two} =
+               Catalog.list_products(scope, %{"per_page" => "5", "page" => "2"})
+
+      assert Enum.map(page_one, & &1.id) == Enum.take(expected_ids, 5)
+      assert Enum.map(page_two, & &1.id) == Enum.drop(expected_ids, 5)
+    end
+
     test "searches by name, description, and SKU", %{scope: scope} do
       suffix = System.unique_integer([:positive])
       name_match = product_fixture(%{name: "Wool Blanket"})
