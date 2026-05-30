@@ -24,7 +24,7 @@ defmodule Harbor.Migration.V01 do
       add :effective_at, :timestamptz
       add :ended_at, :timestamptz
 
-      timestamps()
+      timestamps(type: :timestamptz)
     end
 
     create constraint(:tax_codes, :check_effective_window,
@@ -44,7 +44,7 @@ defmodule Harbor.Migration.V01 do
       add :logo_path, :string
       add :position, :integer, null: false, default: 0
 
-      timestamps()
+      timestamps(type: :timestamptz)
     end
 
     create unique_index(:brands, [:name])
@@ -59,7 +59,7 @@ defmodule Harbor.Migration.V01 do
       add :slug, :string, null: false
       add :tax_code_id, references(:tax_codes, type: :binary_id), null: false
 
-      timestamps()
+      timestamps(type: :timestamptz)
     end
 
     create unique_index(:product_types, [:name])
@@ -75,7 +75,7 @@ defmodule Harbor.Migration.V01 do
       add :parent_id, references(:taxons, type: :binary_id)
       add :parent_ids, {:array, :binary_id}, null: false, default: []
 
-      timestamps()
+      timestamps(type: :timestamptz)
     end
 
     create unique_index(:taxons, [:slug])
@@ -110,7 +110,7 @@ defmodule Harbor.Migration.V01 do
       add :primary_taxon_id, references(:taxons, type: :binary_id), null: false
       add :tax_code_id, references(:tax_codes, type: :binary_id)
 
-      timestamps()
+      timestamps(type: :timestamptz)
     end
 
     create constraint(:products, :check_status,
@@ -176,7 +176,7 @@ defmodule Harbor.Migration.V01 do
       add :name, :citext, null: false
       add :position, :integer, null: false, default: 0
 
-      timestamps()
+      timestamps(type: :timestamptz)
     end
 
     create unique_index(:product_options, [:product_id, :name])
@@ -193,7 +193,7 @@ defmodule Harbor.Migration.V01 do
       add :name, :citext, null: false
       add :position, :integer, null: false, default: 0
 
-      timestamps()
+      timestamps(type: :timestamptz)
     end
 
     create unique_index(:product_option_values, [:product_option_id, :name])
@@ -213,7 +213,7 @@ defmodule Harbor.Migration.V01 do
       add :slug, :string, null: false
       add :position, :integer, null: false, default: 0
 
-      timestamps()
+      timestamps(type: :timestamptz)
     end
 
     create unique_index(:property_groups, [:slug])
@@ -224,7 +224,7 @@ defmodule Harbor.Migration.V01 do
       add :name, :string, null: false
       add :slug, :string, null: false
 
-      timestamps()
+      timestamps(type: :timestamptz)
     end
 
     create unique_index(:property_value_sets, [:name])
@@ -246,7 +246,7 @@ defmodule Harbor.Migration.V01 do
       add :multi_value, :boolean, null: false, default: false
       add :position, :integer, null: false, default: 0
 
-      timestamps()
+      timestamps(type: :timestamptz)
     end
 
     create unique_index(:properties, [:slug])
@@ -272,7 +272,7 @@ defmodule Harbor.Migration.V01 do
       add :slug, :string, null: false
       add :position, :integer, null: false, default: 0
 
-      timestamps()
+      timestamps(type: :timestamptz)
     end
 
     create unique_index(:property_options, [:property_value_set_id, :name])
@@ -311,7 +311,7 @@ defmodule Harbor.Migration.V01 do
       add :inventory_policy, :string, null: false, default: "not_tracked"
       add :tax_code_id, references(:tax_codes, type: :binary_id)
 
-      timestamps()
+      timestamps(type: :timestamptz)
     end
 
     create index(:variants, [:product_id])
@@ -391,7 +391,7 @@ defmodule Harbor.Migration.V01 do
       add :boolean_value, :boolean
       add :date_value, :date
 
-      timestamps()
+      timestamps(type: :timestamptz)
     end
 
     create index(:product_property_values, [:product_id])
@@ -431,7 +431,7 @@ defmodule Harbor.Migration.V01 do
       add :boolean_value, :boolean
       add :date_value, :date
 
-      timestamps()
+      timestamps(type: :timestamptz)
     end
 
     create index(:variant_property_values, [:variant_id])
@@ -697,7 +697,7 @@ defmodule Harbor.Migration.V01 do
 
       add :position, :integer, null: false, default: 0
 
-      timestamps()
+      timestamps(type: :timestamptz)
     end
 
     create constraint(:product_images, :check_status, check: "status IN ('pending', 'ready')")
@@ -724,7 +724,7 @@ defmodule Harbor.Migration.V01 do
       add :hashed_password, :string
       add :confirmed_at, :timestamptz
 
-      timestamps()
+      timestamps(type: :timestamptz)
     end
 
     create unique_index(:users, [:email])
@@ -739,7 +739,7 @@ defmodule Harbor.Migration.V01 do
       add :sent_to, :string
       add :authenticated_at, :timestamptz
 
-      timestamps(updated_at: false)
+      timestamps(type: :timestamptz, updated_at: false)
     end
 
     create index(:users_tokens, [:user_id])
@@ -753,7 +753,7 @@ defmodule Harbor.Migration.V01 do
 
       add :role, :string, primary_key: true
 
-      timestamps(updated_at: false)
+      timestamps(type: :timestamptz, updated_at: false)
     end
 
     create constraint(:users_roles, :check_role, check: "role in ('superadmin', 'admin')")
@@ -773,7 +773,7 @@ defmodule Harbor.Migration.V01 do
       add :user_id, references(:users, type: :binary_id, on_delete: :nilify_all)
       add :deleted_at, :timestamptz
 
-      timestamps()
+      timestamps(type: :timestamptz)
     end
 
     create constraint(:customers, :check_status, check: "status in ('active', 'blocked')")
@@ -797,7 +797,7 @@ defmodule Harbor.Migration.V01 do
       add :country, :string, null: false
       add :phone, :string, null: false
 
-      timestamps()
+      timestamps(type: :timestamptz)
     end
 
     create index(:addresses, [:customer_id])
@@ -818,7 +818,7 @@ defmodule Harbor.Migration.V01 do
       add :price, :money_with_currency, null: false
       add :fulfillment_type, :string, null: false
 
-      timestamps()
+      timestamps(type: :timestamptz)
     end
 
     create unique_index(:delivery_methods, [:name])
@@ -865,7 +865,7 @@ defmodule Harbor.Migration.V01 do
 
       add :notes, :text
 
-      timestamps()
+      timestamps(type: :timestamptz)
     end
 
     create index(:orders, [:customer_id])
@@ -888,7 +888,7 @@ defmodule Harbor.Migration.V01 do
       add :quantity, :integer, null: false
       add :price, :money_with_currency, null: false
 
-      timestamps()
+      timestamps(type: :timestamptz)
     end
 
     create index(:order_items, [:order_id])
@@ -908,7 +908,7 @@ defmodule Harbor.Migration.V01 do
       add :last_touched_at, :timestamptz
       add :expires_at, :timestamptz, null: false
 
-      timestamps()
+      timestamps(type: :timestamptz)
     end
 
     create unique_index(:carts, [:customer_id],
@@ -944,7 +944,7 @@ defmodule Harbor.Migration.V01 do
 
       add :quantity, :integer, null: false
 
-      timestamps()
+      timestamps(type: :timestamptz)
     end
 
     create index(:cart_items, [:variant_id])
@@ -961,7 +961,7 @@ defmodule Harbor.Migration.V01 do
       add :customer_id, references(:customers, type: :binary_id, on_delete: :delete_all),
         null: false
 
-      timestamps()
+      timestamps(type: :timestamptz)
     end
 
     create unique_index(:payment_profiles, [:provider, :provider_ref])
@@ -982,7 +982,7 @@ defmodule Harbor.Migration.V01 do
       add :details, :map, null: false, default: %{}
       add :deleted_at, :timestamptz
 
-      timestamps()
+      timestamps(type: :timestamptz)
     end
 
     create unique_index(:payment_methods, [:provider_ref])
@@ -1008,7 +1008,7 @@ defmodule Harbor.Migration.V01 do
       add :client_secret, :string, null: false
       add :metadata, :map, null: false, default: %{}
 
-      timestamps()
+      timestamps(type: :timestamptz)
     end
 
     create unique_index(:payment_intents, [:provider, :provider_ref])
@@ -1028,7 +1028,7 @@ defmodule Harbor.Migration.V01 do
       add :payment_intent_id,
           references(:payment_intents, type: :binary_id, on_delete: :nilify_all)
 
-      timestamps()
+      timestamps(type: :timestamptz)
     end
 
     create unique_index(:checkout_sessions, [:order_id])
@@ -1052,7 +1052,7 @@ defmodule Harbor.Migration.V01 do
       add :amount, :integer, null: false
       add :hash, :string, null: false
 
-      timestamps()
+      timestamps(type: :timestamptz)
     end
 
     create unique_index(:tax_calculations, [:provider_ref])
