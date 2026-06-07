@@ -18,8 +18,9 @@ config :harbor, :scopes,
   ]
 
 config :ex_money,
-  default_cldr_backend: Harbor.Cldr,
   auto_start_exchange_rate_service: false,
   exchange_rates_retrieve_every: :never
+
+config :postgrex, :json_library, JSON
 
 import_config "#{config_env()}.exs"
