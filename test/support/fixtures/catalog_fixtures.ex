@@ -13,8 +13,8 @@ defmodule Harbor.CatalogFixtures do
     attrs =
       attrs
       |> Enum.into(%{
-        description: "some description",
-        name: "some name",
+        description: "product description",
+        name: "product name #{System.unique_integer([:positive])}",
         status: :active,
         primary_taxon_id: taxon.id,
         product_type_id: product_type.id
