@@ -10,9 +10,9 @@ defmodule Harbor.Web.CheckoutLive.ReceiptTest do
   alias Harbor.Checkout.Session
   alias Harbor.Orders.Order
 
-  setup :register_and_log_in_user
-
-  test "renders receipt details for completed checkout", %{conn: conn, user: user} do
+  test "renders receipt details for the owning authenticated customer", %{conn: conn} do
+    user = Harbor.AccountsFixtures.user_fixture()
+    conn = log_in_user(conn, user)
     scope = Scope.for_user(user)
     customer_fixture(scope, %{email: user.email})
     scope = Scope.for_user(user)
@@ -32,6 +32,67 @@ defmodule Harbor.Web.CheckoutLive.ReceiptTest do
     assert has_element?(view, "#receipt-shipping-address")
   end
 
+  test "renders the receipt for the owning guest session token", %{conn: conn} do
+    scope = guest_scope_fixture(customer: false)
+    cart = cart_fixture(scope)
+    customer = customer_fixture(scope)
+    checkout_scope = Scope.attach_customer(scope, customer)
+    {session, order} = completed_checkout(checkout_scope, cart)
+    conn = init_test_session(conn, %{"guest_session_token" => scope.session_token})
+
+    {:ok, view, _html} = live(conn, "/checkout/#{session.id}/receipt")
+
+    assert has_element?(view, "#checkout-receipt")
+    assert has_element?(view, "#receipt-order-number", order.number)
+  end
+
+  test "redirects another customer and an authenticated user without a customer", %{conn: conn} do
+    owner = Harbor.AccountsFixtures.user_fixture()
+    owner_scope = Scope.for_user(owner)
+    customer_fixture(owner_scope, %{email: owner.email})
+    owner_scope = Scope.for_user(owner)
+    {session, _order} = completed_checkout(owner_scope)
+
+    other_user = Harbor.AccountsFixtures.user_fixture()
+    other_scope = Scope.for_user(other_user)
+    customer_fixture(other_scope, %{email: other_user.email})
+
+    assert {:error, {:live_redirect, %{to: "/cart"}}} =
+             live(log_in_user(conn, other_user), "/checkout/#{session.id}/receipt")
+
+    user_without_customer = Harbor.AccountsFixtures.user_fixture()
+
+    assert {:error, {:live_redirect, %{to: "/cart"}}} =
+             live(log_in_user(conn, user_without_customer), "/checkout/#{session.id}/receipt")
+  end
+
+  test "redirects a guest hydrated with the same customer but a different token", %{conn: conn} do
+    receipt_scope = guest_scope_fixture(customer: false)
+    customer = customer_fixture(receipt_scope)
+    receipt_scope = Scope.attach_customer(receipt_scope, customer)
+
+    receipt_cart =
+      cart_fixture(Scope.for_system(), %{
+        customer_id: customer.id,
+        session_token: receipt_scope.session_token
+      })
+
+    {session, _order} = completed_checkout(receipt_scope, receipt_cart)
+    {:ok, _cart} = Checkout.update_cart(Scope.for_system(), receipt_cart, %{status: :merged})
+
+    attacker_scope = guest_scope_fixture(customer: false)
+
+    cart_fixture(Scope.for_system(), %{
+      customer_id: customer.id,
+      session_token: attacker_scope.session_token
+    })
+
+    conn = init_test_session(conn, %{"guest_session_token" => attacker_scope.session_token})
+
+    assert {:error, {:live_redirect, %{to: "/cart"}}} =
+             live(conn, "/checkout/#{session.id}/receipt")
+  end
+
   test "redirects to cart when receipt is missing", %{conn: conn} do
     missing_id = Ecto.UUID.generate()
 
@@ -39,9 +100,9 @@ defmodule Harbor.Web.CheckoutLive.ReceiptTest do
              live(conn, "/checkout/#{missing_id}/receipt")
   end
 
-  defp completed_checkout(scope) do
+  defp completed_checkout(scope, cart \\ nil) do
     variant = variant_fixture()
-    cart = cart_fixture(scope)
+    cart = cart || cart_fixture(scope)
     cart_item_fixture(cart, %{variant_id: variant.id, quantity: 2})
     delivery_method = delivery_method_fixture(%{price: Money.new(:USD, 15)})
 

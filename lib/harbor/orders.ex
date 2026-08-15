@@ -9,12 +9,12 @@ defmodule Harbor.Orders do
   alias Harbor.Orders.{Order, OrderQuery}
   alias Harbor.Repo
 
-  def list_orders(%Scope{} = scope, params \\ %{}) do
-    query = OrderQuery.new(scope, params)
+  def list_orders(%Scope{} = scope, params, opts \\ []) do
+    query = OrderQuery.new(params)
 
     Order
     |> where([o], o.status != :draft)
-    |> OrderQuery.apply(query)
+    |> OrderQuery.apply(query, scope, opts)
     |> preload(items: [variant: [:option_values, product: :images]])
     |> Repo.all()
   end

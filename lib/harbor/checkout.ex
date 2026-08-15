@@ -362,10 +362,37 @@ defmodule Harbor.Checkout do
 
       %Session{} = session ->
         session = preload_session(session)
-        ensure_authorized!(scope, session.order.cart)
-        {:ok, session}
+
+        if receipt_authorized?(scope, session.order.cart) do
+          {:ok, session}
+        else
+          {:error, :not_found}
+        end
     end
   end
+
+  defp receipt_authorized?(%Scope{role: role}, _cart)
+       when role in [:superadmin, :system],
+       do: true
+
+  defp receipt_authorized?(
+         %Scope{
+           role: :user,
+           authenticated?: true,
+           customer: %Customer{id: customer_id}
+         },
+         %Cart{customer_id: customer_id}
+       ),
+       do: true
+
+  defp receipt_authorized?(
+         %Scope{role: :guest, session_token: session_token},
+         %Cart{session_token: session_token}
+       )
+       when is_binary(session_token),
+       do: true
+
+  defp receipt_authorized?(%Scope{}, %Cart{}), do: false
 
   defp ensure_active(%Session{status: status}) do
     case status do

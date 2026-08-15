@@ -16,38 +16,45 @@ defmodule Harbor.Orders.OrderQuery do
 
   @type t() :: %__MODULE__{}
 
-  @spec new(Scope.t(), map()) :: t()
-  def new(%Scope{} = scope, params \\ %{}) do
+  @spec new(map()) :: t()
+  def new(params) do
     %__MODULE__{}
     |> cast(params, __MODULE__.__schema__(:fields))
-    |> apply_scope(scope)
     |> apply_changes()
   end
 
-  defp apply_scope(changeset, scope) do
-    cond do
-      admin?(scope) ->
-        changeset
-
-      customer_id = get_in(scope.customer.id) ->
-        put_change(changeset, :customer_id, customer_id)
-
-      true ->
-        put_change(changeset, :customer_id, nil)
-    end
-  end
-
-  @spec apply(Ecto.Queryable.t(), t()) :: Ecto.Query.t()
-  def apply(queryable, %__MODULE__{} = query) do
+  @spec apply(Ecto.Queryable.t(), t(), Scope.t(), keyword()) :: Ecto.Query.t()
+  def apply(queryable, %__MODULE__{} = query, %Scope{} = scope, opts) do
     queryable
     |> filter_by_status(query.status)
-    |> filter_by_customer(query.customer_id)
+    |> filter_by_customer(query.customer_id, scope, opts)
     |> order_by(desc: :inserted_at)
   end
 
   defp filter_by_status(q, nil), do: q
   defp filter_by_status(q, status), do: where(q, [o], o.status == ^status)
 
-  defp filter_by_customer(q, nil), do: q
-  defp filter_by_customer(q, customer_id), do: where(q, [o], o.customer_id == ^customer_id)
+  defp filter_by_customer(q, customer_id, scope, opts) do
+    cond do
+      admin?(scope) ->
+        filter_admin_customer(q, customer_id, opts)
+
+      scope.authenticated? and not is_nil(scope.customer) ->
+        where(q, [o], o.customer_id == ^scope.customer.id)
+
+      true ->
+        where(q, false)
+    end
+  end
+
+  defp filter_admin_customer(q, customer_id, opts) do
+    case Keyword.fetch(opts, :customer_id) do
+      {:ok, nil} -> where(q, false)
+      {:ok, customer_id} -> where(q, [o], o.customer_id == ^customer_id)
+      :error -> filter_by_customer_id(q, customer_id)
+    end
+  end
+
+  defp filter_by_customer_id(q, nil), do: q
+  defp filter_by_customer_id(q, customer_id), do: where(q, [o], o.customer_id == ^customer_id)
 end

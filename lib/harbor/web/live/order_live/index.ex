@@ -210,7 +210,9 @@ defmodule Harbor.Web.OrderLive.Index do
 
   @impl true
   def mount(_params, _session, socket) do
-    orders = Orders.list_orders(socket.assigns.current_scope)
+    current_scope = socket.assigns.current_scope
+    customer_id = get_in(current_scope.customer.id)
+    orders = Orders.list_orders(current_scope, %{}, customer_id: customer_id)
 
     {:ok, stream(socket, :orders, orders)}
   end
