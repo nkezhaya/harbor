@@ -151,11 +151,18 @@ defmodule Harbor.Web.CheckoutLive.Form do
         {subregion.name, subregion.id}
       end
 
+    locality_fields =
+      Enum.filter(
+        [:sublocality, :region, :postal_code],
+        &(&1 in country.required_fields)
+      )
+
     assigns =
       assigns
       |> assign(:country, country)
       |> assign(:countries, countries)
       |> assign(:subregions, subregions)
+      |> assign(:locality_fields, locality_fields)
 
     ~H"""
     <div>
@@ -189,6 +196,16 @@ defmodule Harbor.Web.CheckoutLive.Form do
             <.input field={@form[:company]} type="text" label="Company" />
           </div>
 
+          <div class="sm:col-span-2">
+            <.input
+              field={@form[:country]}
+              type="select"
+              label="Country / Region"
+              options={@countries}
+              autocomplete="country"
+            />
+          </div>
+
           <%= if :address in @country.required_fields do %>
             <div class="sm:col-span-2">
               <.input
@@ -208,45 +225,37 @@ defmodule Harbor.Web.CheckoutLive.Form do
             </div>
           <% end %>
 
-          <div>
-            <.input
-              :if={:sublocality in @country.required_fields}
-              field={@form[:city]}
-              type="text"
-              label="City"
-              autocomplete="address-level2"
-            />
-          </div>
+          <div
+            :if={@locality_fields != []}
+            class="grid grid-cols-1 gap-x-4 gap-y-6 sm:col-span-2 sm:grid-cols-[repeat(auto-fit,minmax(8rem,1fr))]"
+          >
+            <div :if={:sublocality in @locality_fields}>
+              <.input
+                field={@form[:city]}
+                type="text"
+                label="City"
+                autocomplete="address-level2"
+              />
+            </div>
 
-          <div>
-            <.input
-              field={@form[:country]}
-              type="select"
-              label="Country"
-              options={@countries}
-              autocomplete="country"
-            />
-          </div>
+            <div :if={:region in @locality_fields}>
+              <.input
+                field={@form[:region]}
+                type="select"
+                label="State / Province"
+                options={@subregions}
+                autocomplete="address-level1"
+              />
+            </div>
 
-          <div>
-            <.input
-              :if={:region in @country.required_fields}
-              field={@form[:region]}
-              type="select"
-              label="State / Province"
-              options={@subregions}
-              autocomplete="address-level1"
-            />
-          </div>
-
-          <div>
-            <.input
-              :if={:postal_code in @country.required_fields}
-              field={@form[:postal_code]}
-              type="text"
-              label="Postal code"
-              autocomplete="postal-code"
-            />
+            <div :if={:postal_code in @locality_fields}>
+              <.input
+                field={@form[:postal_code]}
+                type="text"
+                label="Postal code"
+                autocomplete="postal-code"
+              />
+            </div>
           </div>
 
           <div class="sm:col-span-2">
