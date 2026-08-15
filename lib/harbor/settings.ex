@@ -16,6 +16,7 @@ defmodule Harbor.Settings do
   @primary_key {:id, :boolean, autogenerate: false}
 
   schema "settings" do
+    field :address_enabled, :boolean, default: true
     field :payments_enabled, :boolean, default: true
     field :delivery_enabled, :boolean, default: true
     field :tax_enabled, :boolean, default: true
@@ -65,6 +66,10 @@ defmodule Harbor.Settings do
         error
     end
   end
+
+  @doc "Whether checkout address collection is enabled."
+  @spec address_enabled?() :: boolean()
+  def address_enabled?, do: get().address_enabled
 
   @doc "Whether payments are enabled."
   @spec payments_enabled?() :: boolean()

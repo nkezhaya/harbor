@@ -6,6 +6,7 @@ defmodule Harbor.SettingsTest do
   describe "get/0" do
     test "returns default settings when no row exists" do
       settings = Settings.get()
+      assert settings.address_enabled == true
       assert settings.payments_enabled == true
       assert settings.delivery_enabled == true
       assert settings.tax_enabled == true
@@ -15,6 +16,7 @@ defmodule Harbor.SettingsTest do
   describe "update/1" do
     test "upserts and returns updated settings" do
       assert {:ok, settings} = Settings.update(%{payments_enabled: false})
+      assert settings.address_enabled == true
       assert settings.payments_enabled == false
       assert settings.delivery_enabled == true
     end
@@ -22,6 +24,13 @@ defmodule Harbor.SettingsTest do
     test "subsequent get/0 reflects the change" do
       {:ok, _} = Settings.update(%{delivery_enabled: false})
       assert Settings.get().delivery_enabled == false
+    end
+  end
+
+  describe "address_enabled?/0" do
+    test "reflects current state" do
+      {:ok, _} = Settings.update(%{address_enabled: false})
+      refute Settings.address_enabled?()
     end
   end
 

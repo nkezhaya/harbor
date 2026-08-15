@@ -1095,6 +1095,7 @@ defmodule Harbor.Migration.V01 do
 
     create table(:settings, primary_key: false) do
       add :id, :boolean, primary_key: true, default: true
+      add :address_enabled, :boolean, null: false, default: true
       add :payments_enabled, :boolean, null: false, default: true
       add :delivery_enabled, :boolean, null: false, default: true
       add :tax_enabled, :boolean, null: false, default: true
