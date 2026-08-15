@@ -114,7 +114,12 @@ defmodule Harbor.Checkout.Steps do
 
     has_physical? = Enum.any?(order.items, & &1.variant.product.physical_product)
 
-    steps = if has_physical?, do: steps ++ [:shipping], else: steps
+    steps =
+      if settings.address_enabled and has_physical? do
+        steps ++ [:shipping]
+      else
+        steps
+      end
 
     steps =
       if settings.delivery_enabled and has_physical? do

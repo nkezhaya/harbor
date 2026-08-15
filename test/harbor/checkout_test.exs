@@ -574,7 +574,7 @@ defmodule Harbor.CheckoutTest do
                [:contact, :shipping, :delivery, :payment, :review]
     end
 
-    test "omits optional steps when not required" do
+    test "omits delivery and payment when not required" do
       scope = user_scope_fixture()
       cart = cart_fixture(scope)
 

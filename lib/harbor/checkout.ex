@@ -462,8 +462,9 @@ defmodule Harbor.Checkout do
   Computes the ordered checkout steps for the given scope, order, and pricing.
 
   - Adds `:contact` when the scope is not authenticated.
-  - Adds `:shipping` and `:delivery` when any order item is a physical product.
-  - Adds `:payment` when the order total is greater than zero.
+  - Adds `:shipping` when address collection is enabled and any order item is physical.
+  - Adds `:delivery` when delivery is enabled and any order item is a physical product.
+  - Adds `:payment` when payments are enabled and the order total is greater than zero.
   - Always appends `:review` as the final step.
   """
   @spec checkout_steps(Scope.t(), Order.t(), Pricing.t()) :: [atom()]

@@ -1,7 +1,7 @@
 defmodule Harbor.Checkout.StepsTest do
   use Harbor.DataCase, async: true
 
-  import Harbor.{CatalogFixtures, CustomersFixtures, OrdersFixtures}
+  import Harbor.{AccountsFixtures, CatalogFixtures, CustomersFixtures, OrdersFixtures}
 
   alias Harbor.Accounts.Scope
   alias Harbor.Checkout.{Pricing, Steps}
@@ -36,6 +36,24 @@ defmodule Harbor.Checkout.StepsTest do
     end
   end
 
+  describe "checkout_steps/3 with address collection disabled" do
+    setup do
+      Settings.update(%{address_enabled: false})
+      :ok
+    end
+
+    test "excludes :shipping" do
+      order = order_with_variant()
+
+      steps =
+        Steps.checkout_steps(guest_scope_fixture(customer: false), order, %Pricing{
+          total_price: Money.new(:USD, 10)
+        })
+
+      refute :shipping in steps
+    end
+  end
+
   describe "checkout_steps/3 with payments disabled" do
     setup do
       Settings.update(%{payments_enabled: false})
@@ -67,6 +85,17 @@ defmodule Harbor.Checkout.StepsTest do
       assert :delivery in steps
     end
 
+    test "excludes :shipping for nonphysical products" do
+      order = order_with_variant(%{physical_product: false})
+
+      steps =
+        Steps.checkout_steps(guest_scope_fixture(customer: false), order, %Pricing{
+          total_price: Money.new(:USD, 10)
+        })
+
+      refute :shipping in steps
+    end
+
     test "includes :payment when total > 0" do
       order = order_with_variant(%{physical_product: false})
 
@@ -87,6 +116,22 @@ defmodule Harbor.Checkout.StepsTest do
         })
 
       refute :payment in steps
+    end
+
+    test "supports address collection without delivery or payment" do
+      Settings.update(%{
+        address_enabled: true,
+        delivery_enabled: false,
+        payments_enabled: false
+      })
+
+      order = order_with_variant()
+      pricing = %Pricing{total_price: Money.new(:USD, 10)}
+
+      assert Steps.checkout_steps(guest_scope_fixture(customer: false), order, pricing) ==
+               [:contact, :shipping, :review]
+
+      assert Steps.checkout_steps(user_scope_fixture(), order, pricing) == [:shipping, :review]
     end
 
     test "always ends with :review" do
