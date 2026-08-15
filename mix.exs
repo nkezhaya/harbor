@@ -98,7 +98,7 @@ defmodule Harbor.MixProject do
       {:ex_aws_s3, "~> 2.5"},
       {:stripity_stripe, "~> 3.2"},
       {:oban, "~> 2.20"},
-      {:address_input, "~> 0.3"},
+      {:address_input, "~> 0.4"},
       {:localize, "~> 0.41"},
       {:ex_money, "~> 6.0"},
       {:ex_money_sql, "~> 2.0"},

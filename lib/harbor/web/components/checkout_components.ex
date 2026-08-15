@@ -179,7 +179,6 @@ defmodule Harbor.Web.CheckoutComponents do
   defp address_summary_lines(%Address{} = address) do
     country = AddressInput.get_country(address.country)
     format = country.local_address_format || country.address_format
-    format = format || AddressInput.get_country("US").address_format
     fields = address_field_values(address, country)
     lines = format_address_lines(format, fields)
     lines ++ [Territory.display_name!(country.id, locale: :en)]

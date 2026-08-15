@@ -154,10 +154,12 @@ defmodule Harbor.Web.CheckoutLive.Form do
         {subregion.name, subregion.id}
       end
 
+    address_fields = AddressInput.format_fields(country.address_format)
+
     locality_fields =
       Enum.filter(
         [:sublocality, :region, :postal_code],
-        &(&1 in country.required_fields)
+        &(&1 in address_fields)
       )
 
     assigns =
@@ -165,6 +167,7 @@ defmodule Harbor.Web.CheckoutLive.Form do
       |> assign(:country, country)
       |> assign(:countries, countries)
       |> assign(:subregions, subregions)
+      |> assign(:address_fields, address_fields)
       |> assign(:locality_fields, locality_fields)
 
     ~H"""
@@ -209,7 +212,7 @@ defmodule Harbor.Web.CheckoutLive.Form do
             />
           </div>
 
-          <%= if :address in @country.required_fields do %>
+          <%= if :address in @address_fields do %>
             <div class="sm:col-span-2">
               <.input
                 field={@form[:line1]}
@@ -236,7 +239,7 @@ defmodule Harbor.Web.CheckoutLive.Form do
               <.input
                 field={@form[:city]}
                 type="text"
-                label="City"
+                label={address_field_label(@country.sublocality_type)}
                 autocomplete="address-level2"
               />
             </div>
@@ -245,7 +248,7 @@ defmodule Harbor.Web.CheckoutLive.Form do
               <.input
                 field={@form[:region]}
                 type="select"
-                label="State / Province"
+                label={address_field_label(@country.subregion_type)}
                 options={@subregions}
                 autocomplete="address-level1"
               />
@@ -255,7 +258,7 @@ defmodule Harbor.Web.CheckoutLive.Form do
               <.input
                 field={@form[:postal_code]}
                 type="text"
-                label="Postal code"
+                label={address_field_label(@country.postal_code_type)}
                 autocomplete="postal-code"
               />
             </div>
@@ -271,6 +274,11 @@ defmodule Harbor.Web.CheckoutLive.Form do
     </div>
     """
   end
+
+  defp address_field_label("zip"), do: "ZIP code"
+  defp address_field_label("pin"), do: "PIN code"
+  defp address_field_label("eircode"), do: "Eircode"
+  defp address_field_label(type), do: humanize(type)
 
   attr :form, Phoenix.HTML.Form, required: true
   attr :delivery_methods, :list, required: true
