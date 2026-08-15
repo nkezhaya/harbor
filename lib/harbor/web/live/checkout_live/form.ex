@@ -7,6 +7,7 @@ defmodule Harbor.Web.CheckoutLive.Form do
 
   alias Harbor.{Checkout, Customers, Shipping}
   alias Harbor.Customers.{Address, Customer}
+  alias Localize.Territory
 
   @impl true
   def render(assigns) do
@@ -140,9 +141,11 @@ defmodule Harbor.Web.CheckoutLive.Form do
 
   defp shipping_step(assigns) do
     countries =
-      for country <- AddressInput.countries() do
-        {country.name, country.id}
-      end
+      AddressInput.countries()
+      |> Enum.map(fn country ->
+        {Territory.display_name!(country.id, locale: :en), country.id}
+      end)
+      |> Enum.sort_by(fn {display_name, _id} -> display_name end)
 
     country = AddressInput.get_country(assigns.form[:country].value)
 

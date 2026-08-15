@@ -14,6 +14,7 @@ defmodule Harbor.Web.CheckoutComponents do
   alias Harbor.Customers.Address
   alias Harbor.Orders.{Order, OrderItem}
   alias Harbor.Web.CartComponents
+  alias Localize.Territory
 
   @doc """
   Renders the desktop order summary sidebar for a checkout order.
@@ -181,7 +182,7 @@ defmodule Harbor.Web.CheckoutComponents do
     format = format || AddressInput.get_country("US").address_format
     fields = address_field_values(address, country)
     lines = format_address_lines(format, fields)
-    lines ++ [country.name]
+    lines ++ [Territory.display_name!(country.id, locale: :en)]
   end
 
   defp address_field_values(%Address{} = address, country) do

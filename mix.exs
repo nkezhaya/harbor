@@ -99,6 +99,7 @@ defmodule Harbor.MixProject do
       {:stripity_stripe, "~> 3.2"},
       {:oban, "~> 2.20"},
       {:address_input, "~> 0.3"},
+      {:localize, "~> 0.41"},
       {:ex_money, "~> 6.0"},
       {:ex_money_sql, "~> 2.0"},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
