@@ -25,6 +25,8 @@ defmodule Harbor.Web.CheckoutComponents do
   """
   attr :order, Order, required: true
   attr :pricing, Pricing, required: true
+  attr :tax_enabled, :boolean, default: true
+  attr :delivery_enabled, :boolean, default: true
 
   def order_summary(assigns) do
     ~H"""
@@ -44,11 +46,11 @@ defmodule Harbor.Web.CheckoutComponents do
             <dt>Subtotal</dt>
             <dd class="text-gray-900">{@pricing.subtotal}</dd>
           </div>
-          <div class="flex justify-between">
+          <div :if={@tax_enabled} id="checkout-summary-tax" class="flex justify-between">
             <dt>Taxes</dt>
             <dd class="text-gray-900">{@pricing.tax || Money.zero(:USD)}</dd>
           </div>
-          <div class="flex justify-between">
+          <div :if={@delivery_enabled} class="flex justify-between">
             <dt>Shipping</dt>
             <dd id="checkout-summary-shipping" class="text-gray-900">{@pricing.shipping_price}</dd>
           </div>

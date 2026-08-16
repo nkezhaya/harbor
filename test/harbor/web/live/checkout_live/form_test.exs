@@ -24,7 +24,7 @@ defmodule Harbor.Web.CheckoutLive.FormTest do
       assert has_element?(view, "#express-checkout")
     end
 
-    test "hides payment UI when payment is disabled", %{conn: conn} do
+    test "renders review without disabled checkout capabilities", %{conn: conn} do
       Settings.update(%{
         address_enabled: true,
         delivery_enabled: false,
@@ -44,6 +44,39 @@ defmodule Harbor.Web.CheckoutLive.FormTest do
       refute has_element?(view, "#express-checkout")
       refute has_element?(view, "#checkout-step-payment")
       refute has_element?(view, "#payment-form")
+      refute has_element?(view, "#checkout-summary-tax")
+      refute has_element?(view, "#checkout-summary-shipping")
+
+      view
+      |> form("#customer-form", %{"customer" => %{"email" => "buyer@example.com"}})
+      |> render_submit()
+
+      view
+      |> form("#shipping-form", %{
+        "address" => %{
+          "first_name" => "Jane",
+          "last_name" => "Doe",
+          "line1" => "1 Main St",
+          "city" => "Portland",
+          "region" => "OR",
+          "postal_code" => "97205",
+          "country" => "US",
+          "phone" => "555-0100"
+        }
+      })
+      |> render_submit()
+
+      assert has_element?(view, "#checkout-review")
+      assert has_element?(view, "#review-items", variant.product.name)
+      assert has_element?(view, "#review-submit", "Submit order")
+      refute has_element?(view, "#review-tax")
+      refute has_element?(view, "#review-shipping-price")
+
+      view
+      |> form("#review-form", %{})
+      |> render_submit()
+
+      assert_redirect(view, "/checkout/#{session.id}/receipt")
     end
   end
 

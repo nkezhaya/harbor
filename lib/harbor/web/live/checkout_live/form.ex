@@ -5,15 +5,22 @@ defmodule Harbor.Web.CheckoutLive.Form do
   use Harbor.Web, :live_view
   import Harbor.Web.CheckoutComponents
 
-  alias Harbor.{Checkout, Customers, Shipping}
+  alias Harbor.{Checkout, Customers, Settings, Shipping}
+  alias Harbor.Checkout.Pricing
   alias Harbor.Customers.{Address, Customer}
+  alias Harbor.Orders.Order
   alias Localize.Territory
 
   @impl true
   def render(assigns) do
     ~H"""
     <Layouts.checkout flash={@flash}>
-      <.order_summary order={@order} pricing={@pricing} />
+      <.order_summary
+        order={@order}
+        pricing={@pricing}
+        tax_enabled={@tax_enabled}
+        delivery_enabled={:delivery in @steps}
+      />
 
       <section
         aria-labelledby="payment-heading"
@@ -96,7 +103,12 @@ defmodule Harbor.Web.CheckoutLive.Form do
             >
               <:summary>Ready to confirm</:summary>
               <:body>
-                <.review_step />
+                <.review_step
+                  order={@order}
+                  pricing={@pricing}
+                  steps={@steps}
+                  tax_enabled={@tax_enabled}
+                />
               </:body>
             </.step>
           </div>
@@ -340,21 +352,65 @@ defmodule Harbor.Web.CheckoutLive.Form do
   end
 
   attr :form, :any, default: nil
+  attr :order, Order, required: true
+  attr :pricing, Pricing, required: true
+  attr :steps, :list, required: true
+  attr :tax_enabled, :boolean, required: true
 
   defp review_step(assigns) do
     assigns = assign_new(assigns, :form, fn -> to_form(%{}) end)
 
     ~H"""
-    <div>
-      <.form
-        for={@form}
-        id="review-form"
-        class="space-y-4"
-        phx-submit="review_submit"
-      >
-        <p class="text-sm text-gray-700">Order review placeholder content.</p>
+    <div id="checkout-review" class="space-y-6">
+      <div>
+        <h3 class="text-base font-semibold text-gray-900">Review your order</h3>
+        <p class="mt-1 text-sm text-gray-600">
+          Confirm your details before submitting.
+        </p>
+      </div>
 
-        <.continue_button id="review-continue">Place order</.continue_button>
+      <div class="space-y-6 lg:hidden">
+        <section aria-labelledby="review-items-heading">
+          <h3 id="review-items-heading" class="font-medium text-gray-900">Items</h3>
+          <ul id="review-items" class="mt-2 divide-y divide-gray-200 border-y border-gray-200">
+            <li
+              :for={item <- @order.items}
+              id={"review-item-#{item.id}"}
+              class="flex justify-between gap-4 py-3 text-sm"
+            >
+              <div>
+                <p class="font-medium text-gray-900">{item.variant.product.name}</p>
+                <p class="text-gray-500">Quantity: {item.quantity}</p>
+              </div>
+              <p class="font-medium text-gray-900">
+                {Money.mult!(item.price, item.quantity)}
+              </p>
+            </li>
+          </ul>
+        </section>
+
+        <dl id="review-totals" class="space-y-3 text-sm">
+          <div class="flex justify-between">
+            <dt class="text-gray-600">Subtotal</dt>
+            <dd class="font-medium text-gray-900">{@pricing.subtotal}</dd>
+          </div>
+          <div :if={@tax_enabled} id="review-tax" class="flex justify-between">
+            <dt class="text-gray-600">Taxes</dt>
+            <dd class="font-medium text-gray-900">{@pricing.tax || Money.zero(:USD)}</dd>
+          </div>
+          <div :if={:delivery in @steps} id="review-shipping-price" class="flex justify-between">
+            <dt class="text-gray-600">Shipping</dt>
+            <dd class="font-medium text-gray-900">{@pricing.shipping_price}</dd>
+          </div>
+          <div class="flex justify-between border-t border-gray-200 pt-3">
+            <dt class="font-semibold text-gray-900">Total</dt>
+            <dd class="font-semibold text-gray-900">{@pricing.total_price}</dd>
+          </div>
+        </dl>
+      </div>
+
+      <.form for={@form} id="review-form" phx-submit="review_submit">
+        <.continue_button id="review-submit">Submit order</.continue_button>
       </.form>
     </div>
     """
@@ -375,6 +431,7 @@ defmodule Harbor.Web.CheckoutLive.Form do
            current_scope: current_scope,
            pricing: pricing,
            steps: steps,
+           tax_enabled: Settings.tax_enabled?(),
            delivery_methods: Shipping.list_delivery_methods(),
            contact_form: contact_form(current_scope),
            shipping_form: shipping_form(current_scope, session.order),
