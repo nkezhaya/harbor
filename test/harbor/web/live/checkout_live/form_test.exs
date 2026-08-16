@@ -5,7 +5,7 @@ defmodule Harbor.Web.CheckoutLive.FormTest do
   import Phoenix.LiveViewTest
 
   alias Harbor.Accounts.Scope
-  alias Harbor.{Checkout, Orders, Repo}
+  alias Harbor.{Checkout, Orders, Repo, Settings}
   alias Harbor.Orders.Order
 
   describe "guest checkout" do
@@ -21,6 +21,29 @@ defmodule Harbor.Web.CheckoutLive.FormTest do
       {:ok, view, _html} = live(conn, "/checkout/#{session.id}")
 
       assert has_element?(view, "#customer-form")
+      assert has_element?(view, "#express-checkout")
+    end
+
+    test "hides payment UI when payment is disabled", %{conn: conn} do
+      Settings.update(%{
+        address_enabled: true,
+        delivery_enabled: false,
+        payments_enabled: false,
+        tax_enabled: false
+      })
+
+      scope = guest_scope_fixture(customer: false)
+      conn = init_test_session(conn, %{"guest_session_token" => scope.session_token})
+      variant = variant_fixture()
+      cart = cart_fixture(scope)
+      cart_item_fixture(cart, %{variant_id: variant.id, quantity: 1})
+      {:ok, session} = Checkout.create_session(scope, cart)
+
+      {:ok, view, _html} = live(conn, "/checkout/#{session.id}")
+
+      refute has_element?(view, "#express-checkout")
+      refute has_element?(view, "#checkout-step-payment")
+      refute has_element?(view, "#payment-form")
     end
   end
 
