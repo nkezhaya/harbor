@@ -96,11 +96,12 @@ defmodule Harbor.Orders.Order do
   end
 
   @doc false
-  def submit_changeset(order, attrs, scope) do
+  def submit_changeset(order, attrs, scope, opts \\ []) do
     order
     |> changeset(attrs, scope)
     |> denormalize_email()
     |> require_shipping_address()
+    |> require_enabled_shipping_address(opts)
     |> denormalize_delivery_method()
     |> denormalize_shipping_address()
   end
@@ -134,6 +135,17 @@ defmodule Harbor.Orders.Order do
 
       _ ->
         changeset
+    end
+  end
+
+  defp require_enabled_shipping_address(changeset, opts) do
+    items = get_assoc(changeset, :items, :struct)
+    has_physical? = Enum.any?(items, & &1.variant.product.physical_product)
+
+    if Keyword.get(opts, :address_enabled, true) and has_physical? do
+      validate_required(changeset, [:shipping_address_id])
+    else
+      changeset
     end
   end
 

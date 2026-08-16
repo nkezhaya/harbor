@@ -12,7 +12,7 @@ defmodule Harbor.CheckoutTest do
   }
 
   alias Harbor.Accounts.Scope
-  alias Harbor.{Checkout, Repo}
+  alias Harbor.{Billing, Checkout, Repo, Settings}
   alias Harbor.Checkout.{Cart, CartItem, EnsureCheckoutPaymentIntentWorker, Session}
   alias Harbor.Orders.Order
 
@@ -777,6 +777,93 @@ defmodule Harbor.CheckoutTest do
   end
 
   describe "submit_checkout/2" do
+    test "requires a shipping address for physical products when address collection is enabled" do
+      Settings.update(%{
+        address_enabled: true,
+        delivery_enabled: false,
+        payments_enabled: false,
+        tax_enabled: false
+      })
+
+      scope = user_scope_fixture()
+      cart = cart_fixture(scope)
+      variant = variant_fixture()
+      cart_item_fixture(cart, %{variant_id: variant.id})
+      {:ok, session} = Checkout.create_session(scope, cart)
+
+      assert {:error, changeset} = Checkout.submit_checkout(scope, session)
+      assert errors_on(changeset).shipping_address_id == ["can't be blank"]
+      assert Repo.get!(Session, session.id).status == :active
+    end
+
+    test "submits a physical order without delivery, payment, or tax integrations" do
+      Settings.update(%{
+        address_enabled: true,
+        delivery_enabled: false,
+        payments_enabled: false,
+        tax_enabled: false
+      })
+
+      scope = guest_scope_fixture(customer: false)
+      cart = cart_fixture(scope)
+      variant = variant_fixture()
+      cart_item_fixture(cart, %{variant_id: variant.id, quantity: 2})
+      {:ok, session} = Checkout.create_session(scope, cart)
+
+      assert {:ok, session, scope} =
+               Checkout.complete_contact_step(scope, session, %{"email" => "buyer@example.com"})
+
+      refute_enqueued(worker: EnsureCheckoutPaymentIntentWorker)
+
+      assert {:ok, session} =
+               Checkout.complete_shipping_step(scope, session, %{
+                 "first_name" => "Jane",
+                 "last_name" => "Doe",
+                 "line1" => "1 Main St",
+                 "city" => "Portland",
+                 "region" => "OR",
+                 "postal_code" => "97205",
+                 "country" => "US",
+                 "phone" => "555-0100"
+               })
+
+      assert {:ok, order} = Checkout.submit_checkout(scope, session)
+
+      assert order.status == :pending
+      assert order.email == "buyer@example.com"
+      assert order.address_name == "Jane Doe"
+      assert order.address_line1 == "1 Main St"
+      assert order.address_city == "Portland"
+      assert order.address_region == "OR"
+      assert order.address_postal_code == "97205"
+      assert order.address_country == "US"
+      assert order.address_phone == "555-0100"
+      assert Money.equal?(order.shipping_price, Money.zero(:USD))
+      assert Money.equal?(order.tax, Money.zero(:USD))
+      refute order.delivery_method_id
+      refute Billing.get_payment_profile(scope, scope.customer.id)
+      assert Repo.get!(Session, session.id).status == :completed
+    end
+
+    test "does not require a shipping address for nonphysical products" do
+      Settings.update(%{
+        address_enabled: true,
+        delivery_enabled: false,
+        payments_enabled: false,
+        tax_enabled: false
+      })
+
+      scope = user_scope_fixture()
+      cart = cart_fixture(scope)
+      variant = variant_fixture(%{physical_product: false})
+      cart_item_fixture(cart, %{variant_id: variant.id})
+      {:ok, session} = Checkout.create_session(scope, cart)
+
+      assert {:ok, order} = Checkout.submit_checkout(scope, session)
+      assert order.status == :pending
+      refute order.shipping_address_id
+    end
+
     test "updates the order snapshots and completes the session" do
       # Build catalog and cart
       variant = variant_fixture()

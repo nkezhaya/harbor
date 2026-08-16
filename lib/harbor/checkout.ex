@@ -542,7 +542,10 @@ defmodule Harbor.Checkout do
   end
 
   defp do_submit_checkout(%Session{} = session) do
-    changeset = Order.submit_changeset(session.order, %{}, Scope.for_system())
+    changeset =
+      Order.submit_changeset(session.order, %{}, Scope.for_system(),
+        address_enabled: Settings.address_enabled?()
+      )
 
     with {:ok, _order} <- Changeset.apply_action(changeset, :update),
          {:ok, session} <- update_tax_calculation_if_enabled(session) do
@@ -592,7 +595,9 @@ defmodule Harbor.Checkout do
     }
 
     order
-    |> Order.submit_changeset(attrs, Scope.for_system())
+    |> Order.submit_changeset(attrs, Scope.for_system(),
+      address_enabled: Settings.address_enabled?()
+    )
     |> Repo.update()
   end
 
