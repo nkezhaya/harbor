@@ -78,8 +78,6 @@ defmodule Harbor.Web.CheckoutLive.ReceiptTest do
       })
 
     {session, _order} = completed_checkout(receipt_scope, receipt_cart)
-    {:ok, _cart} = Checkout.update_cart(Scope.for_system(), receipt_cart, %{status: :merged})
-
     attacker_scope = guest_scope_fixture(customer: false)
 
     cart_fixture(Scope.for_system(), %{

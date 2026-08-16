@@ -924,7 +924,7 @@ defmodule Harbor.Migration.V01 do
            )
 
     create constraint(:carts, :carts_check_status,
-             check: "status in ('active', 'merged', 'expired')"
+             check: "status in ('active', 'checked_out', 'merged', 'expired')"
            )
 
     alter table(:orders) do

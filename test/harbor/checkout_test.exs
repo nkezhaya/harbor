@@ -794,6 +794,7 @@ defmodule Harbor.CheckoutTest do
       assert {:error, changeset} = Checkout.submit_checkout(scope, session)
       assert errors_on(changeset).shipping_address_id == ["can't be blank"]
       assert Repo.get!(Session, session.id).status == :active
+      assert Repo.get!(Cart, cart.id).status == :active
     end
 
     test "submits a physical order without delivery, payment, or tax integrations" do
@@ -843,6 +844,11 @@ defmodule Harbor.CheckoutTest do
       refute order.delivery_method_id
       refute Billing.get_payment_profile(scope, scope.customer.id)
       assert Repo.get!(Session, session.id).status == :completed
+      assert Repo.get!(Cart, cart.id).status == :checked_out
+
+      new_cart = Checkout.fetch_or_create_active_cart(scope)
+      assert new_cart.status == :active
+      refute new_cart.id == cart.id
     end
 
     test "does not require a shipping address for nonphysical products" do

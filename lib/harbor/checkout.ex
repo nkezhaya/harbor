@@ -564,8 +564,11 @@ defmodule Harbor.Checkout do
   defp do_complete_and_submit(%Session{} = session) do
     result =
       Repo.transact(fn ->
-        with {:ok, session} <- complete_session(session) do
-          submit_order(session)
+        with {:ok, session} <- complete_session(session),
+             {:ok, order} <- submit_order(session),
+             {:ok, _cart} <-
+               update_cart(Scope.for_system(), session.order.cart, %{status: :checked_out}) do
+          {:ok, order}
         end
       end)
 

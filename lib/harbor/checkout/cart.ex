@@ -11,7 +11,7 @@ defmodule Harbor.Checkout.Cart do
 
   schema "carts" do
     field :session_token, :string
-    field :status, Ecto.Enum, values: [:active, :merged, :expired], default: :active
+    field :status, Ecto.Enum, values: [:active, :checked_out, :merged, :expired], default: :active
     field :lock_version, :integer, default: 1
     field :last_touched_at, :utc_datetime_usec
     field :expires_at, :utc_datetime_usec
