@@ -89,6 +89,18 @@ defmodule Harbor.ConnCase do
     |> Plug.Conn.put_session(:user_token, token)
   end
 
+  def get_cookie(conn, cookie_name) do
+    conn
+    |> Plug.Conn.get_cookies()
+    |> Map.get(cookie_name)
+  end
+
+  def get_resp_cookie(conn, cookie_name) do
+    conn
+    |> Plug.Conn.get_resp_cookies()
+    |> Map.get(cookie_name)
+  end
+
   defp maybe_set_token_authenticated_at(_token, nil), do: nil
 
   defp maybe_set_token_authenticated_at(token, authenticated_at) do

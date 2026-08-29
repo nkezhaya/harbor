@@ -65,10 +65,12 @@ defmodule Harbor.Web.UserAuthTest do
 
     test "writes a cookie if remember_me is configured", %{conn: conn, user: user} do
       conn = conn |> fetch_cookies() |> UserAuth.log_in_user(user, %{"remember_me" => "true"})
-      assert get_session(conn, :user_token) == conn.cookies[@remember_me_cookie]
+      assert get_session(conn, :user_token) == get_cookie(conn, @remember_me_cookie)
       assert get_session(conn, :user_remember_me) == true
 
-      assert %{value: signed_token, max_age: max_age} = conn.resp_cookies[@remember_me_cookie]
+      assert %{value: signed_token, max_age: max_age} =
+               get_resp_cookie(conn, @remember_me_cookie)
+
       assert signed_token != get_session(conn, :user_token)
       assert max_age == @remember_me_cookie_max_age
     end
@@ -84,7 +86,7 @@ defmodule Harbor.Web.UserAuthTest do
 
     test "writes a cookie if remember_me was set in previous session", %{conn: conn, user: user} do
       conn = conn |> fetch_cookies() |> UserAuth.log_in_user(user, %{"remember_me" => "true"})
-      assert get_session(conn, :user_token) == conn.cookies[@remember_me_cookie]
+      assert get_session(conn, :user_token) == get_cookie(conn, @remember_me_cookie)
       assert get_session(conn, :user_remember_me) == true
 
       conn =
@@ -98,7 +100,10 @@ defmodule Harbor.Web.UserAuthTest do
       # now we log in again and even without explicitly setting remember_me,
       # the cookie should be set again
       conn = conn |> UserAuth.log_in_user(user, %{})
-      assert %{value: signed_token, max_age: max_age} = conn.resp_cookies[@remember_me_cookie]
+
+      assert %{value: signed_token, max_age: max_age} =
+               get_resp_cookie(conn, @remember_me_cookie)
+
       assert signed_token != get_session(conn, :user_token)
       assert max_age == @remember_me_cookie_max_age
       assert get_session(conn, :user_remember_me) == true
@@ -117,8 +122,8 @@ defmodule Harbor.Web.UserAuthTest do
         |> UserAuth.log_out_user()
 
       refute get_session(conn, :user_token)
-      refute conn.cookies[@remember_me_cookie]
-      assert %{max_age: 0} = conn.resp_cookies[@remember_me_cookie]
+      refute get_cookie(conn, @remember_me_cookie)
+      assert %{max_age: 0} = get_resp_cookie(conn, @remember_me_cookie)
       assert redirected_to(conn) == "/"
       refute Auth.get_user_by_session_token(user_token)
     end
@@ -137,7 +142,7 @@ defmodule Harbor.Web.UserAuthTest do
     test "works even if user is already logged out", %{conn: conn} do
       conn = conn |> fetch_cookies() |> UserAuth.log_out_user()
       refute get_session(conn, :user_token)
-      assert %{max_age: 0} = conn.resp_cookies[@remember_me_cookie]
+      assert %{max_age: 0} = get_resp_cookie(conn, @remember_me_cookie)
       assert redirected_to(conn) == "/"
     end
   end
@@ -158,8 +163,8 @@ defmodule Harbor.Web.UserAuthTest do
       logged_in_conn =
         conn |> fetch_cookies() |> UserAuth.log_in_user(user, %{"remember_me" => "true"})
 
-      user_token = logged_in_conn.cookies[@remember_me_cookie]
-      %{value: signed_token} = logged_in_conn.resp_cookies[@remember_me_cookie]
+      user_token = get_cookie(logged_in_conn, @remember_me_cookie)
+      %{value: signed_token} = get_resp_cookie(logged_in_conn, @remember_me_cookie)
 
       conn =
         conn
@@ -187,8 +192,8 @@ defmodule Harbor.Web.UserAuthTest do
       logged_in_conn =
         conn |> fetch_cookies() |> UserAuth.log_in_user(user, %{"remember_me" => "true"})
 
-      token = logged_in_conn.cookies[@remember_me_cookie]
-      %{value: signed_token} = logged_in_conn.resp_cookies[@remember_me_cookie]
+      token = get_cookie(logged_in_conn, @remember_me_cookie)
+      %{value: signed_token} = get_resp_cookie(logged_in_conn, @remember_me_cookie)
 
       offset_user_token(token, -10, :day)
       {user, _} = Auth.get_user_by_session_token(token)
@@ -204,7 +209,10 @@ defmodule Harbor.Web.UserAuthTest do
       assert conn.assigns.current_scope.user.authenticated_at == user.authenticated_at
       assert new_token = get_session(conn, :user_token)
       assert new_token != token
-      assert %{value: new_signed_token, max_age: max_age} = conn.resp_cookies[@remember_me_cookie]
+
+      assert %{value: new_signed_token, max_age: max_age} =
+               get_resp_cookie(conn, @remember_me_cookie)
+
       assert new_signed_token != signed_token
       assert max_age == @remember_me_cookie_max_age
     end
