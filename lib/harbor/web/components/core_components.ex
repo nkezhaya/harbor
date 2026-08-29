@@ -83,7 +83,9 @@ defmodule Harbor.Web.CoreComponents do
       <.button phx-click="go" variant="primary">Send!</.button>
       <.button navigate="/">Home</.button>
   """
-  attr :rest, :global, include: ~w(href navigate patch method download name value disabled class)
+  attr :rest, :global,
+    include: ~w(href navigate patch method download name value disabled class type)
+
   attr :variant, :string, values: ~w(primary link)
   attr :size, :string, values: ~w(sm base custom), default: "sm"
   attr :label, :boolean, doc: "Set to true to render the button as an HTML label"
