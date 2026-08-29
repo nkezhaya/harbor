@@ -10,6 +10,7 @@ defmodule Harbor.Web.Admin.ProductLive.Form do
   alias Harbor.{Catalog, Config, Tax, Util}
   alias Harbor.Catalog.Forms.MediaUpload
   alias Harbor.Catalog.{Product, ProductOptionValue}
+  alias Phoenix.LiveView.ColocatedHook
 
   @impl true
   def render(assigns) do
@@ -121,12 +122,45 @@ defmodule Harbor.Web.Admin.ProductLive.Form do
           id="media-uploads"
           role="list"
           class="divide-y divide-gray-100 dark:divide-white/5 space-y-4"
-          phx-hook="Sortable"
+          phx-hook=".Sortable"
           data-list_id="media-uploads"
           data-push_event="sortable:reposition"
         >
           <.media_upload_item :for={media_upload <- @media_uploads} media_upload={media_upload} />
         </ul>
+
+        <script :type={ColocatedHook} name=".Sortable">
+          import Sortable from "sortablejs"
+
+          export default {
+            mounted() {
+              this.sorter = new Sortable(this.el, {
+                animation: 150,
+                handle: ".drag-handle",
+                dragClass: "drag-item",
+                ghostClass: "drag-ghost",
+                forceFallback: true,
+                onEnd: _ => this.onEnd()
+              })
+            },
+
+            destroyed() {
+              this.sorter?.destroy()
+            },
+
+            onEnd() {
+              const nodes = this.el.querySelectorAll("[data-sortable_id]")
+              const listId = this.el.dataset.list_id
+              const eventName = this.el.dataset.push_event
+              const elements = [...nodes]
+              const ids = elements.map(el => el.dataset.sortable_id)
+
+              if (eventName) {
+                this.pushEventTo(this.el, eventName, { list_id: listId, ids })
+              }
+            }
+          }
+        </script>
 
         <.options_card form={@form} product={@product} />
 
