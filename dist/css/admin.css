@@ -719,9 +719,6 @@
   .min-h-32 {
     min-height: calc(var(--spacing) * 32);
   }
-  .min-h-\[8rem\] {
-    min-height: 8rem;
-  }
   .min-h-full {
     min-height: 100%;
   }
@@ -968,7 +965,7 @@
     border-style: var(--tw-border-style);
     border-width: 1px;
   }
-  .border-\[3px\] {
+  .border-3 {
     border-style: var(--tw-border-style);
     border-width: 3px;
   }
