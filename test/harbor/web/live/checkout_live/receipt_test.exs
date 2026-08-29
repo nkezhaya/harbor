@@ -21,15 +21,13 @@ defmodule Harbor.Web.CheckoutLive.ReceiptTest do
 
     {:ok, view, _html} = live(conn, "/checkout/#{session.id}/receipt")
 
-    assert has_element?(view, "#checkout-receipt")
+    assert has_element?(view, "main > #checkout-receipt")
     assert has_element?(view, "#receipt-order-number", order.number)
     assert has_element?(view, "#receipt-order-status")
     assert has_element?(view, "#receipt-delivery-method")
     assert has_element?(view, "#receipt-total")
     assert has_element?(view, "#receipt-summary-tax")
     assert has_element?(view, "#receipt-summary-shipping")
-    assert has_element?(view, "#checkout-summary-tax")
-    assert has_element?(view, "#checkout-summary-shipping")
 
     [item | _] = order.items
     assert has_element?(view, "#receipt-item-#{item.id}")
@@ -60,8 +58,6 @@ defmodule Harbor.Web.CheckoutLive.ReceiptTest do
     refute has_element?(view, "#receipt-delivery-method")
     refute has_element?(view, "#receipt-summary-tax")
     refute has_element?(view, "#receipt-summary-shipping")
-    refute has_element?(view, "#checkout-summary-tax")
-    refute has_element?(view, "#checkout-summary-shipping")
   end
 
   test "renders the receipt for the owning guest session token", %{conn: conn} do

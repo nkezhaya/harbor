@@ -210,6 +210,23 @@ defmodule Harbor.Web.Layouts do
   end
 
   @doc """
+  Renders a receipt layout without storefront or checkout form chrome.
+  """
+  attr :flash, :map, required: true, doc: "the map of flash messages"
+  attr :class, :string, default: nil
+  slot :inner_block, required: true
+
+  def receipt(assigns) do
+    ~H"""
+    <main class={["min-h-full bg-white", @class]}>
+      {render_slot(@inner_block)}
+    </main>
+
+    <.flash_group flash={@flash} />
+    """
+  end
+
+  @doc """
   Shows the flash group with standard titles and content.
 
   ## Examples
