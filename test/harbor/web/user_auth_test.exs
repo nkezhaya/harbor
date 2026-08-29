@@ -63,6 +63,20 @@ defmodule Harbor.Web.UserAuthTest do
       assert redirected_to(conn) == "/hello"
     end
 
+    test "clears the return-to path from the session after logging in", %{
+      conn: conn,
+      user: user
+    } do
+      conn =
+        conn
+        |> assign(:current_scope, Scope.for_user(user))
+        |> put_session(:user_return_to, "/hello")
+        |> UserAuth.log_in_user(user)
+
+      assert redirected_to(conn) == "/hello"
+      refute get_session(conn, :user_return_to)
+    end
+
     test "writes a cookie if remember_me is configured", %{conn: conn, user: user} do
       conn = conn |> fetch_cookies() |> UserAuth.log_in_user(user, %{"remember_me" => "true"})
       assert get_session(conn, :user_token) == get_cookie(conn, @remember_me_cookie)
