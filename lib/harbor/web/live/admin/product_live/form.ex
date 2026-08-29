@@ -191,7 +191,7 @@ defmodule Harbor.Web.Admin.ProductLive.Form do
         <%= case @media_upload.status do %>
           <% :pending -> %>
             <div class="aspect-square shrink-0 rounded flex">
-              <span class="inline-block size-8 border-[3px] border-gray-200 border-b-indigo-600 rounded-full box-border animate-spin">
+              <span class="inline-block size-8 border-3 border-gray-200 border-b-indigo-600 rounded-full box-border animate-spin">
                 <span class="sr-only">Loading...</span>
               </span>
             </div>
