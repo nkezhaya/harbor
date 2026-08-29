@@ -6,7 +6,7 @@ defmodule Harbor.Web.CheckoutLive.ReceiptTest do
   import Phoenix.LiveViewTest
 
   alias Harbor.Accounts.Scope
-  alias Harbor.{Checkout, Repo}
+  alias Harbor.{Checkout, Repo, Settings}
   alias Harbor.Checkout.Session
   alias Harbor.Orders.Order
 
@@ -26,10 +26,42 @@ defmodule Harbor.Web.CheckoutLive.ReceiptTest do
     assert has_element?(view, "#receipt-order-status")
     assert has_element?(view, "#receipt-delivery-method")
     assert has_element?(view, "#receipt-total")
+    assert has_element?(view, "#receipt-summary-tax")
+    assert has_element?(view, "#receipt-summary-shipping")
+    assert has_element?(view, "#checkout-summary-tax")
+    assert has_element?(view, "#checkout-summary-shipping")
 
     [item | _] = order.items
     assert has_element?(view, "#receipt-item-#{item.id}")
     assert has_element?(view, "#receipt-shipping-address")
+  end
+
+  test "hides disabled capabilities while preserving the shipping address", %{conn: conn} do
+    Settings.update(%{
+      address_enabled: true,
+      delivery_enabled: false,
+      payments_enabled: false,
+      tax_enabled: false
+    })
+
+    scope = guest_scope_fixture(customer: false)
+    cart = cart_fixture(scope)
+    customer = customer_fixture(scope)
+    checkout_scope = Scope.attach_customer(scope, customer)
+    {session, _order} = completed_checkout(checkout_scope, cart)
+    conn = init_test_session(conn, %{"guest_session_token" => scope.session_token})
+
+    {:ok, view, _html} = live(conn, "/checkout/#{session.id}/receipt")
+
+    assert has_element?(view, "#checkout-receipt")
+    assert has_element?(view, "#receipt-order-status")
+    assert has_element?(view, "#receipt-total")
+    assert has_element?(view, "#receipt-shipping-address")
+    refute has_element?(view, "#receipt-delivery-method")
+    refute has_element?(view, "#receipt-summary-tax")
+    refute has_element?(view, "#receipt-summary-shipping")
+    refute has_element?(view, "#checkout-summary-tax")
+    refute has_element?(view, "#checkout-summary-shipping")
   end
 
   test "renders the receipt for the owning guest session token", %{conn: conn} do

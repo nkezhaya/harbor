@@ -5,7 +5,7 @@ defmodule Harbor.Web.CheckoutLive.Receipt do
   use Harbor.Web, :live_view
 
   alias Harbor.Catalog.Variant
-  alias Harbor.Checkout
+  alias Harbor.{Checkout, Settings}
 
   @impl true
   def render(assigns) do
@@ -55,7 +55,7 @@ defmodule Harbor.Web.CheckoutLive.Receipt do
                       {humanize(@order.status)}
                     </dd>
                   </div>
-                  <div class="rounded-lg bg-white p-4">
+                  <div :if={@settings.delivery_enabled} class="rounded-lg bg-white p-4">
                     <dt class="text-xs font-medium text-gray-500">Delivery</dt>
                     <dd
                       id="receipt-delivery-method"
@@ -134,13 +134,21 @@ defmodule Harbor.Web.CheckoutLive.Receipt do
                         {@pricing.subtotal}
                       </dd>
                     </div>
-                    <div class="flex items-center justify-between">
+                    <div
+                      :if={@settings.tax_enabled}
+                      id="receipt-summary-tax"
+                      class="flex items-center justify-between"
+                    >
                       <dt class="text-gray-600">Taxes</dt>
                       <dd class="font-medium text-gray-900">
                         {@pricing.tax || Money.zero(:USD)}
                       </dd>
                     </div>
-                    <div class="flex items-center justify-between">
+                    <div
+                      :if={@settings.delivery_enabled}
+                      id="receipt-summary-shipping"
+                      class="flex items-center justify-between"
+                    >
                       <dt class="text-gray-600">Shipping</dt>
                       <dd class="font-medium text-gray-900">
                         {@pricing.shipping_price}
@@ -157,7 +165,12 @@ defmodule Harbor.Web.CheckoutLive.Receipt do
               </div>
             </section>
 
-            <CheckoutComponents.order_summary order={@order} pricing={@pricing} />
+            <CheckoutComponents.order_summary
+              order={@order}
+              pricing={@pricing}
+              tax_enabled={@settings.tax_enabled}
+              delivery_enabled={@settings.delivery_enabled}
+            />
           </div>
         </div>
       </div>
@@ -176,6 +189,7 @@ defmodule Harbor.Web.CheckoutLive.Receipt do
          |> assign(:session, session)
          |> assign(:order, session.order)
          |> assign(:pricing, pricing)
+         |> assign(:settings, Settings.get())
          |> assign(:current_scope, current_scope)}
 
       _error ->
