@@ -9,6 +9,8 @@ defmodule Harbor.Settings do
 
   use Harbor.Schema
 
+  import Harbor.Authorization
+
   alias Harbor.{Cache, Repo}
 
   @type t() :: %__MODULE__{}
@@ -27,14 +29,13 @@ defmodule Harbor.Settings do
   end
 
   @doc """
-  Returns the cached `%Settings{}`. Falls back to the database on cache miss,
-  and returns a default struct when no row exists yet.
+  Returns the cached `%Settings{}` and falls back to the database on cache miss.
   """
   @spec get() :: t()
   def get do
     case Cache.get(:settings) do
       nil ->
-        settings = Repo.get(__MODULE__, true) || %__MODULE__{id: true}
+        settings = Repo.get!(__MODULE__, true)
         Cache.put(:settings, settings)
         settings
 
@@ -46,16 +47,15 @@ defmodule Harbor.Settings do
   @doc """
   Upserts the singleton settings row and invalidates the cache.
   """
-  @spec update(map()) :: {:ok, t()} | {:error, Ecto.Changeset.t()}
-  def update(attrs) do
+  @spec update(Scope.t(), map()) :: {:ok, t()} | {:error, Ecto.Changeset.t()}
+  def update(%Scope{} = scope, attrs) do
+    ensure_admin!(scope)
+
     result =
-      %__MODULE__{id: true}
+      __MODULE__
+      |> Repo.get!(true)
       |> changeset(attrs)
-      |> Repo.insert(
-        on_conflict: {:replace, fields()},
-        conflict_target: [:id],
-        returning: true
-      )
+      |> Repo.update()
 
     case result do
       {:ok, settings} ->

@@ -73,7 +73,7 @@ defmodule Harbor.Checkout.PricingTest do
     end
 
     test "includes shipping price from delivery method" do
-      Settings.update(%{delivery_enabled: true})
+      Settings.update(Scope.for_system(), %{delivery_enabled: true})
 
       variant = variant_fixture()
       delivery_method = delivery_method_fixture(%{price: Money.new(:USD, "5.99")})
@@ -85,7 +85,7 @@ defmodule Harbor.Checkout.PricingTest do
     end
 
     test "shipping is zero when delivery is disabled" do
-      Settings.update(%{delivery_enabled: false})
+      Settings.update(Scope.for_system(), %{delivery_enabled: false})
 
       variant = variant_fixture()
       delivery_method = delivery_method_fixture(%{price: Money.new(:USD, "5.99")})
@@ -121,7 +121,7 @@ defmodule Harbor.Checkout.PricingTest do
     end
 
     test "total sums subtotal, shipping, and tax" do
-      Settings.update(%{delivery_enabled: true})
+      Settings.update(Scope.for_system(), %{delivery_enabled: true})
 
       variant =
         variant_fixture(%{

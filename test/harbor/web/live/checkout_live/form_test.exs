@@ -25,7 +25,7 @@ defmodule Harbor.Web.CheckoutLive.FormTest do
     end
 
     test "renders review without disabled checkout capabilities", %{conn: conn} do
-      Settings.update(%{
+      Settings.update(Scope.for_system(), %{
         address_enabled: true,
         delivery_enabled: false,
         payments_enabled: false,

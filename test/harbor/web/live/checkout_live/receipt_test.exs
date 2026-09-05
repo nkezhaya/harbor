@@ -35,7 +35,7 @@ defmodule Harbor.Web.CheckoutLive.ReceiptTest do
   end
 
   test "hides disabled capabilities while preserving the shipping address", %{conn: conn} do
-    Settings.update(%{
+    Settings.update(Scope.for_system(), %{
       address_enabled: true,
       delivery_enabled: false,
       payments_enabled: false,

@@ -9,7 +9,7 @@ defmodule Harbor.Checkout.StepsTest do
 
   describe "checkout_steps/3 with delivery disabled" do
     setup do
-      Settings.update(%{delivery_enabled: false})
+      Settings.update(Scope.for_system(), %{delivery_enabled: false})
       :ok
     end
 
@@ -38,7 +38,7 @@ defmodule Harbor.Checkout.StepsTest do
 
   describe "checkout_steps/3 with address collection disabled" do
     setup do
-      Settings.update(%{address_enabled: false})
+      Settings.update(Scope.for_system(), %{address_enabled: false})
       :ok
     end
 
@@ -56,7 +56,7 @@ defmodule Harbor.Checkout.StepsTest do
 
   describe "checkout_steps/3 with payments disabled" do
     setup do
-      Settings.update(%{payments_enabled: false})
+      Settings.update(Scope.for_system(), %{payments_enabled: false})
       :ok
     end
 
@@ -119,7 +119,7 @@ defmodule Harbor.Checkout.StepsTest do
     end
 
     test "supports address collection without delivery or payment" do
-      Settings.update(%{
+      Settings.update(Scope.for_system(), %{
         address_enabled: true,
         delivery_enabled: false,
         payments_enabled: false

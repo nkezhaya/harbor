@@ -463,7 +463,7 @@ defmodule Harbor.CheckoutTest do
     end
 
     test "rejects delivery selection when delivery is disabled" do
-      assert {:ok, _settings} = Harbor.Settings.update(%{delivery_enabled: false})
+      Settings.update(Scope.for_system(), %{delivery_enabled: false})
 
       user = user_fixture()
       scope = Scope.for_user(user)
@@ -778,7 +778,7 @@ defmodule Harbor.CheckoutTest do
 
   describe "submit_checkout/2" do
     test "requires a shipping address for physical products when address collection is enabled" do
-      Settings.update(%{
+      Settings.update(Scope.for_system(), %{
         address_enabled: true,
         delivery_enabled: false,
         payments_enabled: false,
@@ -798,7 +798,7 @@ defmodule Harbor.CheckoutTest do
     end
 
     test "submits a physical order without delivery, payment, or tax integrations" do
-      Settings.update(%{
+      Settings.update(Scope.for_system(), %{
         address_enabled: true,
         delivery_enabled: false,
         payments_enabled: false,
@@ -852,7 +852,7 @@ defmodule Harbor.CheckoutTest do
     end
 
     test "does not require a shipping address for nonphysical products" do
-      Settings.update(%{
+      Settings.update(Scope.for_system(), %{
         address_enabled: true,
         delivery_enabled: false,
         payments_enabled: false,
