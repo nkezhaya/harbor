@@ -9,8 +9,9 @@ defmodule Harbor.Notifier do
       config :harbor, :notifier, MyApp.HarborNotifier
 
   The notifier is called asynchronously via an Oban worker, so it will never
-  block the originating request. Each callback receives a fully preloaded
-  struct.
+  block the originating request. Each callback receives an event containing
+  record identifiers, allowing the host to load exactly the associations its
+  notification needs.
 
   When no notifier is configured, notifications are silently skipped.
   """
@@ -21,8 +22,10 @@ defmodule Harbor.Notifier do
 
   @doc """
   Called when an order is confirmed (transitions to `:pending` at checkout).
+
+  The host is responsible for loading the order and any required associations.
   """
-  @callback order_confirmed(order :: Order.t()) :: :ok | {:error, term()}
+  @callback order_confirmed(event :: %{order_id: Ecto.UUID.t()}) :: :ok | {:error, term()}
 
   @doc """
   Enqueues an `order_confirmed` notification for the given order.

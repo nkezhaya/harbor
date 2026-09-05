@@ -11,12 +11,12 @@ defmodule Harbor.Notifier.WorkerTest do
   setup :verify_on_exit!
 
   describe "perform/1" do
-    test "calls order_confirmed on the configured notifier" do
+    test "calls order_confirmed with the order ID" do
       scope = user_scope_fixture()
       order = order_fixture(scope)
 
-      expect(Harbor.NotifierMock, :order_confirmed, fn notified_order ->
-        assert notified_order.id == order.id
+      expect(Harbor.NotifierMock, :order_confirmed, fn %{order_id: order_id} ->
+        assert order_id == order.id
         :ok
       end)
 
