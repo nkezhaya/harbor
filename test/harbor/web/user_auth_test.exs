@@ -305,7 +305,7 @@ defmodule Harbor.Web.UserAuthTest do
   end
 
   describe "on_mount :require_sudo_mode" do
-    test "allows users that have authenticated in the last 10 minutes", %{conn: conn, user: user} do
+    test "allows users that have authenticated in the last 15 minutes", %{conn: conn, user: user} do
       user_token = Auth.generate_user_session_token(user)
       session = conn |> put_session(:user_token, user_token) |> get_session()
 
@@ -319,8 +319,8 @@ defmodule Harbor.Web.UserAuthTest do
     end
 
     test "redirects when authentication is too old", %{conn: conn, user: user} do
-      eleven_minutes_ago = DateTime.utc_now() |> DateTime.add(-11, :minute)
-      user = %{user | authenticated_at: eleven_minutes_ago}
+      sixteen_minutes_ago = DateTime.utc_now() |> DateTime.add(-16, :minute)
+      user = %{user | authenticated_at: sixteen_minutes_ago}
       user_token = Auth.generate_user_session_token(user)
       {user, token_inserted_at} = Auth.get_user_by_session_token(user_token)
       assert DateTime.compare(token_inserted_at, user.authenticated_at) == :gt

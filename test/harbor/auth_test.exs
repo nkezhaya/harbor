@@ -200,21 +200,13 @@ defmodule Harbor.AuthTest do
     end
   end
 
-  describe "sudo_mode?/2" do
+  describe "sudo_mode?/1" do
     test "validates the authenticated_at time" do
       now = DateTime.utc_now()
 
       assert Auth.sudo_mode?(%User{authenticated_at: DateTime.utc_now()})
-      assert Auth.sudo_mode?(%User{authenticated_at: DateTime.add(now, -19, :minute)})
-      refute Auth.sudo_mode?(%User{authenticated_at: DateTime.add(now, -21, :minute)})
-
-      # minute override
-      refute Auth.sudo_mode?(
-               %User{authenticated_at: DateTime.add(now, -11, :minute)},
-               -10
-             )
-
-      # not authenticated
+      assert Auth.sudo_mode?(%User{authenticated_at: DateTime.add(now, -14, :minute)})
+      refute Auth.sudo_mode?(%User{authenticated_at: DateTime.add(now, -16, :minute)})
       refute Auth.sudo_mode?(%User{})
     end
   end

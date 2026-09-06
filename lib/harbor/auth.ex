@@ -6,7 +6,7 @@ defmodule Harbor.Auth do
 
   alias Harbor.Accounts.{Scope, User}
   alias Harbor.Auth.{UserNotifier, UserToken}
-  alias Harbor.{Customers, Repo}
+  alias Harbor.{Config, Customers, Repo}
 
   def generate_user_session_token(%User{} = user) do
     {token, user_token} = UserToken.build_session_token(user)
@@ -103,18 +103,21 @@ defmodule Harbor.Auth do
   @doc """
   Checks whether the user is in sudo mode.
 
-  The user is in sudo mode when the last authentication was done no further
-  than 20 minutes ago. The limit can be given as second argument in minutes.
+  The user is in sudo mode when their last authentication falls within the
+  configured window. When sudo mode is disabled, any authenticated user is in
+  sudo mode.
   """
-  def sudo_mode?(user, minutes \\ -20)
-
-  def sudo_mode?(%User{authenticated_at: %DateTime{} = ts}, minutes) do
-    DateTime.after?(ts, DateTime.add(DateTime.utc_now(), minutes, :minute))
+  def sudo_mode?(user) do
+    sudo_mode?(user, Config.sudo_mode())
   end
 
-  def sudo_mode?(_user, _minutes) do
-    false
+  defp sudo_mode?(%User{}, false), do: true
+
+  defp sudo_mode?(%User{authenticated_at: %DateTime{} = authenticated_at}, minutes: minutes) do
+    DateTime.after?(authenticated_at, DateTime.add(DateTime.utc_now(), -minutes, :minute))
   end
+
+  defp sudo_mode?(_user, _config), do: false
 
   @doc """
   Returns an `%Ecto.Changeset{}` for changing the user email.

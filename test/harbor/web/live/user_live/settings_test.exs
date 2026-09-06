@@ -29,7 +29,7 @@ defmodule Harbor.Web.UserLive.SettingsTest do
       {:ok, conn} =
         conn
         |> log_in_user(user_fixture(),
-          token_authenticated_at: DateTime.add(DateTime.utc_now(), -11, :minute)
+          token_authenticated_at: DateTime.add(DateTime.utc_now(), -16, :minute)
         )
         |> live("/users/settings")
         |> follow_redirect(conn, "/users/log-in")

@@ -129,6 +129,28 @@ defmodule Harbor.Web.UserSessionControllerTest do
     end
   end
 
+  describe "POST /users/update-password" do
+    test "redirects when the user is not in sudo mode", %{conn: conn, user: user} do
+      password = valid_user_password()
+
+      conn =
+        conn
+        |> log_in_user(user,
+          token_authenticated_at: DateTime.add(DateTime.utc_now(), -16, :minute)
+        )
+        |> post("/users/update-password", %{
+          "user" => %{"password" => password, "password_confirmation" => password}
+        })
+
+      assert redirected_to(conn) == "/users/log-in"
+
+      assert Phoenix.Flash.get(conn.assigns.flash, :error) ==
+               "You must re-authenticate to access this page."
+
+      refute Accounts.get_user_by_email_and_password(user.email, password)
+    end
+  end
+
   describe "DELETE /users/log-out" do
     test "logs the user out", %{conn: conn, user: user} do
       conn = conn |> log_in_user(user) |> delete("/users/log-out")

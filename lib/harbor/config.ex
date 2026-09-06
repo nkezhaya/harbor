@@ -34,6 +34,16 @@ defmodule Harbor.Config do
     Application.get_env(:harbor, :notifier)
   end
 
+  @doc """
+  Returns the sudo mode configuration.
+
+  Sudo mode requires users to have authenticated within the configured number
+  of minutes. Set it to `false` to disable recent reauthentication checks.
+  """
+  def sudo_mode do
+    Application.get_env(:harbor, :sudo_mode, minutes: 15)
+  end
+
   @required_keys [:repo, :oban, :mailer, :s3_bucket, :cdn_url]
 
   def validate! do
@@ -54,6 +64,19 @@ defmodule Harbor.Config do
           config :harbor, :s3_bucket, "my-bucket"
           config :harbor, :cdn_url, "https://my-distribution.cloudfront.net"
       """
+    end
+
+    case sudo_mode() do
+      false ->
+        :ok
+
+      [minutes: minutes] when is_integer(minutes) and minutes > 0 ->
+        :ok
+
+      config ->
+        raise ArgumentError,
+              "expected :harbor, :sudo_mode to be false or [minutes: positive_integer], " <>
+                "got: #{inspect(config)}"
     end
 
     :ok

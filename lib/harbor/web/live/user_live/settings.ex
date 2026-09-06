@@ -134,21 +134,24 @@ defmodule Harbor.Web.UserLive.Settings do
   def handle_event("update_email", params, socket) do
     %{"user" => user_params} = params
     user = socket.assigns.current_scope.user
-    true = Auth.sudo_mode?(user)
 
-    case Auth.change_user_email(user, user_params) do
-      %{valid?: true} = changeset ->
-        Auth.deliver_user_update_email_instructions(
-          Ecto.Changeset.apply_action!(changeset, :insert),
-          user.email,
-          &url(socket, "/users/settings/confirm-email/#{&1}")
-        )
+    if Auth.sudo_mode?(user) do
+      case Auth.change_user_email(user, user_params) do
+        %{valid?: true} = changeset ->
+          Auth.deliver_user_update_email_instructions(
+            Ecto.Changeset.apply_action!(changeset, :insert),
+            user.email,
+            &url(socket, "/users/settings/confirm-email/#{&1}")
+          )
 
-        info = "A link to confirm your email change has been sent to the new address."
-        {:noreply, socket |> put_flash(:info, info)}
+          info = "A link to confirm your email change has been sent to the new address."
+          {:noreply, socket |> put_flash(:info, info)}
 
-      changeset ->
-        {:noreply, assign(socket, :email_form, to_form(changeset, action: :insert))}
+        changeset ->
+          {:noreply, assign(socket, :email_form, to_form(changeset, action: :insert))}
+      end
+    else
+      {:noreply, redirect_to_reauthentication(socket)}
     end
   end
 
@@ -167,14 +170,23 @@ defmodule Harbor.Web.UserLive.Settings do
   def handle_event("update_password", params, socket) do
     %{"user" => user_params} = params
     user = socket.assigns.current_scope.user
-    true = Auth.sudo_mode?(user)
 
-    case Auth.change_user_password(user, user_params) do
-      %{valid?: true} = changeset ->
-        {:noreply, assign(socket, trigger_submit: true, password_form: to_form(changeset))}
+    if Auth.sudo_mode?(user) do
+      case Auth.change_user_password(user, user_params) do
+        %{valid?: true} = changeset ->
+          {:noreply, assign(socket, trigger_submit: true, password_form: to_form(changeset))}
 
-      changeset ->
-        {:noreply, assign(socket, password_form: to_form(changeset, action: :insert))}
+        changeset ->
+          {:noreply, assign(socket, password_form: to_form(changeset, action: :insert))}
+      end
+    else
+      {:noreply, redirect_to_reauthentication(socket)}
     end
+  end
+
+  defp redirect_to_reauthentication(socket) do
+    socket
+    |> put_flash(:error, "You must re-authenticate to access this page.")
+    |> redirect(to: "/users/log-in")
   end
 end
