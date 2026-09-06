@@ -21,7 +21,7 @@ defmodule Harbor.Constraints.CatalogTest do
           })
           |> TestRepo.update!()
 
-          TestRepo.query!("SET CONSTRAINTS product_options_variant_shape_check IMMEDIATE")
+          TestRepo.query!("SET CONSTRAINTS product_variant_shape_validation_check IMMEDIATE")
         end)
       end
 
@@ -38,7 +38,7 @@ defmodule Harbor.Constraints.CatalogTest do
           |> Product.changeset(%{status: :active})
           |> TestRepo.update!()
 
-          TestRepo.query!("SET CONSTRAINTS products_variant_shape_check IMMEDIATE")
+          TestRepo.query!("SET CONSTRAINTS product_variant_shape_validation_check IMMEDIATE")
         end)
       end
 
@@ -59,9 +59,7 @@ defmodule Harbor.Constraints.CatalogTest do
           |> Product.changeset(%{status: :active})
           |> TestRepo.update!()
 
-          TestRepo.query!(
-            "SET CONSTRAINTS variants_variant_shape_check, products_variant_shape_check IMMEDIATE"
-          )
+          TestRepo.query!("SET CONSTRAINTS product_variant_shape_validation_check IMMEDIATE")
         end)
       end
 

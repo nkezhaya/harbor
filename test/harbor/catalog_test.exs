@@ -694,11 +694,7 @@ defmodule Harbor.CatalogTest do
         ]
       }
 
-      Harbor.TestRepo.query!("""
-      SET CONSTRAINTS variants_option_values_variant_shape_check,
-                      variants_variant_shape_check,
-                      products_variant_shape_check IMMEDIATE
-      """)
+      Harbor.TestRepo.query!("SET CONSTRAINTS product_variant_shape_validation_check IMMEDIATE")
 
       assert {:error, changeset} = Catalog.update_product_variants(product, attrs)
 

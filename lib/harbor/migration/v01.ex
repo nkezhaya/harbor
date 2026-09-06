@@ -456,6 +456,10 @@ defmodule Harbor.Migration.V01 do
 
     ## Variant shape validation
 
+    create table(:product_variant_shape_validation_queue, primary_key: false) do
+      add :product_id, :binary_id, primary_key: true
+    end
+
     execute """
     CREATE OR REPLACE FUNCTION validate_product_variant_option_shape_for_product(p_product_id uuid)
     RETURNS void
@@ -641,76 +645,93 @@ defmodule Harbor.Migration.V01 do
     """
 
     execute """
-    CREATE OR REPLACE FUNCTION validate_product_variant_option_shape()
+    CREATE OR REPLACE FUNCTION enqueue_product_variant_option_shape_validation()
     RETURNS trigger
     LANGUAGE plpgsql
     AS $$
     DECLARE
-      target_product_id uuid;
-      target_variant_id uuid;
-      target_product_option_id uuid;
+      target_product_ids uuid[];
     BEGIN
       IF TG_TABLE_NAME = 'products' THEN
-        target_product_id := COALESCE(NEW.id, OLD.id);
+        target_product_ids := ARRAY[NEW.id, OLD.id];
       ELSIF TG_TABLE_NAME = 'variants' THEN
-        target_product_id := COALESCE(NEW.product_id, OLD.product_id);
+        target_product_ids := ARRAY[NEW.product_id, OLD.product_id];
       ELSIF TG_TABLE_NAME = 'variants_option_values' THEN
-        target_variant_id := COALESCE(NEW.variant_id, OLD.variant_id);
-
-        SELECT v.product_id
-        INTO target_product_id
+        SELECT array_agg(DISTINCT v.product_id)
+        INTO target_product_ids
         FROM variants v
-        WHERE v.id = target_variant_id;
+        WHERE v.id = ANY (ARRAY[NEW.variant_id, OLD.variant_id]);
       ELSIF TG_TABLE_NAME = 'product_option_values' THEN
-        target_product_option_id := COALESCE(NEW.product_option_id, OLD.product_option_id);
-
-        SELECT po.product_id
-        INTO target_product_id
+        SELECT array_agg(DISTINCT po.product_id)
+        INTO target_product_ids
         FROM product_options po
-        WHERE po.id = target_product_option_id;
+        WHERE po.id = ANY (ARRAY[NEW.product_option_id, OLD.product_option_id]);
       ELSE
-        target_product_id := COALESCE(NEW.product_id, OLD.product_id);
+        target_product_ids := ARRAY[NEW.product_id, OLD.product_id];
       END IF;
 
-      PERFORM validate_product_variant_option_shape_for_product(target_product_id);
+      INSERT INTO product_variant_shape_validation_queue (product_id)
+      SELECT DISTINCT target.product_id
+      FROM unnest(target_product_ids) AS target(product_id)
+      WHERE target.product_id IS NOT NULL
+      ON CONFLICT (product_id) DO NOTHING;
+
       RETURN NULL;
     END;
     $$
     """
 
     execute """
-    CREATE CONSTRAINT TRIGGER product_options_variant_shape_check
+    CREATE OR REPLACE FUNCTION validate_queued_product_variant_option_shape()
+    RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+    BEGIN
+      PERFORM validate_product_variant_option_shape_for_product(NEW.product_id);
+
+      DELETE FROM product_variant_shape_validation_queue
+      WHERE product_id = NEW.product_id;
+
+      RETURN NULL;
+    END;
+    $$
+    """
+
+    execute """
+    CREATE CONSTRAINT TRIGGER product_variant_shape_validation_check
+    AFTER INSERT ON product_variant_shape_validation_queue
+    DEFERRABLE INITIALLY DEFERRED
+    FOR EACH ROW EXECUTE FUNCTION validate_queued_product_variant_option_shape()
+    """
+
+    execute """
+    CREATE TRIGGER product_options_variant_shape_enqueue
     AFTER INSERT OR UPDATE OF product_id OR DELETE ON product_options
-    DEFERRABLE INITIALLY DEFERRED
-    FOR EACH ROW EXECUTE FUNCTION validate_product_variant_option_shape()
+    FOR EACH ROW EXECUTE FUNCTION enqueue_product_variant_option_shape_validation()
     """
 
     execute """
-    CREATE CONSTRAINT TRIGGER product_option_values_variant_shape_check
+    CREATE TRIGGER product_option_values_variant_shape_enqueue
     AFTER INSERT OR UPDATE OF product_option_id OR DELETE ON product_option_values
-    DEFERRABLE INITIALLY DEFERRED
-    FOR EACH ROW EXECUTE FUNCTION validate_product_variant_option_shape()
+    FOR EACH ROW EXECUTE FUNCTION enqueue_product_variant_option_shape_validation()
     """
 
     execute """
-    CREATE CONSTRAINT TRIGGER variants_option_values_variant_shape_check
+    CREATE TRIGGER variants_option_values_variant_shape_enqueue
     AFTER INSERT OR UPDATE OF variant_id, product_option_id, product_option_value_id OR DELETE ON variants_option_values
-    DEFERRABLE INITIALLY DEFERRED
-    FOR EACH ROW EXECUTE FUNCTION validate_product_variant_option_shape()
+    FOR EACH ROW EXECUTE FUNCTION enqueue_product_variant_option_shape_validation()
     """
 
     execute """
-    CREATE CONSTRAINT TRIGGER variants_variant_shape_check
+    CREATE TRIGGER variants_variant_shape_enqueue
     AFTER INSERT OR UPDATE OF product_id, enabled, master OR DELETE ON variants
-    DEFERRABLE INITIALLY DEFERRED
-    FOR EACH ROW EXECUTE FUNCTION validate_product_variant_option_shape()
+    FOR EACH ROW EXECUTE FUNCTION enqueue_product_variant_option_shape_validation()
     """
 
     execute """
-    CREATE CONSTRAINT TRIGGER products_variant_shape_check
+    CREATE TRIGGER products_variant_shape_enqueue
     AFTER INSERT OR UPDATE OF status ON products
-    DEFERRABLE INITIALLY DEFERRED
-    FOR EACH ROW EXECUTE FUNCTION validate_product_variant_option_shape()
+    FOR EACH ROW EXECUTE FUNCTION enqueue_product_variant_option_shape_validation()
     """
 
     ## Product Images
@@ -1179,19 +1200,26 @@ defmodule Harbor.Migration.V01 do
     execute "DROP TRIGGER IF EXISTS harbor_settings_changed ON settings"
     drop_if_exists table(:settings)
 
-    execute "DROP TRIGGER IF EXISTS products_variant_shape_check ON products"
+    execute "DROP TRIGGER IF EXISTS products_variant_shape_enqueue ON products"
 
-    execute "DROP TRIGGER IF EXISTS variants_variant_shape_check ON variants"
+    execute "DROP TRIGGER IF EXISTS variants_variant_shape_enqueue ON variants"
 
-    execute "DROP TRIGGER IF EXISTS variants_option_values_variant_shape_check ON variants_option_values"
+    execute "DROP TRIGGER IF EXISTS variants_option_values_variant_shape_enqueue ON variants_option_values"
 
-    execute "DROP TRIGGER IF EXISTS product_option_values_variant_shape_check ON product_option_values"
+    execute "DROP TRIGGER IF EXISTS product_option_values_variant_shape_enqueue ON product_option_values"
 
-    execute "DROP TRIGGER IF EXISTS product_options_variant_shape_check ON product_options"
+    execute "DROP TRIGGER IF EXISTS product_options_variant_shape_enqueue ON product_options"
 
-    execute "DROP FUNCTION IF EXISTS validate_product_variant_option_shape()"
+    execute """
+    DROP TRIGGER IF EXISTS product_variant_shape_validation_check
+    ON product_variant_shape_validation_queue
+    """
+
+    execute "DROP FUNCTION IF EXISTS validate_queued_product_variant_option_shape()"
+    execute "DROP FUNCTION IF EXISTS enqueue_product_variant_option_shape_validation()"
     execute "DROP FUNCTION IF EXISTS validate_product_variant_option_shape_for_product(uuid)"
 
+    drop_if_exists table(:product_variant_shape_validation_queue)
     drop_if_exists table(:product_images)
     drop_if_exists table(:variant_property_values)
     drop_if_exists table(:product_property_values)
