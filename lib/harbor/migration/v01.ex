@@ -561,10 +561,10 @@ defmodule Harbor.Migration.V01 do
         WHERE v.product_id = p_product_id
           AND NOT v.master
           AND (
-            (SELECT COUNT(*) FROM variants_option_values vov WHERE vov.variant_id = v.id) = 0
-            OR
-            (SELECT COUNT(*) FROM variants_option_values vov WHERE vov.variant_id = v.id) != product_option_count
-          )
+            SELECT COUNT(*)
+            FROM variants_option_values vov
+            WHERE vov.variant_id = v.id
+          ) != product_option_count
         LIMIT 1;
 
         IF invalid_variant_id IS NOT NULL THEN
