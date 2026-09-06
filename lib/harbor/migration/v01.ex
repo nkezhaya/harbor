@@ -680,35 +680,35 @@ defmodule Harbor.Migration.V01 do
 
     execute """
     CREATE CONSTRAINT TRIGGER product_options_variant_shape_check
-    AFTER INSERT OR UPDATE OR DELETE ON product_options
+    AFTER INSERT OR UPDATE OF product_id OR DELETE ON product_options
     DEFERRABLE INITIALLY DEFERRED
     FOR EACH ROW EXECUTE FUNCTION validate_product_variant_option_shape()
     """
 
     execute """
     CREATE CONSTRAINT TRIGGER product_option_values_variant_shape_check
-    AFTER INSERT OR UPDATE OR DELETE ON product_option_values
+    AFTER INSERT OR UPDATE OF product_option_id OR DELETE ON product_option_values
     DEFERRABLE INITIALLY DEFERRED
     FOR EACH ROW EXECUTE FUNCTION validate_product_variant_option_shape()
     """
 
     execute """
     CREATE CONSTRAINT TRIGGER variants_option_values_variant_shape_check
-    AFTER INSERT OR UPDATE OR DELETE ON variants_option_values
+    AFTER INSERT OR UPDATE OF variant_id, product_option_id, product_option_value_id OR DELETE ON variants_option_values
     DEFERRABLE INITIALLY DEFERRED
     FOR EACH ROW EXECUTE FUNCTION validate_product_variant_option_shape()
     """
 
     execute """
     CREATE CONSTRAINT TRIGGER variants_variant_shape_check
-    AFTER INSERT OR UPDATE OR DELETE ON variants
+    AFTER INSERT OR UPDATE OF product_id, enabled, master OR DELETE ON variants
     DEFERRABLE INITIALLY DEFERRED
     FOR EACH ROW EXECUTE FUNCTION validate_product_variant_option_shape()
     """
 
     execute """
     CREATE CONSTRAINT TRIGGER products_variant_shape_check
-    AFTER INSERT OR UPDATE ON products
+    AFTER INSERT OR UPDATE OF status ON products
     DEFERRABLE INITIALLY DEFERRED
     FOR EACH ROW EXECUTE FUNCTION validate_product_variant_option_shape()
     """
