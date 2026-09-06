@@ -19,7 +19,7 @@ defmodule Harbor.Web.UserSessionController do
   defp create(conn, %{"user" => %{"token" => token} = user_params}, info) do
     case Auth.login_user_by_magic_link(token) do
       {:ok, {user, tokens_to_disconnect}} ->
-        UserAuth.disconnect_sessions(tokens_to_disconnect)
+        UserAuth.disconnect_sessions(conn, tokens_to_disconnect)
 
         conn
         |> put_flash(:info, info)
@@ -56,7 +56,7 @@ defmodule Harbor.Web.UserSessionController do
       {:ok, {_user, expired_tokens}} = Auth.update_user_password(user, user_params)
 
       # disconnect all existing LiveViews with old sessions
-      UserAuth.disconnect_sessions(expired_tokens)
+      UserAuth.disconnect_sessions(conn, expired_tokens)
 
       conn
       |> put_session(:user_return_to, "/users/settings")

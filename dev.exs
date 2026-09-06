@@ -80,7 +80,7 @@ Application.put_env(:harbor, DemoWeb.Endpoint,
   debug_errors: true,
   secret_key_base: "jzAqJQFmbK1nWbK2SfbYVrt8/0P9i7Jzq0kD6p3M5i1R3G3k2l9mO4qvQZpYd8G1",
   live_view: [signing_salt: "3m3P4Cq5"],
-  pubsub_server: Harbor.PubSub,
+  pubsub_server: DemoWeb.PubSub,
   render_errors: [
     formats: [html: Harbor.Web.ErrorHTML, json: Harbor.Web.ErrorJSON],
     layout: false
@@ -188,6 +188,7 @@ Application.ensure_all_started(:harbor)
 
 spawn(fn ->
   children = [
+    {Phoenix.PubSub, name: DemoWeb.PubSub},
     Harbor.Web.Telemetry,
     Harbor.DevRepo,
     Harbor.DevOban,

@@ -11,10 +11,7 @@ defmodule Harbor.Web.UserAuthTest do
   @remember_me_cookie_max_age 60 * 60 * 24 * 14
 
   setup %{conn: conn} do
-    conn =
-      conn
-      |> Map.replace!(:secret_key_base, Harbor.Web.TestEndpoint.config(:secret_key_base))
-      |> init_test_session(%{})
+    conn = init_test_session(conn, %{})
 
     %{user: %{user_fixture() | authenticated_at: DateTime.utc_now()}, conn: conn}
   end
@@ -144,7 +141,7 @@ defmodule Harbor.Web.UserAuthTest do
 
     test "broadcasts to the given live_socket_id", %{conn: conn} do
       live_socket_id = "users_sessions:abcdef-token"
-      Phoenix.PubSub.subscribe(Harbor.PubSub, live_socket_id)
+      Harbor.Web.TestEndpoint.subscribe(live_socket_id)
 
       conn
       |> put_session(:live_socket_id, live_socket_id)
@@ -388,15 +385,15 @@ defmodule Harbor.Web.UserAuthTest do
     end
   end
 
-  describe "disconnect_sessions/1" do
-    test "broadcasts disconnect messages for each token" do
+  describe "disconnect_sessions/2" do
+    test "broadcasts disconnect messages for each token", %{conn: conn} do
       tokens = [%{token: "token1"}, %{token: "token2"}]
 
       for %{token: token} <- tokens do
-        Phoenix.PubSub.subscribe(Harbor.PubSub, "users_sessions:#{Base.url_encode64(token)}")
+        Harbor.Web.TestEndpoint.subscribe("users_sessions:#{Base.url_encode64(token)}")
       end
 
-      UserAuth.disconnect_sessions(tokens)
+      UserAuth.disconnect_sessions(conn, tokens)
 
       assert_receive %Phoenix.Socket.Broadcast{
         event: "disconnect",

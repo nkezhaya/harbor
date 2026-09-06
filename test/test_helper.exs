@@ -9,6 +9,7 @@ Application.put_env(:harbor, :notifier, Harbor.NotifierMock)
 
 Supervisor.start_link(
   [
+    {Phoenix.PubSub, name: Harbor.Web.TestPubSub},
     Harbor.Web.Telemetry,
     Harbor.TestRepo,
     Harbor.TestOban

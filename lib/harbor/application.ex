@@ -9,10 +9,7 @@ defmodule Harbor.Application do
   def start(_type, _args) do
     Harbor.Config.validate!()
 
-    children = [
-      {Phoenix.PubSub, name: Harbor.PubSub},
-      Harbor.Settings.Listener
-    ]
+    children = [Harbor.Settings.Listener]
 
     children =
       case Config.cache() do

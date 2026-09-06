@@ -36,7 +36,13 @@ defmodule Harbor.ConnCase do
 
   setup tags do
     Harbor.DataCase.setup_sandbox(tags)
-    {:ok, conn: Phoenix.ConnTest.build_conn()}
+
+    conn =
+      Phoenix.ConnTest.build_conn()
+      |> Map.replace!(:secret_key_base, Harbor.Web.TestEndpoint.config(:secret_key_base))
+      |> Plug.Conn.put_private(:phoenix_endpoint, Harbor.Web.TestEndpoint)
+
+    {:ok, conn: conn}
   end
 
   @doc """

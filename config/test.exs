@@ -34,7 +34,7 @@ config :harbor, Harbor.Web.TestEndpoint,
     formats: [html: Harbor.Web.ErrorHTML, json: Harbor.Web.ErrorJSON],
     layout: false
   ],
-  pubsub_server: Harbor.PubSub,
+  pubsub_server: Harbor.Web.TestPubSub,
   live_view: [signing_salt: "mzGS68aG"],
   server: false
 
