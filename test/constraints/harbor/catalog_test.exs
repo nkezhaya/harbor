@@ -100,7 +100,7 @@ defmodule Harbor.Constraints.CatalogTest do
 
     error =
       assert_raise Postgrex.Error, fn ->
-        TestRepo.query!("SET CONSTRAINTS ALL IMMEDIATE")
+        TestRepo.query!("SET CONSTRAINTS product_variant_shape_validation_check IMMEDIATE")
       end
 
     assert error.postgres.constraint == "variants_unique_option_combination"

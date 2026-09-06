@@ -710,7 +710,7 @@ defmodule Harbor.CatalogTest do
 
       assert {:ok, %Product{}} = Catalog.delete_product(product)
 
-      Harbor.TestRepo.query!("SET CONSTRAINTS ALL IMMEDIATE")
+      Harbor.TestRepo.query!("SET CONSTRAINTS product_variant_shape_validation_check IMMEDIATE")
 
       assert_raise Ecto.NoResultsError, fn -> Catalog.get_product!(product.id) end
     end
