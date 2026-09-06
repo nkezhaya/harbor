@@ -5,7 +5,7 @@ defmodule Harbor.Web.CheckoutLive.FormTest do
   import Phoenix.LiveViewTest
 
   alias Harbor.Accounts.Scope
-  alias Harbor.{Checkout, Orders, Repo, Settings}
+  alias Harbor.{Checkout, Orders, Settings}
   alias Harbor.Orders.Order
 
   describe "guest checkout" do

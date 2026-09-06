@@ -11,6 +11,7 @@ defmodule Harbor.MixProject do
       aliases: aliases(),
       deps: deps(),
       package: package(),
+      dialyzer: [plt_add_apps: [:credo]],
       compilers: [:phoenix_live_view] ++ Mix.compilers(),
       listeners: [Phoenix.CodeReloader],
       test_coverage: [ignore_modules: [~r/Mix\.Tasks\.Harbor/, ~r/\.Stripe/]],

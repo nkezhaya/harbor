@@ -5,7 +5,6 @@ defmodule Harbor.Billing.PaymentProfile do
   """
   use Harbor.Schema
 
-  alias Harbor.Accounts.Scope
   alias Harbor.Billing.PaymentMethod
   alias Harbor.Customers.Customer
 

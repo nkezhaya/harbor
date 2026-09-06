@@ -5,7 +5,7 @@ defmodule Harbor.Checkout.StepsTest do
 
   alias Harbor.Accounts.Scope
   alias Harbor.Checkout.{Pricing, Steps}
-  alias Harbor.{Repo, Settings}
+  alias Harbor.Settings
 
   describe "checkout_steps/3 with delivery disabled" do
     setup do

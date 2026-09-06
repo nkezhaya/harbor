@@ -5,7 +5,7 @@ defmodule Harbor.CustomersTest do
   import Harbor.CustomersFixtures
 
   alias Harbor.Billing.SyncPaymentProfileWorker
-  alias Harbor.{Customers, Repo}
+  alias Harbor.Customers
   alias Harbor.Customers.{Address, Customer}
 
   describe "list_customers/1" do

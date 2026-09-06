@@ -3,7 +3,7 @@ defmodule Harbor.SlugTest do
   import Harbor.CatalogFixtures
 
   alias Harbor.Catalog.Product
-  alias Harbor.{Repo, Slug}
+  alias Harbor.Slug
 
   doctest Slug
 

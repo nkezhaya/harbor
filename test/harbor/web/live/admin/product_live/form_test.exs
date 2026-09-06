@@ -5,7 +5,6 @@ defmodule Harbor.Web.Admin.ProductLive.FormTest do
   import Harbor.CatalogFixtures
 
   alias Harbor.Catalog.ProductImage
-  alias Harbor.Repo
 
   setup :register_and_log_in_admin
 

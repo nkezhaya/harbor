@@ -12,7 +12,6 @@ defmodule Harbor.Web.CartComponents do
   alias Harbor.Catalog.Variant
   alias Harbor.Checkout
   alias Harbor.Checkout.{Cart, CartItem}
-  alias Harbor.Web.ImageHelpers
 
   @doc """
   Renders the variant's primary image or a placeholder when no image is

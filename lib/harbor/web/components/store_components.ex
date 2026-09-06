@@ -5,7 +5,6 @@ defmodule Harbor.Web.StoreComponents do
   use Harbor.Web, :component
 
   alias Harbor.Catalog.Product
-  alias Harbor.Web.ImageHelpers
 
   @doc """
   Renders a product card that would appear in the PLP grid.

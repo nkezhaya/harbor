@@ -3,7 +3,7 @@ defmodule Harbor.TaxTest do
 
   import Harbor.{CatalogFixtures, CheckoutFixtures, CustomersFixtures, TaxFixtures}
 
-  alias Harbor.{Checkout, Repo, Tax}
+  alias Harbor.{Checkout, Tax}
   alias Harbor.Tax.Calculation
 
   describe "list_tax_codes/0" do

@@ -6,7 +6,7 @@ defmodule Harbor.Checkout.EnsureCheckoutPaymentIntentWorkerTest do
   import Harbor.CheckoutFixtures
   import Harbor.CustomersFixtures
 
-  alias Harbor.{Billing, Checkout, Repo, Util}
+  alias Harbor.{Billing, Checkout, Util}
   alias Harbor.Billing.{PaymentIntent, PaymentProviderMock}
   alias Harbor.Checkout.{EnsureCheckoutPaymentIntentWorker, Session}
 

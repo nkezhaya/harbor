@@ -4,7 +4,7 @@ defmodule Harbor.Web.Admin.ProductLive.IndexTest do
   import Phoenix.LiveViewTest
   import Harbor.CatalogFixtures
 
-  alias Harbor.{Catalog, Repo}
+  alias Harbor.Catalog
   alias Harbor.Catalog.Product
 
   setup :register_and_log_in_admin

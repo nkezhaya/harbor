@@ -12,7 +12,7 @@ defmodule Harbor.CheckoutTest do
   }
 
   alias Harbor.Accounts.Scope
-  alias Harbor.{Billing, Checkout, Repo, Settings}
+  alias Harbor.{Billing, Checkout, Settings}
   alias Harbor.Checkout.{Cart, CartItem, EnsureCheckoutPaymentIntentWorker, Session}
   alias Harbor.Orders.Order
 

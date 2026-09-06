@@ -5,7 +5,6 @@ defmodule Harbor.Customers.Address do
   use Harbor.Schema
 
   alias AddressInput.Country
-  alias Harbor.Accounts.Scope
   alias Harbor.Authorization
   alias Harbor.Customers.Customer
 

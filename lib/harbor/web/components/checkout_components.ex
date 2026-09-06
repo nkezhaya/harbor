@@ -13,7 +13,6 @@ defmodule Harbor.Web.CheckoutComponents do
   alias Harbor.Checkout.Pricing
   alias Harbor.Customers.Address
   alias Harbor.Orders.{Order, OrderItem}
-  alias Harbor.Web.CartComponents
   alias Localize.Territory
 
   @doc """

@@ -5,7 +5,6 @@ defmodule Harbor.Orders.Order do
   use Harbor.Schema
   import Money.Validate, only: [validate_money: 3]
 
-  alias Harbor.Accounts.Scope
   alias Harbor.Authorization
   alias Harbor.Checkout.Cart
   alias Harbor.Customers.{Address, Customer}

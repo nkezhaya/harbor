@@ -5,7 +5,7 @@ defmodule Harbor.Checkout.PricingTest do
 
   alias Harbor.Accounts.Scope
   alias Harbor.Checkout.Pricing
-  alias Harbor.{Repo, Settings}
+  alias Harbor.Settings
 
   defp order_with_items(items, order_attrs \\ %{}) do
     scope = Scope.for_system()

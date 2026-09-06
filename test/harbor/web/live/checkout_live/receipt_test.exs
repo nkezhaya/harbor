@@ -6,7 +6,7 @@ defmodule Harbor.Web.CheckoutLive.ReceiptTest do
   import Phoenix.LiveViewTest
 
   alias Harbor.Accounts.Scope
-  alias Harbor.{Checkout, Repo, Settings}
+  alias Harbor.{Checkout, Settings}
   alias Harbor.Checkout.Session
   alias Harbor.Orders.Order
 
