@@ -63,6 +63,10 @@ defmodule Harbor.Catalog.Variant do
       message: "must cover all product options"
     )
     |> check_constraint(:variant_option_values,
+      name: :variants_unique_option_combination,
+      message: "must be unique within the product"
+    )
+    |> check_constraint(:variant_option_values,
       name: :master_variant_must_be_optionless,
       message: "cannot be present for master variants"
     )

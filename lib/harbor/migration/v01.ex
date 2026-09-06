@@ -463,6 +463,7 @@ defmodule Harbor.Migration.V01 do
     AS $$
     DECLARE
       invalid_variant_id uuid;
+      duplicate_variant_id uuid;
       invalid_product_option_id uuid;
       product_status text;
       product_option_count integer;
@@ -569,6 +570,35 @@ defmodule Harbor.Migration.V01 do
         IF invalid_variant_id IS NOT NULL THEN
           RAISE EXCEPTION 'variant % does not cover all required product options for product %', invalid_variant_id, p_product_id
             USING ERRCODE = 'check_violation', CONSTRAINT = 'variants_cover_all_product_options';
+        END IF;
+
+        WITH variant_option_sets AS (
+          SELECT
+            v.id,
+            array_agg(
+              vov.product_option_value_id
+              ORDER BY vov.product_option_id
+            ) AS option_value_ids
+          FROM variants v
+          JOIN variants_option_values vov ON vov.variant_id = v.id
+          WHERE v.product_id = p_product_id
+            AND NOT v.master
+          GROUP BY v.id
+        )
+        SELECT variant_option_set.id
+        INTO duplicate_variant_id
+        FROM variant_option_sets variant_option_set
+        WHERE EXISTS (
+          SELECT 1
+          FROM variant_option_sets other
+          WHERE other.id != variant_option_set.id
+            AND other.option_value_ids = variant_option_set.option_value_ids
+        )
+        LIMIT 1;
+
+        IF duplicate_variant_id IS NOT NULL THEN
+          RAISE EXCEPTION 'variant % duplicates another option combination for product %', duplicate_variant_id, p_product_id
+            USING ERRCODE = 'check_violation', CONSTRAINT = 'variants_unique_option_combination';
         END IF;
 
         IF EXISTS (
