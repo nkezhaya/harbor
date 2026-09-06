@@ -426,7 +426,7 @@ defmodule Harbor.Web.Admin.ProductLive.Form do
      |> assign(:taxon_options, taxon_options())
      |> assign(:product_type_options, product_type_options())
      |> allow_upload(:media_asset,
-       accept: ~w(.jpg .jpeg .png .mp4),
+       accept: ~w(.jpg .jpeg .png),
        auto_upload: true,
        external: &prepare_upload/2,
        max_entries: 8,
