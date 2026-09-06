@@ -4,13 +4,23 @@ defmodule Harbor.AccountsTest do
   import Harbor.AccountsFixtures
 
   alias Harbor.Accounts
-  alias Harbor.Accounts.User
+  alias Harbor.Accounts.{Scope, User}
 
   setup do
     user = user_fixture()
     scope = user_scope_fixture(user)
 
     [user: user, scope: scope]
+  end
+
+  describe "Scope.for_user/1" do
+    test "assigns the user role to regular users", %{user: user} do
+      assert %Scope{role: :user} = Scope.for_user(user)
+    end
+
+    test "assigns the admin role to admins" do
+      assert %Scope{role: :admin} = Scope.for_user(admin_fixture())
+    end
   end
 
   describe "list_users/0" do

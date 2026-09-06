@@ -9,7 +9,7 @@ defmodule Harbor.Authorization do
   alias Harbor.Accounts.Scope
   alias Harbor.Customers.Customer
 
-  @admin_roles [:superadmin, :system]
+  @admin_roles [:admin, :system]
   defguardp is_admin(role) when role in @admin_roles
 
   @doc """

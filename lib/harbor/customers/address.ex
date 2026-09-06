@@ -6,6 +6,7 @@ defmodule Harbor.Customers.Address do
 
   alias AddressInput.Country
   alias Harbor.Accounts.Scope
+  alias Harbor.Authorization
   alias Harbor.Customers.Customer
 
   @type t() :: %__MODULE__{}
@@ -48,11 +49,14 @@ defmodule Harbor.Customers.Address do
     |> apply_scope(scope)
   end
 
-  defp allowed_fields(%Scope{role: role}) when role in [:superadmin, :system] do
-    [:customer_id | @fields]
+  defp allowed_fields(%Scope{} = scope) do
+    if Authorization.admin?(scope) do
+      [:customer_id | @fields]
+    else
+      @fields
+    end
   end
 
-  defp allowed_fields(%Scope{}), do: @fields
   defp allowed_fields(nil), do: @fields
 
   defp apply_scope(changeset, %Scope{customer: %Customer{} = customer}) do

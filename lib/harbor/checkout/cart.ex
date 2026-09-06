@@ -4,6 +4,7 @@ defmodule Harbor.Checkout.Cart do
   """
   use Harbor.Schema
 
+  alias Harbor.Authorization
   alias Harbor.Checkout.CartItem
   alias Harbor.Customers.Customer
 
@@ -55,10 +56,13 @@ defmodule Harbor.Checkout.Cart do
     change(changeset, %{last_touched_at: datetime, expires_at: expires_at})
   end
 
-  defp allowed_fields(%Scope{role: role}) when role in [:superadmin, :system],
-    do: [:customer_id, :session_token, :status]
-
-  defp allowed_fields(_scope), do: []
+  defp allowed_fields(%Scope{} = scope) do
+    if Authorization.admin?(scope) do
+      [:customer_id, :session_token, :status]
+    else
+      []
+    end
+  end
 
   defp apply_scope(changeset, %Scope{role: :system}), do: changeset
 

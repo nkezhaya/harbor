@@ -15,7 +15,7 @@ defmodule Harbor.AuthorizationTest do
       assert :ok == Authorization.ensure_admin!(Scope.for_system())
     end
 
-    test "allows superadmin scopes" do
+    test "allows admin scopes" do
       scope = admin_scope_fixture()
       assert :ok == Authorization.ensure_admin!(scope)
     end

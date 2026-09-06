@@ -371,28 +371,31 @@ defmodule Harbor.Checkout do
     end
   end
 
-  defp receipt_authorized?(%Scope{role: role}, _cart)
-       when role in [:superadmin, :system],
-       do: true
+  defp receipt_authorized?(%Scope{} = scope, %Cart{} = cart) do
+    admin?(scope) or receipt_owner?(scope, cart)
+  end
 
-  defp receipt_authorized?(
+  defp receipt_owner?(
          %Scope{
            role: :user,
            authenticated?: true,
            customer: %Customer{id: customer_id}
          },
          %Cart{customer_id: customer_id}
-       ),
-       do: true
+       ) do
+    true
+  end
 
-  defp receipt_authorized?(
-         %Scope{role: :guest, session_token: session_token},
-         %Cart{session_token: session_token}
-       )
-       when is_binary(session_token),
-       do: true
+  defp receipt_owner?(%Scope{role: :guest, session_token: session_token}, %Cart{
+         session_token: session_token
+       })
+       when is_binary(session_token) do
+    true
+  end
 
-  defp receipt_authorized?(%Scope{}, %Cart{}), do: false
+  defp receipt_owner?(_scope, _cart) do
+    false
+  end
 
   defp ensure_active(%Session{status: status}) do
     case status do

@@ -44,7 +44,7 @@ defmodule Harbor.AccountsFixtures do
   def admin_fixture(attrs \\ %{}) do
     user = user_fixture(attrs)
 
-    %UserRole{user_id: user.id, role: :superadmin}
+    %UserRole{user_id: user.id, role: :admin}
     |> Repo.insert!()
 
     user

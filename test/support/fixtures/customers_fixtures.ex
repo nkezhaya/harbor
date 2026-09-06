@@ -4,7 +4,7 @@ defmodule Harbor.CustomersFixtures do
   entities via the `Harbor.Customers` context.
   """
   alias Harbor.Accounts.Scope
-  alias Harbor.Customers
+  alias Harbor.{Authorization, Customers}
 
   @doc """
   Generate a customer.
@@ -21,9 +21,10 @@ defmodule Harbor.CustomersFixtures do
       })
 
     {:ok, customer} =
-      case scope.role do
-        :superadmin -> Customers.create_customer(scope, attrs)
-        _ -> Customers.save_customer_profile(scope, attrs)
+      if Authorization.admin?(scope) do
+        Customers.create_customer(scope, attrs)
+      else
+        Customers.save_customer_profile(scope, attrs)
       end
 
     customer

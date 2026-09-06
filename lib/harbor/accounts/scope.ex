@@ -20,7 +20,7 @@ defmodule Harbor.Accounts.Scope do
   alias Harbor.Repo
 
   @type t() :: %__MODULE__{
-          role: :guest | :user | :superadmin | :system
+          role: :guest | :user | :admin | :system
         }
 
   defstruct user: nil, customer: nil, role: :guest, authenticated?: false, session_token: nil
@@ -40,8 +40,8 @@ defmodule Harbor.Accounts.Scope do
     customer = user.customer
 
     role =
-      if Enum.any?(user.roles, &(&1.role == :superadmin)) do
-        :superadmin
+      if Enum.any?(user.roles, &(&1.role == :admin)) do
+        :admin
       else
         :user
       end

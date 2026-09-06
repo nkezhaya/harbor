@@ -41,7 +41,7 @@ defmodule Harbor.CustomersTest do
   end
 
   describe "create_customer/2" do
-    test "allows superadmins to create customers with custom status" do
+    test "allows admins to create customers with custom status" do
       admin_scope = admin_scope_fixture()
       attrs = Map.put(valid_attrs(), :status, :blocked)
 
@@ -68,7 +68,7 @@ defmodule Harbor.CustomersTest do
   end
 
   describe "update_customer/3" do
-    test "allows superadmins to update any customer" do
+    test "allows admins to update any customer" do
       admin_scope = admin_scope_fixture()
       customer = customer_fixture(admin_scope)
       attrs = update_attrs()
@@ -83,7 +83,7 @@ defmodule Harbor.CustomersTest do
       assert updated_customer.phone == attrs.phone
     end
 
-    test "allows superadmins to change customer status" do
+    test "allows admins to change customer status" do
       admin_scope = admin_scope_fixture()
       customer = customer_fixture(admin_scope)
 

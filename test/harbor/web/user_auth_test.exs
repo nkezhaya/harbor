@@ -1,6 +1,8 @@
 defmodule Harbor.Web.UserAuthTest do
   use Harbor.ConnCase, async: true
+
   import Harbor.AccountsFixtures
+  import Phoenix.LiveViewTest
 
   alias Harbor.Accounts.Scope
   alias Harbor.Auth
@@ -298,6 +300,14 @@ defmodule Harbor.Web.UserAuthTest do
 
       {:halt, updated_socket} = UserAuth.on_mount(:require_authenticated, %{}, session, socket)
       refute updated_socket.assigns.current_scope.authenticated?
+    end
+  end
+
+  describe "on_mount :require_admin" do
+    test "redirects non-admin users", %{conn: conn, user: user} do
+      conn = log_in_user(conn, user)
+
+      assert {:error, {:redirect, %{to: "/"}}} = live(conn, "/admin")
     end
   end
 

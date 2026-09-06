@@ -811,7 +811,7 @@ defmodule Harbor.Migration.V01 do
       timestamps(type: :timestamptz, updated_at: false)
     end
 
-    create constraint(:users_roles, :check_role, check: "role in ('superadmin', 'admin')")
+    create constraint(:users_roles, :check_role, check: "role = 'admin'")
 
     ## Customers
 

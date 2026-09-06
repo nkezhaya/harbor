@@ -6,7 +6,7 @@ defmodule Harbor.Web.UserAuth do
   import Phoenix.Controller
 
   alias Harbor.Accounts.{Scope, User}
-  alias Harbor.{Auth, Checkout, Util}
+  alias Harbor.{Auth, Authorization, Checkout, Util}
 
   # Make the remember me cookie valid for 14 days. This should match
   # the session validity setting in UserToken.
@@ -222,6 +222,9 @@ defmodule Harbor.Web.UserAuth do
       on user_token.
       Redirects to login page if there's no logged user.
 
+    * `:require_admin` - Authenticates an admin from the session and redirects
+      non-admin users to the storefront.
+
   ## Examples
 
   Use the `on_mount` lifecycle macro in LiveViews to mount or authenticate
@@ -262,7 +265,7 @@ defmodule Harbor.Web.UserAuth do
   def on_mount(:require_admin, _params, session, socket) do
     socket = mount_current_scope(socket, session)
 
-    if admin_scope?(socket) do
+    if Authorization.admin?(socket.assigns.current_scope) do
       {:cont, socket}
     else
       socket =
@@ -287,14 +290,6 @@ defmodule Harbor.Web.UserAuth do
 
       {:halt, socket}
     end
-  end
-
-  defp admin_scope?(%{assigns: %{current_scope: %{user: %User{} = user}}}) do
-    Enum.any?(user.roles, &(&1.role in [:admin, :superadmin]))
-  end
-
-  defp admin_scope?(_socket) do
-    false
   end
 
   defp mount_current_scope(socket, session) do

@@ -8,9 +8,9 @@ defmodule Harbor.Auth.UserRole do
 
   alias Harbor.Accounts.User
 
-  @roles ~w(superadmin admin)a
+  @roles [:admin]
 
-  @type role() :: :superadmin | :admin
+  @type role() :: :admin
   @type t() :: %__MODULE__{}
 
   @primary_key false
