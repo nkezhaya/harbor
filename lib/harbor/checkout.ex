@@ -361,7 +361,7 @@ defmodule Harbor.Checkout do
         {:error, :not_found}
 
       %Session{} = session ->
-        session = preload_session(session)
+        session = preload_completed_session(session)
 
         if receipt_authorized?(scope, session.order.cart) do
           {:ok, session}
@@ -519,6 +519,15 @@ defmodule Harbor.Checkout do
             product: [:images, :tax_code, product_type: [:tax_code]]
           ]
         ]
+      ]
+    )
+  end
+
+  defp preload_completed_session(%Session{} = session) do
+    Repo.preload(session,
+      order: [
+        :cart,
+        items: [variant: [:option_values, product: [:images]]]
       ]
     )
   end

@@ -6,7 +6,7 @@ defmodule Harbor.Web.CheckoutLive.ReceiptTest do
   import Phoenix.LiveViewTest
 
   alias Harbor.Accounts.Scope
-  alias Harbor.{Checkout, Settings}
+  alias Harbor.{Checkout, Customers, Settings, Shipping}
   alias Harbor.Checkout.Session
   alias Harbor.Orders.Order
 
@@ -34,30 +34,72 @@ defmodule Harbor.Web.CheckoutLive.ReceiptTest do
     assert has_element?(view, "#receipt-shipping-address")
   end
 
-  test "hides disabled capabilities while preserving the shipping address", %{conn: conn} do
-    Settings.update(Scope.for_system(), %{
-      address_enabled: true,
-      delivery_enabled: false,
-      payments_enabled: false,
-      tax_enabled: false
-    })
-
+  test "renders historical snapshots after delivery details are changed and deleted", %{
+    conn: conn
+  } do
     scope = guest_scope_fixture(customer: false)
     cart = cart_fixture(scope)
     customer = customer_fixture(scope)
     checkout_scope = Scope.attach_customer(scope, customer)
-    {session, _order} = completed_checkout(checkout_scope, cart)
-    conn = init_test_session(conn, %{"guest_session_token" => scope.session_token})
+    {session, order} = completed_checkout(checkout_scope, cart)
 
+    order = Repo.preload(order, [:shipping_address, :delivery_method], force: true)
+    changed_delivery_name = unique_delivery_method_name()
+
+    assert {:ok, changed_address} =
+             Customers.update_address(checkout_scope, order.shipping_address, %{
+               first_name: "Changed",
+               last_name: "Recipient",
+               line1: "99 New Address"
+             })
+
+    assert {:ok, changed_delivery_method} =
+             Shipping.update_delivery_method(order.delivery_method, %{
+               name: changed_delivery_name,
+               price: Money.new(:USD, 99)
+             })
+
+    conn = init_test_session(conn, %{"guest_session_token" => scope.session_token})
+    {:ok, changed_view, _html} = live(conn, "/checkout/#{session.id}/receipt")
+    assert_historical_delivery_details(changed_view, order, changed_delivery_name)
+
+    assert {:ok, _address} = Customers.delete_address(checkout_scope, changed_address)
+    assert {:ok, _delivery_method} = Shipping.delete_delivery_method(changed_delivery_method)
+
+    stored_order = Repo.get!(Order, order.id)
+    refute stored_order.shipping_address_id
+    refute stored_order.delivery_method_id
+
+    {:ok, deleted_view, _html} = live(conn, "/checkout/#{session.id}/receipt")
+    assert_historical_delivery_details(deleted_view, order, changed_delivery_name)
+  end
+
+  test "renders historical totals after delivery and tax are disabled", %{conn: conn} do
+    scope = guest_scope_fixture(customer: false)
+    cart = cart_fixture(scope)
+    customer = customer_fixture(scope)
+    checkout_scope = Scope.attach_customer(scope, customer)
+    {session, order} = completed_checkout(checkout_scope, cart)
+
+    assert {:ok, _settings} =
+             Settings.update(Scope.for_system(), %{
+               delivery_enabled: false,
+               tax_enabled: false
+             })
+
+    conn = init_test_session(conn, %{"guest_session_token" => scope.session_token})
     {:ok, view, _html} = live(conn, "/checkout/#{session.id}/receipt")
 
-    assert has_element?(view, "#checkout-receipt")
-    assert has_element?(view, "#receipt-order-status")
-    assert has_element?(view, "#receipt-total")
-    assert has_element?(view, "#receipt-shipping-address")
-    refute has_element?(view, "#receipt-delivery-method")
-    refute has_element?(view, "#receipt-summary-tax")
-    refute has_element?(view, "#receipt-summary-shipping")
+    assert has_element?(view, "#receipt-delivery-method", order.delivery_method_name)
+    assert has_element?(view, "#receipt-summary-tax", Money.to_string!(order.tax))
+
+    assert has_element?(
+             view,
+             "#receipt-summary-shipping",
+             Money.to_string!(order.shipping_price)
+           )
+
+    assert has_element?(view, "#receipt-total", Money.to_string!(order.total_price))
   end
 
   test "renders the receipt for the owning guest session token", %{conn: conn} do
@@ -124,6 +166,25 @@ defmodule Harbor.Web.CheckoutLive.ReceiptTest do
 
     assert {:error, {:live_redirect, %{to: "/cart"}}} =
              live(conn, "/checkout/#{missing_id}/receipt")
+  end
+
+  defp assert_historical_delivery_details(view, order, changed_delivery_name) do
+    assert has_element?(view, "#receipt-shipping-address", "Bilbo Baggins")
+    assert has_element?(view, "#receipt-shipping-address", "1 Bagshot Row")
+    refute has_element?(view, "#receipt-shipping-address", "Changed Recipient")
+    refute has_element?(view, "#receipt-shipping-address", "99 New Address")
+
+    assert has_element?(view, "#receipt-delivery-method", order.delivery_method_name)
+    refute has_element?(view, "#receipt-delivery-method", changed_delivery_name)
+    assert has_element?(view, "#receipt-summary-tax", Money.to_string!(order.tax))
+
+    assert has_element?(
+             view,
+             "#receipt-summary-shipping",
+             Money.to_string!(order.shipping_price)
+           )
+
+    assert has_element?(view, "#receipt-total", Money.to_string!(order.total_price))
   end
 
   defp completed_checkout(scope, cart \\ nil) do

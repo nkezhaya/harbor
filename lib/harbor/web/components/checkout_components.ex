@@ -177,25 +177,57 @@ defmodule Harbor.Web.CheckoutComponents do
     """
   end
 
-  defp address_summary_lines(%Address{} = address) do
-    country = AddressInput.get_country(address.country)
-    format = country.local_address_format || country.address_format
-    fields = address_field_values(address, country)
-    lines = format_address_lines(format, fields)
-    lines ++ [Territory.display_name!(country.id, locale: :en)]
+  @doc """
+  Renders a compact, multi-line address from an order's immutable snapshot.
+  """
+  attr :order, Order, required: true
+
+  def order_address_summary(assigns) do
+    ~H"""
+    <span :for={line <- order_address_summary_lines(@order)} class="block">
+      {line}
+    </span>
+    """
   end
 
-  defp address_field_values(%Address{} = address, country) do
-    %{
+  defp address_summary_lines(%Address{} = address) do
+    country = AddressInput.get_country(address.country)
+
+    fields = %{
       name: address_name(address),
       organization: nil,
-      address: address_street(address),
+      address: address_street(address.line1, address.line2),
       dependent_locality: nil,
       sublocality: address.city,
-      region: address_region(address, country),
+      region: address_region(address.region, country),
       postal_code: address.postal_code,
       sorting_code: nil
     }
+
+    address_summary_lines(country, fields)
+  end
+
+  defp order_address_summary_lines(%Order{} = order) do
+    country = AddressInput.get_country(order.address_country)
+
+    fields = %{
+      name: order.address_name,
+      organization: nil,
+      address: address_street(order.address_line1, order.address_line2),
+      dependent_locality: nil,
+      sublocality: order.address_city,
+      region: address_region(order.address_region, country),
+      postal_code: order.address_postal_code,
+      sorting_code: nil
+    }
+
+    address_summary_lines(country, fields)
+  end
+
+  defp address_summary_lines(country, fields) do
+    format = country.local_address_format || country.address_format
+    lines = format_address_lines(format, fields)
+    lines ++ [Territory.display_name!(country.id, locale: :en)]
   end
 
   defp address_name(%Address{} = address) do
@@ -205,14 +237,14 @@ defmodule Harbor.Web.CheckoutComponents do
     end
   end
 
-  defp address_street(%Address{} = address) do
-    case Enum.filter([address.line1, address.line2], & &1) do
+  defp address_street(line1, line2) do
+    case Enum.filter([line1, line2], & &1) do
       [] -> nil
       lines -> Enum.join(lines, "\n")
     end
   end
 
-  defp address_region(%Address{region: region}, %AddressInput.Country{subregions: subregions}) do
+  defp address_region(region, %AddressInput.Country{subregions: subregions}) do
     case Enum.find(subregions, &(&1.id == region)) do
       %AddressInput.Subregion{} = subregion -> subregion.name
       _ -> nil

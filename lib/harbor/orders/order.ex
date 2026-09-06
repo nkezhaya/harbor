@@ -80,6 +80,7 @@ defmodule Harbor.Orders.Order do
     |> validate_non_negative_money(:tax)
     |> validate_non_negative_money(:shipping_price)
     |> cast_assoc(:items)
+    |> validate_immutable_snapshots(order)
     |> put_new_order_number()
     |> apply_scope(scope)
     |> check_constraint(:subtotal,
@@ -184,6 +185,37 @@ defmodule Harbor.Orders.Order do
       true ->
         raise Harbor.UnauthorizedError
     end
+  end
+
+  @immutable_fields [
+    :number,
+    :address_name,
+    :address_line1,
+    :address_line2,
+    :address_city,
+    :address_region,
+    :address_postal_code,
+    :address_country,
+    :address_phone,
+    :delivery_method_name,
+    :subtotal,
+    :tax,
+    :shipping_price,
+    :items
+  ]
+
+  defp validate_immutable_snapshots(changeset, %__MODULE__{status: :draft}) do
+    changeset
+  end
+
+  defp validate_immutable_snapshots(changeset, %__MODULE__{}) do
+    Enum.reduce(@immutable_fields, changeset, fn field, changeset ->
+      if changed?(changeset, field) do
+        add_error(changeset, field, "cannot be changed after submission")
+      else
+        changeset
+      end
+    end)
   end
 
   defp put_new_order_number(changeset) do

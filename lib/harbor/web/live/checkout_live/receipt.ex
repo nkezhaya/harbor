@@ -5,7 +5,7 @@ defmodule Harbor.Web.CheckoutLive.Receipt do
   use Harbor.Web, :live_view
 
   alias Harbor.Catalog.Variant
-  alias Harbor.{Checkout, Settings}
+  alias Harbor.Checkout
 
   @impl true
   def render(assigns) do
@@ -87,7 +87,7 @@ defmodule Harbor.Web.CheckoutLive.Receipt do
 
           <div class="sm:ml-40 sm:pl-6">
             <section
-              :if={@order.shipping_address}
+              :if={@order.address_line1}
               aria-labelledby="shipping-address-heading"
               class="py-10"
             >
@@ -97,7 +97,7 @@ defmodule Harbor.Web.CheckoutLive.Receipt do
                   <dt class="font-medium text-gray-900">Shipping address</dt>
                   <dd id="receipt-shipping-address" class="mt-2 text-gray-700">
                     <address class="not-italic">
-                      <CheckoutComponents.address_summary address={@order.shipping_address} />
+                      <CheckoutComponents.order_address_summary order={@order} />
                     </address>
                   </dd>
                 </div>
@@ -105,7 +105,7 @@ defmodule Harbor.Web.CheckoutLive.Receipt do
             </section>
 
             <section
-              :if={@settings.delivery_enabled}
+              :if={@order.delivery_method_name}
               aria-labelledby="delivery-heading"
               class="border-t border-gray-200 py-10"
             >
@@ -114,7 +114,7 @@ defmodule Harbor.Web.CheckoutLive.Receipt do
                 <div>
                   <dt class="font-medium text-gray-900">Delivery method</dt>
                   <dd id="receipt-delivery-method" class="mt-2 text-gray-700">
-                    {@order.delivery_method_name || "No delivery method"}
+                    {@order.delivery_method_name}
                   </dd>
                 </div>
               </dl>
@@ -125,28 +125,20 @@ defmodule Harbor.Web.CheckoutLive.Receipt do
               <dl class="space-y-6 text-sm">
                 <div class="flex justify-between">
                   <dt class="font-medium text-gray-900">Subtotal</dt>
-                  <dd class="text-gray-700">{@pricing.subtotal}</dd>
+                  <dd class="text-gray-700">{@order.subtotal}</dd>
                 </div>
-                <div
-                  :if={@settings.tax_enabled}
-                  id="receipt-summary-tax"
-                  class="flex justify-between"
-                >
+                <div id="receipt-summary-tax" class="flex justify-between">
                   <dt class="font-medium text-gray-900">Taxes</dt>
-                  <dd class="text-gray-700">{@pricing.tax || Money.zero(:USD)}</dd>
+                  <dd class="text-gray-700">{@order.tax}</dd>
                 </div>
-                <div
-                  :if={@settings.delivery_enabled}
-                  id="receipt-summary-shipping"
-                  class="flex justify-between"
-                >
+                <div id="receipt-summary-shipping" class="flex justify-between">
                   <dt class="font-medium text-gray-900">Shipping</dt>
-                  <dd class="text-gray-700">{@pricing.shipping_price}</dd>
+                  <dd class="text-gray-700">{@order.shipping_price}</dd>
                 </div>
                 <div class="flex justify-between border-t border-gray-200 pt-6">
                   <dt class="font-medium text-gray-900">Total</dt>
                   <dd id="receipt-total" class="font-medium text-gray-900">
-                    {@pricing.total_price}
+                    {@order.total_price}
                   </dd>
                 </div>
               </dl>
@@ -162,14 +154,10 @@ defmodule Harbor.Web.CheckoutLive.Receipt do
   def mount(%{"id" => id}, _session, %{assigns: %{current_scope: current_scope}} = socket) do
     case Checkout.get_completed_session(current_scope, id) do
       {:ok, session} ->
-        pricing = Checkout.build_pricing(session.order)
-
         {:ok,
          socket
          |> assign(:session, session)
          |> assign(:order, session.order)
-         |> assign(:pricing, pricing)
-         |> assign(:settings, Settings.get())
          |> assign(:current_scope, current_scope)}
 
       _error ->

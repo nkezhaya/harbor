@@ -31,7 +31,7 @@ defmodule Harbor.Orders.OrderTest do
     test "does not require an address for pickup fulfillment" do
       delivery_method = delivery_method_fixture(%{fulfillment_type: :pickup})
       scope = Scope.for_system()
-      order = order_fixture(scope)
+      order = order_fixture(scope, %{status: :draft})
 
       order =
         order

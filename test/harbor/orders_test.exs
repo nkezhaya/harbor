@@ -135,6 +135,40 @@ defmodule Harbor.OrdersTest do
 
       assert Orders.get_order!(scope, order.id).email == order.email
     end
+
+    test "rejects changes to submitted order snapshots", %{scope: scope} do
+      order =
+        order_fixture(scope, %{
+          address_line1: "1 Original Street",
+          delivery_method_name: "Original delivery",
+          subtotal: Money.new(:USD, 10),
+          tax: Money.new(:USD, 2),
+          shipping_price: Money.new(:USD, 3)
+        })
+
+      assert {:error, changeset} =
+               Orders.update_order(scope, order, %{
+                 address_line1: "2 Changed Street",
+                 delivery_method_name: "Changed delivery",
+                 subtotal: Money.new(:USD, 20),
+                 tax: Money.new(:USD, 4),
+                 shipping_price: Money.new(:USD, 6)
+               })
+
+      errors = errors_on(changeset)
+      assert errors.address_line1 == ["cannot be changed after submission"]
+      assert errors.delivery_method_name == ["cannot be changed after submission"]
+      assert errors.subtotal == ["cannot be changed after submission"]
+      assert errors.tax == ["cannot be changed after submission"]
+      assert errors.shipping_price == ["cannot be changed after submission"]
+
+      stored_order = Orders.get_order!(scope, order.id)
+      assert stored_order.address_line1 == "1 Original Street"
+      assert stored_order.delivery_method_name == "Original delivery"
+      assert Money.equal?(stored_order.subtotal, Money.new(:USD, 10))
+      assert Money.equal?(stored_order.tax, Money.new(:USD, 2))
+      assert Money.equal?(stored_order.shipping_price, Money.new(:USD, 3))
+    end
   end
 
   describe "delete_order/2" do
