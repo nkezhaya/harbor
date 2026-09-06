@@ -477,6 +477,10 @@ defmodule Harbor.Migration.V01 do
       FROM products p
       WHERE p.id = p_product_id;
 
+      IF NOT FOUND THEN
+        RETURN;
+      END IF;
+
       SELECT v.id
       INTO master_variant_id
       FROM variants v

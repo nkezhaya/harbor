@@ -711,7 +711,11 @@ defmodule Harbor.CatalogTest do
   describe "delete_product/1" do
     test "deletes the product" do
       product = product_fixture()
+
       assert {:ok, %Product{}} = Catalog.delete_product(product)
+
+      Harbor.TestRepo.query!("SET CONSTRAINTS ALL IMMEDIATE")
+
       assert_raise Ecto.NoResultsError, fn -> Catalog.get_product!(product.id) end
     end
   end
