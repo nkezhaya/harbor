@@ -6,7 +6,7 @@ defmodule Harbor.Checkout.EnsureCheckoutPaymentIntentWorker do
   use Oban.Worker, queue: :billing, unique: [keys: [:customer_id, :checkout_session_id]]
 
   alias Harbor.Accounts.Scope
-  alias Harbor.{Billing, Checkout, Customers, Repo, Util}
+  alias Harbor.{Billing, Checkout, Currency, Customers, Repo}
   alias Harbor.Checkout.Session
 
   @impl Oban.Worker
@@ -31,8 +31,8 @@ defmodule Harbor.Checkout.EnsureCheckoutPaymentIntentWorker do
     pricing = Checkout.build_pricing(session.order)
 
     params = %{
-      amount: Util.money_to_cents(pricing.total_price),
-      currency: String.downcase("#{pricing.total_price.currency}"),
+      amount: Currency.to_minor_units!(pricing.total_price),
+      currency: Currency.provider_code(pricing.total_price.currency),
       metadata: %{
         "checkout_session_id" => session.id,
         "order_id" => session.order_id

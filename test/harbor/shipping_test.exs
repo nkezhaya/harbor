@@ -34,6 +34,17 @@ defmodule Harbor.ShippingTest do
       assert {:error, %Ecto.Changeset{}} =
                Shipping.create_delivery_method(%{name: nil, price: nil})
     end
+
+    test "rejects fractional cents" do
+      attrs = %{
+        name: "Precise delivery",
+        price: Money.new(:USD, "1.001"),
+        fulfillment_type: :ship
+      }
+
+      assert {:error, changeset} = Shipping.create_delivery_method(attrs)
+      assert errors_on(changeset).price == ["must use whole cents"]
+    end
   end
 
   describe "update_delivery_method/2" do

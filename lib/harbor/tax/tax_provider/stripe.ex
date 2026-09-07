@@ -6,6 +6,7 @@ defmodule Harbor.Tax.TaxProvider.Stripe do
   """
   @behaviour Harbor.Tax.TaxProvider
 
+  alias Harbor.Currency
   alias Harbor.Tax.{Request, TaxProvider}
 
   @impl TaxProvider
@@ -71,7 +72,7 @@ defmodule Harbor.Tax.TaxProvider.Stripe do
     }
 
     params = %{
-      currency: "usd",
+      currency: Currency.provider_code(request.currency),
       expand: ["line_items"],
       line_items: line_items,
       shipping_cost: %{amount: request.shipping_price},

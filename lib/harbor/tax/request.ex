@@ -5,7 +5,7 @@ defmodule Harbor.Tax.Request do
   adapters can work without depending on checkout-specific structs.
   """
 
-  defstruct [:shipping_price, :customer_details, :line_items]
+  defstruct [:currency, :shipping_price, :customer_details, :line_items]
 
   @type line_item() :: %{
           price: non_neg_integer(),
@@ -21,6 +21,7 @@ defmodule Harbor.Tax.Request do
         }
 
   @type t() :: %__MODULE__{
+          currency: :USD,
           shipping_price: non_neg_integer(),
           customer_details: %{address: address(), address_source: String.t()},
           line_items: [line_item()]

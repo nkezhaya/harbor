@@ -5,7 +5,7 @@ defmodule Harbor.Web.CheckoutLive.Form do
   use Harbor.Web, :live_view
   import Harbor.Web.CheckoutComponents
 
-  alias Harbor.{Checkout, Customers, Settings, Shipping}
+  alias Harbor.{Checkout, Currency, Customers, Settings, Shipping}
   alias Harbor.Checkout.Pricing
   alias Harbor.Customers.{Address, Customer}
   alias Harbor.Orders.Order
@@ -396,7 +396,7 @@ defmodule Harbor.Web.CheckoutLive.Form do
           </div>
           <div :if={@tax_enabled} id="review-tax" class="flex justify-between">
             <dt class="text-gray-600">Taxes</dt>
-            <dd class="font-medium text-gray-900">{@pricing.tax || Money.zero(:USD)}</dd>
+            <dd class="font-medium text-gray-900">{@pricing.tax || Currency.zero()}</dd>
           </div>
           <div :if={:delivery in @steps} id="review-shipping-price" class="flex justify-between">
             <dt class="text-gray-600">Shipping</dt>

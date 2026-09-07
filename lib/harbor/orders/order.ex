@@ -7,6 +7,7 @@ defmodule Harbor.Orders.Order do
 
   alias Harbor.Authorization
   alias Harbor.Checkout.Cart
+  alias Harbor.Currency
   alias Harbor.Customers.{Address, Customer}
   alias Harbor.Orders.OrderItem
   alias Harbor.Shipping.DeliveryMethod
@@ -36,9 +37,9 @@ defmodule Harbor.Orders.Order do
 
     field :delivery_method_name, :string
 
-    field :subtotal, Money.Ecto.Composite.Type, default: ~M[0]USD
-    field :tax, Money.Ecto.Composite.Type, default: ~M[0]USD
-    field :shipping_price, Money.Ecto.Composite.Type, default: ~M[0]USD
+    field :subtotal, Money.Ecto.Composite.Type, default: Currency.zero()
+    field :tax, Money.Ecto.Composite.Type, default: Currency.zero()
+    field :shipping_price, Money.Ecto.Composite.Type, default: Currency.zero()
     field :total_price, Money.Ecto.Composite.Type, read_after_writes: true
 
     field :notes, :string
@@ -76,6 +77,9 @@ defmodule Harbor.Orders.Order do
       :notes
     ])
     |> validate_required([:status, :subtotal, :tax, :shipping_price])
+    |> Currency.validate(:subtotal)
+    |> Currency.validate(:tax)
+    |> Currency.validate(:shipping_price)
     |> validate_non_negative_money(:subtotal)
     |> validate_non_negative_money(:tax)
     |> validate_non_negative_money(:shipping_price)
@@ -91,6 +95,10 @@ defmodule Harbor.Orders.Order do
     |> check_constraint(:shipping_price,
       name: :shipping_price_gte_zero,
       message: "must be greater than or equal to 0"
+    )
+    |> check_constraint(:base,
+      name: :totals_same_currency,
+      message: "subtotal, tax, and shipping price must use the same currency"
     )
     |> unique_constraint(:number)
   end

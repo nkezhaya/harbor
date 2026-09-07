@@ -3,12 +3,13 @@ defmodule Harbor.Checkout do
   The Checkout context.
   """
   import Ecto.Query
-  import Harbor.{Authorization, QueryMacros, Util}
+  import Harbor.{Authorization, QueryMacros}
 
   alias Ecto.Changeset
   alias Harbor.Accounts.{Scope, User}
   alias Harbor.Catalog.Variant
   alias Harbor.Checkout.{Cart, CartItem, Pricing, Session, Steps}
+  alias Harbor.Currency
   alias Harbor.Customers.Customer
   alias Harbor.{Notifier, Orders, Repo, Tax}
   alias Harbor.Orders.{Order, OrderItem}
@@ -657,7 +658,7 @@ defmodule Harbor.Checkout do
              }),
            {:ok, _order} <-
              Orders.update_order(Scope.for_system(), session.order, %{
-               tax: cents_to_money(response.amount)
+               tax: Currency.from_minor_units(response.amount)
              }),
            :ok <- upsert_tax_line_items(response, calculation) do
         session = reload_session(session)
@@ -682,7 +683,7 @@ defmodule Harbor.Checkout do
 
   defp apply_tax_calculation(%Session{} = session, %Calculation{} = calculation) do
     case Orders.update_order(Scope.for_system(), session.order, %{
-           tax: cents_to_money(calculation.amount)
+           tax: Currency.from_minor_units(calculation.amount)
          }) do
       {:ok, _order} ->
         session = reload_session(session)
@@ -700,7 +701,8 @@ defmodule Harbor.Checkout do
       |> Enum.sort_by(& &1.reference)
 
     %Request{
-      shipping_price: money_to_cents(shipping_price_for_order(order)),
+      currency: Currency.code(),
+      shipping_price: Currency.to_minor_units!(shipping_price_for_order(order)),
       customer_details: build_customer_details(order.shipping_address),
       line_items: line_items
     }
@@ -720,17 +722,17 @@ defmodule Harbor.Checkout do
     if Settings.delivery_enabled?() do
       case order.delivery_method do
         %DeliveryMethod{price: price} -> price
-        _ -> Money.zero(:USD)
+        _ -> Currency.zero()
       end
     else
-      Money.zero(:USD)
+      Currency.zero()
     end
   end
 
   @spec line_item_from_pricing(OrderItem.t()) :: Request.line_item()
   defp line_item_from_pricing(item) do
     %{
-      price: money_to_cents(item.price),
+      price: Currency.to_minor_units!(item.price),
       quantity: item.quantity,
       reference: item.id,
       tax_code_ref: variant_tax_code_ref(item.variant)

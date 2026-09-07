@@ -5,6 +5,8 @@ defmodule Harbor.Shipping.DeliveryMethod do
   use Harbor.Schema
   import Money.Validate, only: [validate_money: 3]
 
+  alias Harbor.Currency
+
   @type t() :: %__MODULE__{}
 
   schema "delivery_methods" do
@@ -20,6 +22,7 @@ defmodule Harbor.Shipping.DeliveryMethod do
     delivery_method
     |> cast(attrs, [:name, :price, :fulfillment_type])
     |> validate_required([:name, :price, :fulfillment_type])
+    |> Currency.validate(:price)
     |> validate_price()
     |> unique_constraint(:name)
   end

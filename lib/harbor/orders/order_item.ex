@@ -6,6 +6,7 @@ defmodule Harbor.Orders.OrderItem do
   import Money.Validate, only: [validate_money: 3]
 
   alias Harbor.Catalog.Variant
+  alias Harbor.Currency
   alias Harbor.Orders.Order
 
   @type t() :: %__MODULE__{}
@@ -25,6 +26,7 @@ defmodule Harbor.Orders.OrderItem do
     order_item
     |> cast(attrs, [:quantity, :price, :variant_id])
     |> validate_required([:quantity, :price, :variant_id])
+    |> Currency.validate(:price)
     |> validate_price()
     |> check_constraint(:quantity, name: :quantity_gte_zero, message: "must be greater than 0")
     |> check_constraint(:price,

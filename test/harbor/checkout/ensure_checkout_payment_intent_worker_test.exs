@@ -6,7 +6,7 @@ defmodule Harbor.Checkout.EnsureCheckoutPaymentIntentWorkerTest do
   import Harbor.CheckoutFixtures
   import Harbor.CustomersFixtures
 
-  alias Harbor.{Billing, Checkout, Util}
+  alias Harbor.{Billing, Checkout, Currency}
   alias Harbor.Billing.{PaymentIntent, PaymentProviderMock}
   alias Harbor.Checkout.{EnsureCheckoutPaymentIntentWorker, Session}
 
@@ -33,7 +33,7 @@ defmodule Harbor.Checkout.EnsureCheckoutPaymentIntentWorkerTest do
                                                            },
                                                            params,
                                                            opts ->
-      assert params.amount == Util.money_to_cents(pricing.total_price)
+      assert params.amount == Currency.to_minor_units!(pricing.total_price)
       assert params.currency == "usd"
 
       assert params.metadata == %{

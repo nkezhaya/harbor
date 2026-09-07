@@ -40,38 +40,4 @@ defmodule Harbor.Util do
   def csprng(size \\ 32) do
     Base.url_encode64(:crypto.strong_rand_bytes(size), padding: false)
   end
-
-  @doc """
-  Converts a `Money` struct to an integer cent amount.
-
-  ## Examples
-
-      iex> Harbor.Util.money_to_cents(Money.new(:USD, "16.80"))
-      1680
-
-  """
-  @spec money_to_cents(Money.t()) :: integer()
-  def money_to_cents(%Money{} = money) do
-    money
-    |> Money.to_decimal()
-    |> Decimal.mult(100)
-    |> Decimal.to_integer()
-  end
-
-  @doc """
-  Converts an integer cent amount to a `Money` struct.
-
-  ## Examples
-
-      iex> Harbor.Util.cents_to_money(1680)
-      Money.new(:USD, "16.8")
-
-  """
-  @spec cents_to_money(integer()) :: Money.t()
-  def cents_to_money(cents) when is_integer(cents) do
-    cents
-    |> Decimal.new()
-    |> Decimal.div(100)
-    |> Money.new(:USD)
-  end
 end

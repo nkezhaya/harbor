@@ -915,7 +915,7 @@ defmodule Harbor.Migration.V01 do
 
       add :total_price, :money_with_currency,
         generated:
-          "ALWAYS AS (ROW('USD', (subtotal).amount + (tax).amount + (shipping_price).amount)::money_with_currency) STORED",
+          "ALWAYS AS (ROW((subtotal).currency_code, (subtotal).amount + (tax).amount + (shipping_price).amount)::money_with_currency) STORED",
         null: false
 
       add :notes, :text
@@ -933,6 +933,11 @@ defmodule Harbor.Migration.V01 do
     create constraint(:orders, :subtotal_gte_zero, check: "(subtotal).amount >= 0")
     create constraint(:orders, :tax_gte_zero, check: "(tax).amount >= 0")
     create constraint(:orders, :shipping_price_gte_zero, check: "(shipping_price).amount >= 0")
+
+    create constraint(:orders, :totals_same_currency,
+             check:
+               "(subtotal).currency_code = (tax).currency_code AND (subtotal).currency_code = (shipping_price).currency_code"
+           )
 
     ## Order Items
 

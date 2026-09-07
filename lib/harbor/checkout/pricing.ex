@@ -14,6 +14,7 @@ defmodule Harbor.Checkout.Pricing do
   the UI or passing to follow-up workflows.
   """
 
+  alias Harbor.Currency
   alias Harbor.Customers.Address
   alias Harbor.Orders.{Order, OrderItem}
   alias Harbor.Settings
@@ -22,10 +23,10 @@ defmodule Harbor.Checkout.Pricing do
   defstruct [
     :items,
     count: 0,
-    subtotal: Money.zero(:USD),
-    shipping_price: Money.zero(:USD),
+    subtotal: Currency.zero(),
+    shipping_price: Currency.zero(),
     tax: nil,
-    total_price: Money.zero(:USD),
+    total_price: Currency.zero(),
     meta: %{}
   ]
 
@@ -67,7 +68,7 @@ defmodule Harbor.Checkout.Pricing do
 
   defp put_subtotal(%__MODULE__{items: items} = pricing) do
     subtotal =
-      Enum.reduce(items, Money.zero(:USD), fn item, acc ->
+      Enum.reduce(items, Currency.zero(), fn item, acc ->
         Money.add!(acc, item.total_price)
       end)
 
@@ -79,10 +80,10 @@ defmodule Harbor.Checkout.Pricing do
       if Settings.delivery_enabled?() do
         case order.delivery_method do
           %DeliveryMethod{price: price} -> price
-          _ -> Money.zero(:USD)
+          _ -> Currency.zero()
         end
       else
-        Money.zero(:USD)
+        Currency.zero()
       end
 
     %{pricing | shipping_price: shipping_price}
@@ -93,7 +94,7 @@ defmodule Harbor.Checkout.Pricing do
   end
 
   defp put_total(%__MODULE__{} = pricing) do
-    tax = pricing.tax || Money.zero(:USD)
+    tax = pricing.tax || Currency.zero()
 
     total_price =
       pricing.subtotal

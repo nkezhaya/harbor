@@ -9,6 +9,7 @@ defmodule Harbor.Catalog.Variant do
   use Harbor.Schema
 
   alias Harbor.Catalog.{Product, VariantOptionValue, VariantPropertyValue}
+  alias Harbor.Currency
   alias Harbor.Tax.TaxCode
 
   @type t() :: %__MODULE__{}
@@ -52,6 +53,7 @@ defmodule Harbor.Catalog.Variant do
       :enabled,
       :inventory_policy
     ])
+    |> Currency.validate(:price)
     |> assoc_constraint(:product)
     |> assoc_constraint(:tax_code)
     |> check_constraint(:variant_option_values,
@@ -104,7 +106,7 @@ defmodule Harbor.Catalog.Variant do
 
   defp put_new_price(changeset) do
     case get_field(changeset, :price) do
-      nil -> put_change(changeset, :price, Money.new(:USD, 0))
+      nil -> put_change(changeset, :price, Currency.zero())
       _ -> changeset
     end
   end

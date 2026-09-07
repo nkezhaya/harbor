@@ -11,6 +11,7 @@ defmodule Harbor.Web.CheckoutComponents do
 
   alias Harbor.Catalog.Variant
   alias Harbor.Checkout.Pricing
+  alias Harbor.Currency
   alias Harbor.Customers.Address
   alias Harbor.Orders.{Order, OrderItem}
   alias Localize.Territory
@@ -47,7 +48,7 @@ defmodule Harbor.Web.CheckoutComponents do
           </div>
           <div :if={@tax_enabled} id="checkout-summary-tax" class="flex justify-between">
             <dt>Taxes</dt>
-            <dd class="text-gray-900">{@pricing.tax || Money.zero(:USD)}</dd>
+            <dd class="text-gray-900">{@pricing.tax || Currency.zero()}</dd>
           </div>
           <div :if={@delivery_enabled} class="flex justify-between">
             <dt>Shipping</dt>

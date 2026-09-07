@@ -12,7 +12,7 @@ defmodule Harbor.CheckoutTest do
   }
 
   alias Harbor.Accounts.Scope
-  alias Harbor.{Billing, Checkout, Settings}
+  alias Harbor.{Billing, Checkout, Currency, Settings}
   alias Harbor.Checkout.{Cart, CartItem, EnsureCheckoutPaymentIntentWorker, Session}
   alias Harbor.Orders.Order
 
@@ -923,7 +923,8 @@ defmodule Harbor.CheckoutTest do
       |> Repo.update!()
 
       # Exercise
-      expect(Harbor.Tax.TaxProviderMock, :calculate_taxes, fn _req, _key ->
+      expect(Harbor.Tax.TaxProviderMock, :calculate_taxes, fn request, _key ->
+        assert request.currency == Currency.code()
         {:ok, %{id: "taxid", amount: 1000, line_items: []}}
       end)
 

@@ -116,6 +116,13 @@ defmodule Harbor.OrdersTest do
       assert {:error, %Ecto.Changeset{}} =
                Orders.create_order(scope, %{shipping_price: nil})
     end
+
+    test "rejects fractional cents", %{scope: scope} do
+      assert {:error, changeset} =
+               Orders.create_order(scope, %{subtotal: Money.new(:USD, "10.001")})
+
+      assert errors_on(changeset).subtotal == ["must use whole cents"]
+    end
   end
 
   describe "update_order/3" do

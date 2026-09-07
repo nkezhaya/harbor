@@ -12,6 +12,7 @@ defmodule Harbor.Web.CartComponents do
   alias Harbor.Catalog.Variant
   alias Harbor.Checkout
   alias Harbor.Checkout.{Cart, CartItem}
+  alias Harbor.Currency
 
   @doc """
   Renders the variant's primary image or a placeholder when no image is
@@ -263,7 +264,7 @@ defmodule Harbor.Web.CartComponents do
     items = items_from_cart(cart)
 
     subtotal =
-      Enum.reduce(items, Money.zero(:USD), fn %CartItem{} = cart_item, acc ->
+      Enum.reduce(items, Currency.zero(), fn %CartItem{} = cart_item, acc ->
         Money.add!(acc, Money.mult!(cart_item.variant.price, cart_item.quantity))
       end)
 

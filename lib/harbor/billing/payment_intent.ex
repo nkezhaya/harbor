@@ -6,6 +6,7 @@ defmodule Harbor.Billing.PaymentIntent do
   use Harbor.Schema
 
   alias Harbor.Billing.PaymentProfile
+  alias Harbor.Currency
 
   @type t() :: %__MODULE__{}
 
@@ -36,6 +37,7 @@ defmodule Harbor.Billing.PaymentIntent do
       :payment_profile_id
     ])
     |> validate_required([:provider_ref, :status, :amount, :currency, :payment_profile_id])
+    |> validate_inclusion(:currency, [Currency.provider_code(Currency.code())])
     |> unique_constraint([:provider, :provider_ref])
   end
 end
