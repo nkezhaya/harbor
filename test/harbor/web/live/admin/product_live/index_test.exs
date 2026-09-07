@@ -54,6 +54,36 @@ defmodule Harbor.Web.Admin.ProductLive.IndexTest do
     assert has_element?(index_live, "#products", "some name")
   end
 
+  test "creates an active simple product", %{
+    conn: conn,
+    taxon: taxon,
+    product_type: product_type
+  } do
+    {:ok, form_live, _html} = live(conn, "/admin/products/new")
+
+    params =
+      create_attrs(%{
+        name: "Active simple product",
+        status: :active,
+        primary_taxon_id: taxon.id,
+        product_type_id: product_type.id,
+        master_variant: %{price: "25.00"}
+      })
+
+    assert {:ok, index_live, _html} =
+             form_live
+             |> form("#product-form", product: params)
+             |> render_submit()
+             |> follow_redirect(conn, "/admin/products")
+
+    assert has_element?(index_live, "[role=alert]", "Product created successfully")
+
+    product = Repo.get_by!(Product, name: "Active simple product")
+    product = Catalog.get_product!(product.id)
+    assert product.status == :active
+    assert product.master_variant.enabled
+  end
+
   test "updates product in listing", %{conn: conn, product: product} do
     {:ok, index_live, _html} = live(conn, "/admin/products")
 

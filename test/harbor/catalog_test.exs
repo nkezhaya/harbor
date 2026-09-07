@@ -443,6 +443,25 @@ defmodule Harbor.CatalogTest do
       assert product.variants == []
     end
 
+    test "creates an active simple product with an enabled master variant" do
+      taxon = taxon_fixture()
+      product_type = product_type_fixture()
+
+      attrs = %{
+        "name" => "Active simple product",
+        "status" => "active",
+        "primary_taxon_id" => taxon.id,
+        "taxon_ids" => [taxon.id],
+        "product_type_id" => product_type.id,
+        "master_variant" => %{"price" => "25.00"}
+      }
+
+      assert {:ok, product} = Catalog.create_product(attrs)
+      assert product.status == :active
+      assert product.master_variant.enabled
+      assert product.master_variant.price == Money.new(:USD, "25.00")
+    end
+
     test "with invalid data returns error changeset" do
       assert {:error, %Ecto.Changeset{}} =
                Catalog.create_product(%{name: nil, status: nil, description: nil, slug: nil})
@@ -575,6 +594,41 @@ defmodule Harbor.CatalogTest do
       assert product.master_variant.enabled
     end
 
+    test "enables the master variant when activating a simple product" do
+      product = product_fixture(%{status: :draft, variants: []})
+      refute product.master_variant.enabled
+
+      assert {:ok, product} = Catalog.update_product(product, %{status: :active})
+      assert product.status == :active
+      assert product.master_variant.enabled
+    end
+
+    test "disables the master variant when adding options" do
+      product = product_fixture()
+      assert product.master_variant.enabled
+
+      assert {:ok, product} =
+               Catalog.update_product(product, %{
+                 status: :draft,
+                 product_options: [%{name: "Size", values: [%{name: "Small"}]}]
+               })
+
+      assert product.product_options != []
+      refute product.master_variant.enabled
+    end
+
+    test "rejects activating an optioned product without an enabled variant" do
+      product =
+        product_fixture(%{
+          status: :draft,
+          variants: [],
+          product_options: [%{name: "Size", values: [%{name: "Small"}]}]
+        })
+
+      assert {:error, changeset} = Catalog.update_product(product, %{status: :active})
+      assert errors_on(changeset).status == ["cannot be active without a purchasable variant"]
+    end
+
     test "changing product type does not rewrite product options" do
       product_type = product_type_fixture()
       replacement_product_type = product_type_fixture()
@@ -665,41 +719,17 @@ defmodule Harbor.CatalogTest do
              end) == [["8", "Black"]]
     end
 
-    test "rejects variants that do not cover every product option" do
-      product = product_fixture(%{status: :draft, variants: []})
+    test "rejects disabling the last enabled variant of an active product" do
+      product = product_with_options_fixture([{"Size", ["Small"]}])
+      [variant] = product.variants
 
-      assert {:ok, product} =
-               Catalog.update_product(product, %{
-                 product_options: [
-                   %{name: "Size", values: [%{name: "8"}]},
-                   %{name: "Color", values: [%{name: "Black"}]}
-                 ]
+      assert {:error, changeset} =
+               Catalog.update_product_variants(product, %{
+                 variants: [%{id: variant.id, enabled: false}]
                })
 
-      [size_option | _] = product.product_options
-      [small_value | _] = size_option.values
-
-      attrs = %{
-        variants: [
-          %{
-            sku: "trail-shoe-8",
-            price: Money.new(:USD, 80),
-            inventory_policy: :track_strict,
-            quantity_available: 10,
-            enabled: true,
-            variant_option_values: [
-              %{product_option_id: size_option.id, product_option_value_id: small_value.id}
-            ]
-          }
-        ]
-      }
-
-      Harbor.TestRepo.query!("SET CONSTRAINTS product_variant_shape_validation_check IMMEDIATE")
-
-      assert {:error, changeset} = Catalog.update_product_variants(product, attrs)
-
       assert errors_on(changeset).variants == [
-               %{variant_option_values: ["must cover all product options"]}
+               "must include a purchasable variant while the product is active"
              ]
     end
   end

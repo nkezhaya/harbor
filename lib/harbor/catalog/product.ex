@@ -84,10 +84,6 @@ defmodule Harbor.Catalog.Product do
       name: :products_primary_taxon_in_taxons,
       message: "must be one of the selected taxons"
     )
-    |> check_constraint(:status,
-      name: :active_products_must_have_purchasable_variant,
-      message: "cannot be active without a purchasable variant"
-    )
   end
 
   def with_master_variant_changeset(product, attrs) do
@@ -95,6 +91,11 @@ defmodule Harbor.Catalog.Product do
     |> changeset(attrs)
     |> cast_assoc(:master_variant, with: &Variant.master_changeset/2)
     |> ensure_master_variant()
+    |> sync_master_variant()
+    |> validate_active_optioned_product_has_enabled_variant(
+      :status,
+      "cannot be active without a purchasable variant"
+    )
   end
 
   defp ensure_master_variant(changeset) do
@@ -113,6 +114,19 @@ defmodule Harbor.Catalog.Product do
     end
   end
 
+  defp sync_master_variant(changeset) do
+    master_variant = get_assoc(changeset, :master_variant)
+
+    enabled =
+      cond do
+        has_product_options?(changeset) -> false
+        get_field(changeset, :status) == :active -> true
+        true -> get_field(master_variant, :enabled)
+      end
+
+    put_assoc(changeset, :master_variant, put_change(master_variant, :enabled, enabled))
+  end
+
   defp validate_product_options_locked(changeset) do
     if get_assoc(changeset, :variants) != [] and changed?(changeset, :product_options) do
       add_error(changeset, :product_options, "cannot be changed once variants exist")
@@ -125,9 +139,28 @@ defmodule Harbor.Catalog.Product do
     product
     |> cast(attrs, [])
     |> cast_assoc(:variants, sort_param: :variants_sort, drop_param: :variants_drop)
-    |> check_constraint(:variants,
-      name: :active_products_must_have_purchasable_variant,
-      message: "must include a purchasable variant while the product is active"
+    |> validate_active_optioned_product_has_enabled_variant(
+      :variants,
+      "must include a purchasable variant while the product is active"
     )
+  end
+
+  defp validate_active_optioned_product_has_enabled_variant(changeset, field, message) do
+    if get_field(changeset, :status) == :active and has_product_options?(changeset) and
+         not has_enabled_variants?(changeset) do
+      add_error(changeset, field, message)
+    else
+      changeset
+    end
+  end
+
+  defp has_product_options?(changeset) do
+    Enum.any?(get_assoc(changeset, :product_options), &(&1.action not in [:delete, :replace]))
+  end
+
+  defp has_enabled_variants?(changeset) do
+    Enum.any?(get_assoc(changeset, :variants), fn variant ->
+      variant.action not in [:delete, :replace] and get_field(variant, :enabled)
+    end)
   end
 end

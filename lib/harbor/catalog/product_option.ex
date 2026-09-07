@@ -31,10 +31,6 @@ defmodule Harbor.Catalog.ProductOption do
     )
     |> validate_required([:name, :position])
     |> assoc_constraint(:product)
-    |> check_constraint(:values,
-      name: :product_options_must_have_values,
-      message: "must be present."
-    )
     |> check_constraint(:position,
       name: :position_gte_zero,
       message: "must be greater than or equal to 0"
