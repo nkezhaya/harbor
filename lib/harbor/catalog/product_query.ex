@@ -23,7 +23,7 @@ defmodule Harbor.Catalog.ProductQuery do
     field :taxon, :string
     field :price_min, :integer
     field :price_max, :integer
-    field :options, :map, default: %{}
+    field :options, {:map, :string}, default: %{}
 
     field :sort, Ecto.Enum,
       values: [:newest, :price_asc, :price_desc, :name_asc, :name_desc],
