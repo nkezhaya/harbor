@@ -68,7 +68,12 @@ defmodule Harbor.Repo do
 
   def paginate(queryable, opts) when is_list(opts) do
     max_per_page = 100
-    per_page = min(opts[:per_page] || 20, max_per_page)
+
+    per_page =
+      (opts[:per_page] || 20)
+      |> max(1)
+      |> min(max_per_page)
+
     total = aggregate(queryable, :count)
     total_pages = max(ceil(total / per_page), 1)
 
