@@ -10,8 +10,9 @@ defmodule Harbor.MixProject do
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
       deps: deps(),
+      description: "An opinionated e-commerce toolkit built with Phoenix LiveView.",
       package: package(),
-      dialyzer: [plt_add_apps: [:credo]],
+      dialyzer: [plt_add_apps: [:credo, :ex_unit, :mix]],
       compilers: [:phoenix_live_view] ++ Mix.compilers(),
       listeners: [Phoenix.CodeReloader],
       test_coverage: [ignore_modules: [~r/Mix\.Tasks\.Harbor/, ~r/\.Stripe/]],
@@ -42,7 +43,15 @@ defmodule Harbor.MixProject do
 
   defp package do
     [
-      files: ~w(lib assets dist priv/gettext mix.exs README.md LICENSE),
+      files: ~w(
+        lib
+        priv/gettext
+        dist/css/admin.css
+        dist/js/admin.js
+        mix.exs
+        README.md
+        LICENSE
+      ),
       licenses: ["MIT"],
       links: %{"GitHub" => "https://github.com/nkezhaya/harbor"}
     ]
@@ -88,7 +97,8 @@ defmodule Harbor.MixProject do
        sparse: "optimized",
        app: false,
        compile: false,
-       depth: 1},
+       depth: 1,
+       only: :dev},
       {:swoosh, "~> 1.28"},
       {:req, "~> 0.7"},
       {:telemetry_metrics, "~> 1.0"},
@@ -118,13 +128,25 @@ defmodule Harbor.MixProject do
   # See the documentation for `Mix` for more info on aliases.
   defp aliases do
     [
-      dev: ["run --no-start dev.exs"],
+      dev: ["assets.build", "run --no-start dev.exs"],
       setup: ["deps.get", "ecto.reset", "assets.setup", "assets.build"],
       "ecto.reset": ["ecto.drop", "ecto.create"],
       test: ["ecto.create --quiet", "test"],
-      "assets.setup": ["tailwind.install --if-missing", "esbuild.install --if-missing"],
-      "assets.build": ["tailwind harbor", "tailwind admin", "esbuild harbor", "esbuild admin"],
+      "assets.setup": [
+        "cmd --cd assets npm ci --include=dev --no-audit --no-fund",
+        "tailwind.install --if-missing",
+        "esbuild.install --if-missing"
+      ],
+      "assets.build": [
+        "compile",
+        "tailwind harbor",
+        "tailwind admin_dev",
+        "esbuild harbor",
+        "esbuild admin_dev"
+      ],
       "assets.deploy": [
+        "assets.setup",
+        "compile",
         "tailwind harbor --minify",
         "tailwind admin --minify",
         "esbuild harbor --minify",
