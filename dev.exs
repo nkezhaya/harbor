@@ -87,14 +87,13 @@ Application.put_env(:harbor, DemoWeb.Endpoint,
   ],
   watchers: [
     esbuild: {Esbuild, :install_and_run, [:harbor, ~w(--sourcemap=inline --watch)]},
-    esbuild_admin: {Esbuild, :install_and_run, [:admin, ~w(--sourcemap=inline --watch)]},
+    esbuild_admin: {Esbuild, :install_and_run, [:admin_dev, ~w(--sourcemap=inline --watch)]},
     tailwind: {Tailwind, :install_and_run, [:harbor, ~w(--watch)]},
-    tailwind_admin: {Tailwind, :install_and_run, [:admin, ~w(--watch)]}
+    tailwind_admin: {Tailwind, :install_and_run, [:admin_dev, ~w(--watch)]}
   ],
   live_reload: [
     web_console_logger: true,
     patterns: [
-      ~r"dist/.*(js|css)$",
       ~r"priv/static/(?!uploads/).*(js|css|png|jpeg|jpg|gif|svg)$",
       ~r"priv/gettext/.*(po)$",
       ~r"lib/harbor/web/(?:controllers|live|components|router)/?.*\.(ex|heex)$"
@@ -171,7 +170,28 @@ defmodule DemoWeb.Endpoint do
   plug Plug.MethodOverride
   plug Plug.Head
   plug Plug.Session, @session_options
+  plug :admin_assets
   plug DemoWeb.Router
+
+  defp admin_assets(%{method: "GET", path_info: ["admin", "assets", "admin-css-" <> _]} = conn, _) do
+    send_admin_asset(conn, "css", "text/css")
+  end
+
+  defp admin_assets(%{method: "GET", path_info: ["admin", "assets", "admin-js-" <> _]} = conn, _) do
+    send_admin_asset(conn, "js", "text/javascript")
+  end
+
+  defp admin_assets(conn, _), do: conn
+
+  defp send_admin_asset(conn, extension, content_type) do
+    path = Path.join(__DIR__, "priv/static/assets/admin/#{extension}/admin.#{extension}")
+
+    conn
+    |> put_resp_content_type(content_type)
+    |> put_resp_header("cache-control", "no-store")
+    |> send_file(200, path)
+    |> halt()
+  end
 end
 
 Application.ensure_all_started(:postgrex)

@@ -20,6 +20,12 @@ config :esbuild,
       ~w(js/admin.js --bundle --format=esm --target=es2022 --outfile=../dist/js/admin.js --external:/fonts/* --external:/images/* --alias:@=.),
     cd: Path.expand("../assets", __DIR__),
     env: %{"NODE_PATH" => [Path.expand("../deps", __DIR__), Mix.Project.build_path()]}
+  ],
+  admin_dev: [
+    args:
+      ~w(js/admin.js --bundle --format=esm --target=es2022 --outfile=../priv/static/assets/admin/js/admin.js --external:/fonts/* --external:/images/* --alias:@=.),
+    cd: Path.expand("../assets", __DIR__),
+    env: %{"NODE_PATH" => [Path.expand("../deps", __DIR__), Mix.Project.build_path()]}
   ]
 
 config :tailwind,
@@ -35,6 +41,13 @@ config :tailwind,
     args: ~w(
         --input=assets/css/admin.css
         --output=dist/css/admin.css
+      ),
+    cd: Path.expand("..", __DIR__)
+  ],
+  admin_dev: [
+    args: ~w(
+        --input=assets/css/admin.css
+        --output=priv/static/assets/admin/css/admin.css
       ),
     cd: Path.expand("..", __DIR__)
   ]
