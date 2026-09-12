@@ -10,6 +10,13 @@ defmodule Harbor.Config do
     Application.fetch_env!(:harbor, :repo)
   end
 
+  @doc """
+  Returns the required `:harbor, :email_from` sender as a `{name, address}` tuple.
+  """
+  def email_from do
+    Application.fetch_env!(:harbor, :email_from)
+  end
+
   def tax_provider do
     Application.get_env(:harbor, :tax_provider, Harbor.Tax.TaxProvider.Stripe)
   end
@@ -44,7 +51,7 @@ defmodule Harbor.Config do
     Application.get_env(:harbor, :sudo_mode, minutes: 15)
   end
 
-  @required_keys [:repo, :oban, :mailer, :s3_bucket, :cdn_url]
+  @required_keys [:repo, :oban, :mailer, :email_from, :s3_bucket, :cdn_url]
 
   def validate! do
     missing =
@@ -61,6 +68,7 @@ defmodule Harbor.Config do
           config :harbor, :repo, MyApp.Repo
           config :harbor, :oban, MyApp.Oban
           config :harbor, :mailer, MyApp.Mailer
+          config :harbor, :email_from, {"My Store", "support@example.com"}
           config :harbor, :s3_bucket, "my-bucket"
           config :harbor, :cdn_url, "https://my-distribution.cloudfront.net"
       """

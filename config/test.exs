@@ -14,7 +14,8 @@ config :harbor,
   ecto_repos: [Harbor.TestRepo],
   repo: Harbor.TestRepo,
   oban: Harbor.TestOban,
-  mailer: Harbor.TestMailer
+  mailer: Harbor.TestMailer,
+  email_from: {"Test Store", "support@store.example"}
 
 config :harbor, Harbor.TestRepo,
   url: "postgres://postgres:postgres@localhost:5432/harbor_test",

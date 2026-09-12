@@ -37,6 +37,17 @@ config :my_app, MyApp.Oban,
   # ...
 ```
 
+## Configure the email sender
+
+Set the sender used by Harbor's authentication emails in your runtime configuration:
+
+```elixir
+# config/runtime.exs
+config :harbor, :email_from, {"My Store", "support@example.com"}
+```
+
+Use `Harbor.Config.email_from/0` in your own email builders to share this sender.
+
 ## Configure money
 
 Harbor uses [ex_money](https://hexdocs.pm/ex_money) for monetary values. Configure

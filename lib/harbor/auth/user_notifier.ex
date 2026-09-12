@@ -5,14 +5,14 @@ defmodule Harbor.Auth.UserNotifier do
   import Swoosh.Email
 
   alias Harbor.Accounts.User
-  alias Harbor.Mailer
+  alias Harbor.{Config, Mailer}
 
   # Delivers the email using the application mailer.
   defp deliver(recipient, subject, body) do
     email =
       new()
       |> to(recipient)
-      |> from({"Harbor", "contact@example.com"})
+      |> from(Config.email_from())
       |> subject(subject)
       |> text_body(body)
 

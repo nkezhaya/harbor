@@ -44,6 +44,7 @@ Application.put_env(:harbor, :cdn_url, System.fetch_env!("HARBOR_CDN_URL"))
 Application.put_env(:harbor, :repo, Harbor.DevRepo)
 Application.put_env(:harbor, :oban, Harbor.DevOban)
 Application.put_env(:harbor, :mailer, Harbor.DevMailer)
+Application.put_env(:harbor, :email_from, {"Harbor Demo", "support@example.com"})
 
 pg_url =
   System.get_env("DATABASE_URL") || "postgres://postgres:postgres@localhost:5432/harbor_dev"
