@@ -11,13 +11,8 @@ defmodule Harbor.Tax.TaxProvider.Stripe do
 
   @impl TaxProvider
   def list_tax_codes do
-    case do_list_tax_codes() do
-      tax_codes when is_list(tax_codes) ->
-        tax_codes = Enum.map(tax_codes, &normalize_tax_code/1)
-        {:ok, tax_codes}
-
-      {:error, _} = error ->
-        error
+    with {:ok, tax_codes} <- do_list_tax_codes() do
+      {:ok, Enum.map(tax_codes, &normalize_tax_code/1)}
     end
   end
 
@@ -32,12 +27,13 @@ defmodule Harbor.Tax.TaxProvider.Stripe do
       end
 
     case Stripe.TaxCode.list(params) do
-      {:ok, %{data: tax_codes, has_more: has_more}} ->
-        if has_more do
-          tax_codes ++ do_list_tax_codes(List.last(tax_codes).id)
-        else
-          tax_codes
+      {:ok, %{data: tax_codes, has_more: true}} ->
+        with {:ok, remaining_tax_codes} <- do_list_tax_codes(List.last(tax_codes).id) do
+          {:ok, tax_codes ++ remaining_tax_codes}
         end
+
+      {:ok, %{data: tax_codes, has_more: false}} ->
+        {:ok, tax_codes}
 
       {:error, _} = error ->
         error
