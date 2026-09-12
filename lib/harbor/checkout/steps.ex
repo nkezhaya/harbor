@@ -12,6 +12,7 @@ defmodule Harbor.Checkout.Steps do
           {:ok, Session.t(), Scope.t()} | {:error, Ecto.Changeset.t()}
   def complete_contact_step(%Scope{} = scope, %Session{} = session, params) do
     session = Repo.preload(session, order: [:cart])
+    ensure_authorized!(scope, session.order.cart)
 
     Repo.transact(fn ->
       order = session.order
