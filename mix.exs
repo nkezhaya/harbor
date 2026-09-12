@@ -10,6 +10,7 @@ defmodule Harbor.MixProject do
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
       deps: deps(),
+      description: "An opinionated e-commerce toolkit built with Phoenix LiveView.",
       package: package(),
       dialyzer: [plt_add_apps: [:credo, :ex_unit, :mix]],
       compilers: [:phoenix_live_view] ++ Mix.compilers(),
@@ -42,7 +43,15 @@ defmodule Harbor.MixProject do
 
   defp package do
     [
-      files: ~w(lib assets dist priv/gettext mix.exs README.md LICENSE),
+      files: ~w(
+        lib
+        priv/gettext
+        dist/css/admin.css
+        dist/js/admin.js
+        mix.exs
+        README.md
+        LICENSE
+      ),
       licenses: ["MIT"],
       links: %{"GitHub" => "https://github.com/nkezhaya/harbor"}
     ]
@@ -88,7 +97,8 @@ defmodule Harbor.MixProject do
        sparse: "optimized",
        app: false,
        compile: false,
-       depth: 1},
+       depth: 1,
+       only: :dev},
       {:swoosh, "~> 1.28"},
       {:req, "~> 0.7"},
       {:telemetry_metrics, "~> 1.0"},
