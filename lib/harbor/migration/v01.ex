@@ -738,7 +738,7 @@ defmodule Harbor.Migration.V01 do
 
     create table(:product_images, primary_key: false) do
       add :id, :binary_id, primary_key: true, default: fragment("uuidv7()")
-      add :status, :string, null: false, default: "draft"
+      add :status, :string, null: false, default: "pending"
       add :file_name, :string, null: false
       add :file_size, :integer, null: false
       add :file_type, :string, null: false
