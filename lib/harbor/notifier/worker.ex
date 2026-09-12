@@ -6,6 +6,12 @@ defmodule Harbor.Notifier.Worker do
 
   @impl Oban.Worker
   def perform(%Oban.Job{args: %{"event" => "order_confirmed", "order_id" => order_id}}) do
-    Config.notifier().order_confirmed(%{order_id: order_id})
+    case Config.notifier() do
+      nil ->
+        :ok
+
+      notifier ->
+        notifier.order_confirmed(%{order_id: order_id})
+    end
   end
 end
