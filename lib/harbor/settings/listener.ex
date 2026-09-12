@@ -14,13 +14,17 @@ defmodule Harbor.Settings.Listener do
   @impl GenServer
   def init(_opts) do
     repo = Config.repo()
-    config = repo.config()
+    config = Keyword.put(repo.config(), :auto_reconnect, false)
 
     {:ok, pid} = Postgrex.Notifications.start_link(config)
 
     case Postgrex.Notifications.listen(pid, @channel) do
-      {:ok, ref} -> {:ok, %{pid: pid, ref: ref}}
-      {:error, reason} -> {:stop, reason}
+      {:ok, ref} ->
+        Cache.delete(:settings)
+        {:ok, %{pid: pid, ref: ref}}
+
+      {:error, reason} ->
+        {:stop, reason}
     end
   end
 

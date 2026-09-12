@@ -13,7 +13,7 @@ defmodule Harbor.Application do
 
     children =
       case Config.cache() do
-        Harbor.Cache.ETS -> children ++ [Harbor.Cache.ETS]
+        Harbor.Cache.ETS -> [Harbor.Cache.ETS | children]
         _ -> children
       end
 
