@@ -1,6 +1,6 @@
-defmodule Harbor.Catalog.Taxon do
+defmodule Harbor.Taxonomies.Taxon do
   @moduledoc """
-  A taxon is a merchandising node owned by a `Harbor.Catalog.Taxonomy`.
+  A taxon is a merchandising node owned by a `Harbor.Taxonomies.Taxonomy`.
 
   Parent and child taxons belong to the same taxonomy. Taxons are used for
   navigation and collection-style placement, not as the primary definition of
@@ -8,8 +8,9 @@ defmodule Harbor.Catalog.Taxon do
   """
   use Harbor.Schema
 
-  alias Harbor.Catalog.{ProductTaxon, Taxonomy}
+  alias Harbor.Catalog.ProductTaxon
   alias Harbor.Slug
+  alias Harbor.Taxonomies.Taxonomy
 
   @type t() :: %__MODULE__{}
 

@@ -2,9 +2,9 @@ defmodule Harbor.Web.Admin.TaxonomyLive.IndexTest do
   use Harbor.ConnCase, async: true
 
   import Phoenix.LiveViewTest
-  import Harbor.CatalogFixtures
+  import Harbor.TaxonomiesFixtures
 
-  alias Harbor.Catalog
+  alias Harbor.Taxonomies
 
   setup :register_and_log_in_admin
 
@@ -44,7 +44,7 @@ defmodule Harbor.Web.Admin.TaxonomyLive.IndexTest do
              |> render_submit()
              |> follow_redirect(conn, "/admin/taxonomies")
 
-    assert [taxonomy] = Catalog.list_taxonomies()
+    assert [taxonomy] = Taxonomies.list_taxonomies()
     assert taxonomy.slug == "categories"
     assert has_element?(view, "#taxonomies-#{taxonomy.id}", "Categories")
     refute has_element?(view, "#taxonomies-empty")
@@ -73,7 +73,7 @@ defmodule Harbor.Web.Admin.TaxonomyLive.IndexTest do
              |> follow_redirect(conn, "/admin/taxonomies")
 
     assert has_element?(view, "#taxonomies-#{taxonomy.id}", "Collections")
-    assert Catalog.get_taxonomy!(taxonomy.id).position == 2
+    assert Taxonomies.get_taxonomy!(taxonomy.id).position == 2
   end
 
   test "displays a duplicate-name error", %{conn: conn} do

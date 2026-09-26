@@ -1,8 +1,8 @@
 defmodule Harbor.Web.Admin.TaxonomyLive.Form do
   use Harbor.Web, :live_view
 
-  alias Harbor.Catalog
-  alias Harbor.Catalog.Taxonomy
+  alias Harbor.Taxonomies
+  alias Harbor.Taxonomies.Taxonomy
 
   @impl true
   def render(assigns) do
@@ -38,12 +38,12 @@ defmodule Harbor.Web.Admin.TaxonomyLive.Form do
   end
 
   defp apply_action(socket, :edit, %{"id" => id}) do
-    taxonomy = Catalog.get_taxonomy!(id)
+    taxonomy = Taxonomies.get_taxonomy!(id)
 
     socket
     |> assign(:page_title, "Edit Taxonomy")
     |> assign(:taxonomy, taxonomy)
-    |> assign(:form, to_form(Catalog.change_taxonomy(socket.assigns.current_scope, taxonomy)))
+    |> assign(:form, to_form(Taxonomies.change_taxonomy(socket.assigns.current_scope, taxonomy)))
   end
 
   defp apply_action(socket, :new, _params) do
@@ -52,13 +52,13 @@ defmodule Harbor.Web.Admin.TaxonomyLive.Form do
     socket
     |> assign(:page_title, "New Taxonomy")
     |> assign(:taxonomy, taxonomy)
-    |> assign(:form, to_form(Catalog.change_taxonomy(socket.assigns.current_scope, taxonomy)))
+    |> assign(:form, to_form(Taxonomies.change_taxonomy(socket.assigns.current_scope, taxonomy)))
   end
 
   @impl true
   def handle_event("validate", %{"taxonomy" => params}, socket) do
     changeset =
-      Catalog.change_taxonomy(socket.assigns.current_scope, socket.assigns.taxonomy, params)
+      Taxonomies.change_taxonomy(socket.assigns.current_scope, socket.assigns.taxonomy, params)
 
     {:noreply, assign(socket, :form, to_form(changeset, action: :validate))}
   end
@@ -68,7 +68,7 @@ defmodule Harbor.Web.Admin.TaxonomyLive.Form do
   end
 
   defp save_taxonomy(socket, :new, params) do
-    case Catalog.create_taxonomy(socket.assigns.current_scope, params) do
+    case Taxonomies.create_taxonomy(socket.assigns.current_scope, params) do
       {:ok, taxonomy} ->
         {:noreply,
          socket
@@ -81,7 +81,7 @@ defmodule Harbor.Web.Admin.TaxonomyLive.Form do
   end
 
   defp save_taxonomy(socket, :edit, params) do
-    case Catalog.update_taxonomy(socket.assigns.current_scope, socket.assigns.taxonomy, params) do
+    case Taxonomies.update_taxonomy(socket.assigns.current_scope, socket.assigns.taxonomy, params) do
       {:ok, taxonomy} ->
         {:noreply,
          socket

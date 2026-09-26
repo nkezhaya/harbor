@@ -15,12 +15,12 @@ defmodule Harbor.Catalog.Product do
     ProductPropertyValue,
     ProductTaxon,
     ProductType,
-    Taxon,
     Variant
   }
 
   alias Harbor.Slug
   alias Harbor.Tax.TaxCode
+  alias Harbor.Taxonomies.Taxon
 
   @type t() :: %__MODULE__{}
 

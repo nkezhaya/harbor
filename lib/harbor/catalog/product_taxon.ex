@@ -2,7 +2,8 @@ defmodule Harbor.Catalog.ProductTaxon do
   @moduledoc false
   use Harbor.Schema
 
-  alias Harbor.Catalog.{Product, Taxon}
+  alias Harbor.Catalog.Product
+  alias Harbor.Taxonomies.Taxon
 
   @primary_key false
   schema "product_taxons" do

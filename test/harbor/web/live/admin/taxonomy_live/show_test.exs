@@ -3,8 +3,9 @@ defmodule Harbor.Web.Admin.TaxonomyLive.ShowTest do
 
   import Phoenix.LiveViewTest
   import Harbor.CatalogFixtures
+  import Harbor.TaxonomiesFixtures
 
-  alias Harbor.Catalog
+  alias Harbor.Taxonomies
 
   setup :register_and_log_in_admin
 
@@ -62,9 +63,9 @@ defmodule Harbor.Web.Admin.TaxonomyLive.ShowTest do
              |> render_submit(%{"taxon" => %{"taxonomy_id" => other.id}})
              |> follow_redirect(conn, "/admin/taxonomies/#{taxonomy.id}")
 
-    assert [taxon] = Catalog.list_taxons(taxonomy.id)
+    assert [taxon] = Taxonomies.list_taxons(taxonomy.id)
     assert taxon.name == "Shirts"
-    assert Catalog.list_taxons(other.id) == []
+    assert Taxonomies.list_taxons(other.id) == []
     assert has_element?(view, "#taxons-#{taxon.id}", "Shirts")
     refute has_element?(view, "#taxons-empty")
   end
@@ -109,7 +110,7 @@ defmodule Harbor.Web.Admin.TaxonomyLive.ShowTest do
              "#taxons-empty #new-taxon[href='/admin/taxonomies/#{taxon.taxonomy_id}/taxons/new']"
            )
 
-    assert Catalog.get_taxonomy!(taxon.taxonomy_id)
+    assert Taxonomies.get_taxonomy!(taxon.taxonomy_id)
   end
 
   test "keeps remaining taxons visible after deletion", %{conn: conn} do
@@ -126,7 +127,7 @@ defmodule Harbor.Web.Admin.TaxonomyLive.ShowTest do
 
   test "does not hide a taxon when deletion is blocked", %{conn: conn} do
     product = product_fixture()
-    taxon = Catalog.get_taxon!(product.primary_taxon_id)
+    taxon = Taxonomies.get_taxon!(product.primary_taxon_id)
     {:ok, view, _html} = live(conn, "/admin/taxonomies/#{taxon.taxonomy_id}")
 
     view |> element("#delete-taxon-#{taxon.id}") |> render_click()

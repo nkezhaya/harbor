@@ -1,7 +1,7 @@
 defmodule Harbor.Web.Admin.TaxonomyLive.Show do
   use Harbor.Web, :live_view
 
-  alias Harbor.Catalog
+  alias Harbor.Taxonomies
 
   @impl true
   def render(assigns) do
@@ -105,8 +105,8 @@ defmodule Harbor.Web.Admin.TaxonomyLive.Show do
 
   @impl true
   def mount(%{"id" => id}, _session, socket) do
-    taxonomy = Catalog.get_taxonomy!(id)
-    taxons = Catalog.list_taxons(taxonomy.id)
+    taxonomy = Taxonomies.get_taxonomy!(id)
+    taxons = Taxonomies.list_taxons(taxonomy.id)
 
     {:ok,
      socket
@@ -118,11 +118,11 @@ defmodule Harbor.Web.Admin.TaxonomyLive.Show do
 
   @impl true
   def handle_event("delete", %{"id" => id}, socket) do
-    taxon = Catalog.get_taxon!(socket.assigns.taxonomy.id, id)
+    taxon = Taxonomies.get_taxon!(socket.assigns.taxonomy.id, id)
 
-    case Catalog.delete_taxon(socket.assigns.current_scope, taxon) do
+    case Taxonomies.delete_taxon(socket.assigns.current_scope, taxon) do
       {:ok, _taxon} ->
-        taxons = Catalog.list_taxons(socket.assigns.taxonomy.id)
+        taxons = Taxonomies.list_taxons(socket.assigns.taxonomy.id)
 
         {:noreply,
          socket

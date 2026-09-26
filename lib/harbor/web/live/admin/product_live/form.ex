@@ -7,7 +7,7 @@ defmodule Harbor.Web.Admin.ProductLive.Form do
   import Phoenix.HTML.Form, only: [input_name: 2]
 
   alias Ecto.Changeset
-  alias Harbor.{Catalog, Config, Tax, Util}
+  alias Harbor.{Catalog, Config, Tax, Taxonomies, Util}
   alias Harbor.Catalog.Forms.MediaUpload
   alias Harbor.Catalog.{Product, ProductOptionValue}
   alias Phoenix.LiveView.ColocatedHook
@@ -495,7 +495,7 @@ defmodule Harbor.Web.Admin.ProductLive.Form do
   end
 
   defp taxon_options do
-    for taxon <- Catalog.list_taxons() do
+    for taxon <- Taxonomies.list_taxons() do
       {"#{taxon.taxonomy.name} / #{taxon.name}", taxon.id}
     end
   end

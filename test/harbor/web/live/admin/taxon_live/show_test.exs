@@ -2,7 +2,7 @@ defmodule Harbor.Web.Admin.TaxonLive.ShowTest do
   use Harbor.ConnCase, async: true
 
   import Phoenix.LiveViewTest
-  import Harbor.CatalogFixtures
+  import Harbor.TaxonomiesFixtures
 
   setup :register_and_log_in_admin
 

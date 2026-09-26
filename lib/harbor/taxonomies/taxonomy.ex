@@ -1,4 +1,4 @@
-defmodule Harbor.Catalog.Taxonomy do
+defmodule Harbor.Taxonomies.Taxonomy do
   @moduledoc """
   A named grouping of taxons, such as Categories, Departments, or Collections.
 
@@ -7,8 +7,8 @@ defmodule Harbor.Catalog.Taxonomy do
   """
   use Harbor.Schema
 
-  alias Harbor.Catalog.Taxon
   alias Harbor.Slug
+  alias Harbor.Taxonomies.Taxon
 
   @type t() :: %__MODULE__{}
 

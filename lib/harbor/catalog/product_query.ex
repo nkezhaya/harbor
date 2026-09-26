@@ -14,7 +14,8 @@ defmodule Harbor.Catalog.ProductQuery do
   import Harbor.Authorization
   import Harbor.QueryMacros
 
-  alias Harbor.Catalog.{ProductTaxon, Taxon, Variant}
+  alias Harbor.Catalog.{ProductTaxon, Variant}
+  alias Harbor.Taxonomies.Taxon
 
   @primary_key false
   embedded_schema do

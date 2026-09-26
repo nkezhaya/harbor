@@ -3,6 +3,7 @@ defmodule Harbor.Web.Admin.ProductLive.FormTest do
 
   import Phoenix.LiveViewTest
   import Harbor.CatalogFixtures
+  import Harbor.TaxonomiesFixtures
 
   alias Harbor.Catalog.ProductImage
 

@@ -1,7 +1,7 @@
 defmodule Harbor.Web.Admin.TaxonLive.Show do
   use Harbor.Web, :live_view
 
-  alias Harbor.Catalog
+  alias Harbor.Taxonomies
 
   @impl true
   def render(assigns) do
@@ -49,8 +49,8 @@ defmodule Harbor.Web.Admin.TaxonLive.Show do
 
   @impl true
   def mount(%{"taxonomy_id" => taxonomy_id, "id" => id}, _session, socket) do
-    taxonomy = Catalog.get_taxonomy!(taxonomy_id)
-    taxon = Catalog.get_taxon!(taxonomy.id, id)
+    taxonomy = Taxonomies.get_taxonomy!(taxonomy_id)
+    taxon = Taxonomies.get_taxon!(taxonomy.id, id)
 
     {:ok,
      socket

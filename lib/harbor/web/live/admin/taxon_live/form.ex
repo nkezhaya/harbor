@@ -1,8 +1,8 @@
 defmodule Harbor.Web.Admin.TaxonLive.Form do
   use Harbor.Web, :live_view
 
-  alias Harbor.Catalog
-  alias Harbor.Catalog.Taxon
+  alias Harbor.Taxonomies
+  alias Harbor.Taxonomies.Taxon
 
   @impl true
   def render(assigns) do
@@ -36,18 +36,18 @@ defmodule Harbor.Web.Admin.TaxonLive.Form do
   def mount(%{"taxonomy_id" => taxonomy_id} = params, _session, socket) do
     {:ok,
      socket
-     |> assign(:taxonomy, Catalog.get_taxonomy!(taxonomy_id))
+     |> assign(:taxonomy, Taxonomies.get_taxonomy!(taxonomy_id))
      |> assign(:return_to, return_to(params["return_to"]))
      |> apply_action(socket.assigns.live_action, params)}
   end
 
   defp apply_action(socket, :edit, %{"id" => id}) do
-    taxon = Catalog.get_taxon!(socket.assigns.taxonomy.id, id)
+    taxon = Taxonomies.get_taxon!(socket.assigns.taxonomy.id, id)
 
     socket
     |> assign(:page_title, "Edit Taxon")
     |> assign(:taxon, taxon)
-    |> assign(:form, to_form(Catalog.change_taxon(socket.assigns.current_scope, taxon)))
+    |> assign(:form, to_form(Taxonomies.change_taxon(socket.assigns.current_scope, taxon)))
   end
 
   defp apply_action(socket, :new, _params) do
@@ -56,13 +56,13 @@ defmodule Harbor.Web.Admin.TaxonLive.Form do
     socket
     |> assign(:page_title, "New Taxon")
     |> assign(:taxon, taxon)
-    |> assign(:form, to_form(Catalog.change_taxon(socket.assigns.current_scope, taxon)))
+    |> assign(:form, to_form(Taxonomies.change_taxon(socket.assigns.current_scope, taxon)))
   end
 
   @impl true
   def handle_event("validate", %{"taxon" => taxon_params}, socket) do
     changeset =
-      Catalog.change_taxon(
+      Taxonomies.change_taxon(
         socket.assigns.current_scope,
         socket.assigns.taxon,
         taxon_params
@@ -76,7 +76,7 @@ defmodule Harbor.Web.Admin.TaxonLive.Form do
   end
 
   defp save_taxon(socket, :edit, taxon_params) do
-    case Catalog.update_taxon(socket.assigns.current_scope, socket.assigns.taxon, taxon_params) do
+    case Taxonomies.update_taxon(socket.assigns.current_scope, socket.assigns.taxon, taxon_params) do
       {:ok, taxon} ->
         {:noreply,
          socket
@@ -93,7 +93,7 @@ defmodule Harbor.Web.Admin.TaxonLive.Form do
   defp save_taxon(socket, :new, taxon_params) do
     taxon_params = Map.put(taxon_params, "taxonomy_id", socket.assigns.taxonomy.id)
 
-    case Catalog.create_taxon(socket.assigns.current_scope, taxon_params) do
+    case Taxonomies.create_taxon(socket.assigns.current_scope, taxon_params) do
       {:ok, taxon} ->
         {:noreply,
          socket
