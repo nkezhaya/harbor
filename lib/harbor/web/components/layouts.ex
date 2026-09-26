@@ -134,6 +134,14 @@ defmodule Harbor.Web.Layouts do
                 </:header>
                 <:item
                   :if={@current_scope.authenticated?}
+                  id="account-orders"
+                  href="/orders"
+                  icon="hero-clipboard-document-list"
+                >
+                  Orders
+                </:item>
+                <:item
+                  :if={@current_scope.authenticated?}
                   id="account-settings"
                   href="/users/settings"
                   icon="hero-cog-8-tooth"
