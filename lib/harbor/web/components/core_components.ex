@@ -677,10 +677,10 @@ defmodule Harbor.Web.CoreComponents do
   end
 
   @doc """
-  Renders a dropdown menu triggered by a vertical ellipsis (three-dot) button.
+  Renders a dropdown of links with optional icons, separators, and a header.
 
-  Uses `Phoenix.LiveView.JS` to toggle the menu on click and close it when
-  clicking outside.
+  Links use normal Tab navigation. Escape closes the dropdown and returns
+  focus to its trigger.
 
   ## Examples
 
@@ -690,46 +690,77 @@ defmodule Harbor.Web.CoreComponents do
       </.dropdown>
   """
   attr :id, :string, required: true
+
+  attr :menu_width, :string,
+    default: "sm",
+    values: ~w(sm md),
+    doc: "sm is 10rem wide; md is at least 16rem wide"
+
+  attr :icon, :string, default: "hero-ellipsis-vertical"
   attr :rest, :global
 
+  slot :header
+
   slot :item, required: true do
+    attr :id, :string
     attr :navigate, :string
     attr :href, :string
     attr :patch, :string
+    attr :method, :string
+    attr :icon, :string
+    attr :separator, :boolean
   end
 
   def dropdown(assigns) do
     ~H"""
-    <div class="relative">
+    <div id={"#{@id}-dropdown"} class="relative" phx-click-away={hide_dropdown(@id)}>
       <button
         id={"#{@id}-btn"}
         type="button"
-        class="relative flex items-center text-gray-400 hover:text-gray-500 cursor-pointer"
+        class="relative flex min-h-11 min-w-11 items-center justify-center rounded-lg p-2 text-zinc-500 transition hover:bg-zinc-950/5 hover:text-zinc-950 aria-expanded:bg-zinc-950/5 aria-expanded:text-zinc-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 cursor-pointer"
         phx-click={toggle_dropdown(@id)}
+        data-close={hide_dropdown(@id) |> JS.focus(to: "##{@id}-btn")}
         aria-expanded="false"
-        aria-haspopup="true"
         aria-controls={@id}
         {@rest}
       >
-        <span class="absolute -inset-2"></span>
-        <.icon name="hero-ellipsis-vertical" class="size-6" />
+        <.icon name={@icon} class="size-6" />
       </button>
 
       <div
         id={@id}
-        class="hidden absolute right-0 z-10 mt-2 w-40 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black/5 focus:outline-hidden"
-        phx-click-away={hide_dropdown(@id)}
+        role="group"
+        aria-labelledby={"#{@id}-btn"}
+        class={[
+          "hidden absolute right-0 top-full z-50 mt-2 isolate max-w-[calc(100vw-2rem)] origin-top-right rounded-xl bg-white/75 p-1 shadow-lg ring-1 ring-zinc-950/10 backdrop-blur-xl outline outline-transparent focus:outline-hidden",
+          @menu_width == "sm" && "w-40",
+          @menu_width == "md" && "min-w-64"
+        ]}
+        phx-window-keydown={JS.exec("data-close", to: "##{@id}-btn[aria-expanded='true']")}
+        phx-key="escape"
       >
-        <div class="py-1" role="menu">
+        <div :if={@header != []} class="px-3.5 pb-2 pt-2.5 sm:px-3">
+          {render_slot(@header)}
+        </div>
+        <div :for={{item, index} <- Enum.with_index(@item)}>
+          <hr
+            :if={item[:separator]}
+            class="mx-3.5 my-1 h-px border-0 bg-zinc-950/5 sm:mx-3 forced-colors:bg-[CanvasText]"
+          />
           <.link
-            :for={item <- @item}
+            id={item[:id] || "#{@id}-item-#{index}"}
             navigate={item[:navigate]}
             href={item[:href]}
             patch={item[:patch]}
-            class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-            role="menuitem"
+            method={item[:method] || "get"}
+            class="group flex items-center gap-2.5 rounded-lg px-3.5 py-2.5 text-base/6 text-zinc-950 hover:bg-blue-500 hover:text-white focus:bg-blue-500 focus:text-white focus:outline-hidden sm:gap-2 sm:px-3 sm:py-1.5 sm:text-sm/6 forced-colors:focus:bg-[Highlight] forced-colors:focus:text-[HighlightText]"
             phx-click={hide_dropdown(@id)}
           >
+            <.icon
+              :if={item[:icon]}
+              name={item[:icon]}
+              class="size-5 shrink-0 text-zinc-500 group-hover:text-inherit group-focus:text-inherit sm:size-4"
+            />
             {render_slot(item)}
           </.link>
         </div>

@@ -76,27 +76,6 @@ defmodule Harbor.Web.Layouts do
             {taxon.name}
           </a>
         </nav>
-
-        <div class="mt-auto space-y-4 border-t border-gray-200 pt-6 text-sm font-medium text-gray-700">
-          <%= if @current_scope.authenticated? do %>
-            <p class="text-gray-500">
-              Signed in as {@current_scope.user.email}
-            </p>
-            <.link href="/users/settings" class="block hover:text-gray-900">
-              Account settings
-            </.link>
-            <.link href="/users/log-out" method="delete" class="block hover:text-gray-900">
-              Log out
-            </.link>
-          <% else %>
-            <.link href="/users/register" class="block hover:text-gray-900">
-              Register
-            </.link>
-            <.link href="/users/log-in" class="block hover:text-gray-900">
-              Log in
-            </.link>
-          <% end %>
-        </div>
       </div>
 
       <header class="relative border-b border-gray-200">
@@ -139,30 +118,55 @@ defmodule Harbor.Web.Layouts do
                 <.icon name="hero-magnifying-glass" class="h-6 w-6" />
               </button>
 
-              <div class="hidden gap-4 text-sm font-medium text-gray-700 lg:flex lg:items-center">
-                <%= if @current_scope.authenticated? do %>
-                  <span class="text-gray-500">{@current_scope.user.email}</span>
-                  <.link href="/users/settings" class="transition hover:text-gray-900">
-                    Settings
-                  </.link>
-                  <.link
-                    href="/users/log-out"
-                    method="delete"
-                    class="transition hover:text-gray-900"
-                  >
-                    Log out
-                  </.link>
-                <% else %>
-                  <.link href="/users/register" class="transition hover:text-gray-900">
-                    Register
-                  </.link>
-                  <.link href="/users/log-in" class="transition hover:text-gray-900">
-                    Log in
-                  </.link>
-                <% end %>
-              </div>
-
               <CartComponents.cart_popover current_scope={@current_scope} cart={@cart} />
+
+              <.dropdown
+                id="account-menu"
+                menu_width="md"
+                icon="hero-user-circle"
+                aria-label="Account"
+              >
+                <:header :if={@current_scope.authenticated?}>
+                  <p class="text-sm/5 text-zinc-500">Signed in as</p>
+                  <p id="account-menu-email" class="truncate text-sm/6 font-medium text-zinc-950">
+                    {@current_scope.user.email}
+                  </p>
+                </:header>
+                <:item
+                  :if={@current_scope.authenticated?}
+                  id="account-settings"
+                  href="/users/settings"
+                  icon="hero-cog-8-tooth"
+                >
+                  Account settings
+                </:item>
+                <:item
+                  :if={@current_scope.authenticated?}
+                  id="account-log-out"
+                  href="/users/log-out"
+                  method="delete"
+                  icon="hero-arrow-right-start-on-rectangle"
+                  separator
+                >
+                  Log out
+                </:item>
+                <:item
+                  :if={not @current_scope.authenticated?}
+                  id="account-register"
+                  href="/users/register"
+                  icon="hero-user-plus"
+                >
+                  Register
+                </:item>
+                <:item
+                  :if={not @current_scope.authenticated?}
+                  id="account-log-in"
+                  href="/users/log-in"
+                  icon="hero-arrow-right-end-on-rectangle"
+                >
+                  Log in
+                </:item>
+              </.dropdown>
             </div>
           </div>
         </nav>
