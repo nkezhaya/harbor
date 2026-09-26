@@ -24,7 +24,9 @@ defmodule Harbor.Catalog do
   [Taxon](`Harbor.Catalog.Taxon`). A taxon is a merchandising node such as
   "Apparel", "Tops", or "Summer Sale". Taxons are for Harbor's own browsing
   structure. They are separate from product type because navigation and
-  classification are separate problems.
+  classification are separate problems. Each taxon belongs to a
+  [Taxonomy](`Harbor.Catalog.Taxonomy`), a named grouping such as Categories,
+  Departments, or Collections. Parent and child taxons share a taxonomy.
 
   The purchasable rows are [Variant](`Harbor.Catalog.Variant`) records. If the
   shirt is sold as Small / Black and Medium / White, those are variants. Each
@@ -66,7 +68,8 @@ defmodule Harbor.Catalog do
     ProductQuery,
     ProductTaxon,
     ProductType,
-    Taxon
+    Taxon,
+    Taxonomy
   }
 
   alias Harbor.Catalog.Forms.{MediaUpload, MediaUploadPromotionWorker}
@@ -410,6 +413,50 @@ defmodule Harbor.Catalog do
     ProductImage.changeset(image, attrs)
   end
 
+  ## Taxonomies
+
+  def list_taxonomies do
+    Taxonomy
+    |> order_by(asc: :position, asc: :name)
+    |> Repo.all()
+  end
+
+  def get_taxonomy!(id) do
+    Repo.get!(Taxonomy, id)
+  end
+
+  def create_taxonomy(%Scope{} = scope, attrs) do
+    ensure_admin!(scope)
+
+    %Taxonomy{}
+    |> Taxonomy.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  def update_taxonomy(%Scope{} = scope, %Taxonomy{} = taxonomy, attrs) do
+    ensure_admin!(scope)
+
+    taxonomy
+    |> Taxonomy.changeset(attrs)
+    |> Repo.update()
+  end
+
+  @doc """
+  Deletes an empty taxonomy. Returns an error changeset if it still owns taxons.
+  """
+  def delete_taxonomy(%Scope{} = scope, %Taxonomy{} = taxonomy) do
+    ensure_admin!(scope)
+
+    taxonomy
+    |> Taxonomy.changeset(%{})
+    |> Repo.delete()
+  end
+
+  def change_taxonomy(%Scope{} = scope, %Taxonomy{} = taxonomy, attrs \\ %{}) do
+    ensure_admin!(scope)
+    Taxonomy.changeset(taxonomy, attrs)
+  end
+
   ## Taxons
 
   def list_root_taxons do
@@ -422,21 +469,47 @@ defmodule Harbor.Catalog do
   def list_taxons do
     Taxon
     |> order_by(asc: :position, asc: :name)
-    |> preload(:parent)
+    |> preload([:taxonomy, :parent])
+    |> Repo.all()
+  end
+
+  @doc """
+  Lists taxons for the given taxonomy ID ordered by position and name, with
+  their taxonomy and parent preloaded.
+  """
+  def list_taxons(taxonomy_id) do
+    Taxon
+    |> where([taxon], taxon.taxonomy_id == ^taxonomy_id)
+    |> order_by(asc: :position, asc: :name)
+    |> preload([:taxonomy, :parent])
     |> Repo.all()
   end
 
   def get_taxon!(id) do
     Taxon
-    |> preload(:parent)
+    |> preload([:taxonomy, :parent])
     |> Repo.get!(id)
   end
 
+  @doc """
+  Gets a taxon belonging to the given taxonomy ID. Raises `Ecto.NoResultsError`
+  when the taxon does not exist or belongs to another taxonomy.
+  """
+  def get_taxon!(taxonomy_id, id) do
+    Taxon
+    |> where([taxon], taxon.taxonomy_id == ^taxonomy_id)
+    |> preload([:taxonomy, :parent])
+    |> Repo.get!(id)
+  end
+
+  @doc """
+  Creates a taxon. Requires an admin or system scope.
+  """
   def create_taxon(%Scope{} = scope, attrs) do
     ensure_admin!(scope)
 
     %Taxon{}
-    |> Taxon.changeset(attrs)
+    |> Taxon.create_changeset(attrs)
     |> Repo.insert()
     |> preload_taxon_result()
   end
@@ -451,7 +524,7 @@ defmodule Harbor.Catalog do
   end
 
   defp preload_taxon_result({:ok, taxon}) do
-    {:ok, Repo.preload(taxon, :parent)}
+    {:ok, Repo.preload(taxon, [:taxonomy, :parent], force: true)}
   end
 
   defp preload_taxon_result(error) do
@@ -460,7 +533,10 @@ defmodule Harbor.Catalog do
 
   def delete_taxon(%Scope{} = scope, %Taxon{} = taxon) do
     ensure_admin!(scope)
-    Repo.delete(taxon)
+
+    taxon
+    |> Taxon.delete_changeset()
+    |> Repo.delete()
   end
 
   def change_taxon(%Scope{} = scope, %Taxon{} = taxon, attrs \\ %{}) do

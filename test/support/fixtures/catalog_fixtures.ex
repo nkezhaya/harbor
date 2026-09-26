@@ -105,14 +105,23 @@ defmodule Harbor.CatalogFixtures do
     image
   end
 
+  def taxonomy_fixture(attrs \\ %{}) do
+    scope = AccountsFixtures.admin_scope_fixture()
+    attrs = Enum.into(attrs, %{name: "Taxonomy #{System.unique_integer([:positive])}"})
+    {:ok, taxonomy} = Catalog.create_taxonomy(scope, attrs)
+    taxonomy
+  end
+
   def taxon_fixture(attrs \\ %{}) do
     scope = AccountsFixtures.admin_scope_fixture()
 
     attrs =
-      Enum.into(attrs, %{
+      attrs
+      |> Enum.into(%{
         name: "some name-#{System.unique_integer([:positive])}",
         parent_ids: []
       })
+      |> Map.put_new_lazy(:taxonomy_id, fn -> taxonomy_fixture().id end)
 
     {:ok, taxon} = Catalog.create_taxon(scope, attrs)
 

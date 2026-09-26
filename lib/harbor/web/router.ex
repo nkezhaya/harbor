@@ -162,10 +162,13 @@ defmodule Harbor.Web.Router do
           live "/customers/:id", Harbor.Web.Admin.CustomerLive.Show, :show
           live "/customers/:id/edit", Harbor.Web.Admin.CustomerLive.Form, :edit
 
-          live "/taxons", Harbor.Web.Admin.TaxonLive.Index, :index
-          live "/taxons/new", Harbor.Web.Admin.TaxonLive.Form, :new
-          live "/taxons/:id", Harbor.Web.Admin.TaxonLive.Show, :show
-          live "/taxons/:id/edit", Harbor.Web.Admin.TaxonLive.Form, :edit
+          live "/taxonomies", Harbor.Web.Admin.TaxonomyLive.Index, :index
+          live "/taxonomies/new", Harbor.Web.Admin.TaxonomyLive.Form, :new
+          live "/taxonomies/:id", Harbor.Web.Admin.TaxonomyLive.Show, :show
+          live "/taxonomies/:id/edit", Harbor.Web.Admin.TaxonomyLive.Form, :edit
+          live "/taxonomies/:taxonomy_id/taxons/new", Harbor.Web.Admin.TaxonLive.Form, :new
+          live "/taxonomies/:taxonomy_id/taxons/:id", Harbor.Web.Admin.TaxonLive.Show, :show
+          live "/taxonomies/:taxonomy_id/taxons/:id/edit", Harbor.Web.Admin.TaxonLive.Form, :edit
 
           live "/orders", Harbor.Web.Admin.OrderLive.Index, :index
           live "/orders/new", Harbor.Web.Admin.OrderLive.Form, :new

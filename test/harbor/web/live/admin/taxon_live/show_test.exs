@@ -7,41 +7,43 @@ defmodule Harbor.Web.Admin.TaxonLive.ShowTest do
   setup :register_and_log_in_admin
 
   setup do
-    taxon = taxon_fixture(%{})
-
-    %{taxon: taxon}
+    %{taxon: taxon_fixture()}
   end
 
-  test "displays taxon", %{conn: conn, taxon: taxon} do
-    {:ok, _show_live, html} = live(conn, "/admin/taxons/#{taxon.id}")
+  test "displays a taxon inside its taxonomy", %{conn: conn, taxon: taxon} do
+    {:ok, view, _html} = live(conn, "/admin/taxonomies/#{taxon.taxonomy_id}/taxons/#{taxon.id}")
 
-    assert html =~ "Show Taxon"
-    assert html =~ taxon.name
+    assert has_element?(view, "#taxon-name", taxon.name)
+    assert has_element?(view, "#back-to-taxonomy[href='/admin/taxonomies/#{taxon.taxonomy_id}']")
   end
 
-  test "updates taxon and returns to show", %{conn: conn, taxon: taxon} do
-    {:ok, show_live, _html} = live(conn, "/admin/taxons/#{taxon.id}")
+  test "updates a taxon and returns to its details", %{conn: conn, taxon: taxon} do
+    path = "/admin/taxonomies/#{taxon.taxonomy_id}/taxons/#{taxon.id}"
+    {:ok, view, _html} = live(conn, path)
 
-    assert {:ok, form_live, _} =
-             show_live
-             |> element("a", "Edit")
+    assert {:ok, form_view, _html} =
+             view
+             |> element("#edit-taxon")
              |> render_click()
-             |> follow_redirect(conn, "/admin/taxons/#{taxon.id}/edit?return_to=show")
+             |> follow_redirect(conn, "#{path}/edit?return_to=show")
 
-    assert render(form_live) =~ "Edit Taxon"
+    form_view |> form("#taxon-form", taxon: %{name: ""}) |> render_change()
+    assert has_element?(form_view, "#taxon-form", "can't be blank")
 
-    assert form_live
-           |> form("#taxon-form", taxon: %{name: nil})
-           |> render_change() =~ "can&#39;t be blank"
-
-    assert {:ok, show_live, _html} =
-             form_live
+    assert {:ok, view, _html} =
+             form_view
              |> form("#taxon-form", taxon: %{name: "Renamed Taxon"})
              |> render_submit()
-             |> follow_redirect(conn, "/admin/taxons/#{taxon.id}")
+             |> follow_redirect(conn, path)
 
-    html = render(show_live)
-    assert html =~ "Taxon updated successfully"
-    assert html =~ "Renamed Taxon"
+    assert has_element?(view, "#taxon-name", "Renamed Taxon")
+  end
+
+  test "does not display or edit a taxon through another taxonomy", %{conn: conn, taxon: taxon} do
+    other = taxonomy_fixture()
+    path = "/admin/taxonomies/#{other.id}/taxons/#{taxon.id}"
+
+    assert_raise Ecto.NoResultsError, fn -> live(conn, path) end
+    assert_raise Ecto.NoResultsError, fn -> live(conn, "#{path}/edit") end
   end
 end

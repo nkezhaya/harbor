@@ -32,8 +32,8 @@ defmodule Harbor.Web.AdminLayouts do
           icon: "hero-tag-solid"
         },
         %{
-          label: "Taxons",
-          href: admin_path(assigns.socket, "/taxons"),
+          label: "Taxonomies",
+          href: admin_path(assigns.socket, "/taxonomies"),
           icon: "hero-squares-2x2"
         },
         %{

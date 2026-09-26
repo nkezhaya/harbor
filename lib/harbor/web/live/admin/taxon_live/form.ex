@@ -16,7 +16,7 @@ defmodule Harbor.Web.Admin.TaxonLive.Form do
     >
       <.header>
         {@page_title}
-        <:subtitle>Use this form to manage taxon records in your database.</:subtitle>
+        <:subtitle>Taxonomy: {@taxonomy.name}</:subtitle>
       </.header>
 
       <.form for={@form} id="taxon-form" phx-change="validate" phx-submit="save" class="space-y-6">
@@ -25,7 +25,7 @@ defmodule Harbor.Web.Admin.TaxonLive.Form do
         <.input field={@form[:position]} type="number" label="Position" />
         <footer>
           <.button phx-disable-with="Saving..." variant="primary">Save Taxon</.button>
-          <.button navigate={return_path(@socket, @return_to, @taxon)}>Cancel</.button>
+          <.button navigate={return_path(@socket, @return_to, @taxonomy, @taxon)}>Cancel</.button>
         </footer>
       </.form>
     </AdminLayouts.app>
@@ -33,15 +33,16 @@ defmodule Harbor.Web.Admin.TaxonLive.Form do
   end
 
   @impl true
-  def mount(params, _session, socket) do
+  def mount(%{"taxonomy_id" => taxonomy_id} = params, _session, socket) do
     {:ok,
      socket
+     |> assign(:taxonomy, Catalog.get_taxonomy!(taxonomy_id))
      |> assign(:return_to, return_to(params["return_to"]))
      |> apply_action(socket.assigns.live_action, params)}
   end
 
   defp apply_action(socket, :edit, %{"id" => id}) do
-    taxon = Catalog.get_taxon!(id)
+    taxon = Catalog.get_taxon!(socket.assigns.taxonomy.id, id)
 
     socket
     |> assign(:page_title, "Edit Taxon")
@@ -50,7 +51,7 @@ defmodule Harbor.Web.Admin.TaxonLive.Form do
   end
 
   defp apply_action(socket, :new, _params) do
-    taxon = %Taxon{}
+    taxon = %Taxon{taxonomy_id: socket.assigns.taxonomy.id}
 
     socket
     |> assign(:page_title, "New Taxon")
@@ -80,7 +81,9 @@ defmodule Harbor.Web.Admin.TaxonLive.Form do
         {:noreply,
          socket
          |> put_flash(:info, "Taxon updated successfully")
-         |> push_navigate(to: return_path(socket, socket.assigns.return_to, taxon))}
+         |> push_navigate(
+           to: return_path(socket, socket.assigns.return_to, socket.assigns.taxonomy, taxon)
+         )}
 
       {:error, %Ecto.Changeset{} = changeset} ->
         {:noreply, assign(socket, form: to_form(changeset))}
@@ -88,12 +91,16 @@ defmodule Harbor.Web.Admin.TaxonLive.Form do
   end
 
   defp save_taxon(socket, :new, taxon_params) do
+    taxon_params = Map.put(taxon_params, "taxonomy_id", socket.assigns.taxonomy.id)
+
     case Catalog.create_taxon(socket.assigns.current_scope, taxon_params) do
       {:ok, taxon} ->
         {:noreply,
          socket
          |> put_flash(:info, "Taxon created successfully")
-         |> push_navigate(to: return_path(socket, socket.assigns.return_to, taxon))}
+         |> push_navigate(
+           to: return_path(socket, socket.assigns.return_to, socket.assigns.taxonomy, taxon)
+         )}
 
       {:error, %Ecto.Changeset{} = changeset} ->
         {:noreply, assign(socket, form: to_form(changeset))}
@@ -103,6 +110,9 @@ defmodule Harbor.Web.Admin.TaxonLive.Form do
   defp return_to("show"), do: "show"
   defp return_to(_), do: "index"
 
-  defp return_path(socket, "index", _taxon), do: admin_path(socket, "/taxons")
-  defp return_path(socket, "show", taxon), do: admin_path(socket, "/taxons/#{taxon.id}")
+  defp return_path(socket, "index", taxonomy, _taxon),
+    do: admin_path(socket, "/taxonomies/#{taxonomy.id}")
+
+  defp return_path(socket, "show", taxonomy, taxon),
+    do: admin_path(socket, "/taxonomies/#{taxonomy.id}/taxons/#{taxon.id}")
 end

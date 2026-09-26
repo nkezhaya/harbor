@@ -14,15 +14,21 @@ defmodule Harbor.Web.Admin.TaxonLive.Show do
       socket={@socket}
     >
       <.header>
-        Taxon {@taxon.name}
-        <:subtitle>This is a taxon record from your database.</:subtitle>
+        <span id="taxon-name">{@taxon.name}</span>
+        <:subtitle>Taxonomy: {@taxonomy.name}</:subtitle>
         <:actions>
-          <.button navigate={admin_path(@socket, "/taxons")}>
+          <.button id="back-to-taxonomy" navigate={admin_path(@socket, "/taxonomies/#{@taxonomy.id}")}>
             <.icon name="hero-arrow-left" />
           </.button>
           <.button
+            id="edit-taxon"
             variant="primary"
-            navigate={admin_path(@socket, "/taxons/#{@taxon.id}/edit?return_to=show")}
+            navigate={
+              admin_path(
+                @socket,
+                "/taxonomies/#{@taxonomy.id}/taxons/#{@taxon.id}/edit?return_to=show"
+              )
+            }
           >
             <.icon name="hero-pencil-square" /> Edit taxon
           </.button>
@@ -34,9 +40,7 @@ defmodule Harbor.Web.Admin.TaxonLive.Show do
         <:item title="Slug">{@taxon.slug}</:item>
         <:item title="Position">{@taxon.position}</:item>
         <:item title="Parent">
-          <%= if @taxon.parent do %>
-            {@taxon.parent.name}
-          <% end %>
+          <span :if={@taxon.parent}>{@taxon.parent.name}</span>
         </:item>
       </.list>
     </AdminLayouts.app>
@@ -44,12 +48,14 @@ defmodule Harbor.Web.Admin.TaxonLive.Show do
   end
 
   @impl true
-  def mount(%{"id" => id}, _session, socket) do
-    taxon = Catalog.get_taxon!(id)
+  def mount(%{"taxonomy_id" => taxonomy_id, "id" => id}, _session, socket) do
+    taxonomy = Catalog.get_taxonomy!(taxonomy_id)
+    taxon = Catalog.get_taxon!(taxonomy.id, id)
 
     {:ok,
      socket
      |> assign(:page_title, "Show Taxon")
+     |> assign(:taxonomy, taxonomy)
      |> assign(:taxon, taxon)}
   end
 end

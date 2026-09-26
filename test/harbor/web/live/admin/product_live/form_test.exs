@@ -13,6 +13,27 @@ defmodule Harbor.Web.Admin.ProductLive.FormTest do
     [product: product]
   end
 
+  test "identifies taxons by their taxonomy in product selectors", %{conn: conn, product: product} do
+    categories = taxonomy_fixture(%{name: "Categories"})
+    collections = taxonomy_fixture(%{name: "Collections"})
+    first = taxon_fixture(%{taxonomy_id: categories.id, name: "Featured"})
+    second = taxon_fixture(%{taxonomy_id: collections.id, name: "Featured"})
+
+    {:ok, view, _html} = live(conn, "/admin/products/#{product.id}/edit")
+
+    assert has_element?(
+             view,
+             "#product_taxon_ids option[value='#{first.id}']",
+             "Categories / Featured"
+           )
+
+    assert has_element?(
+             view,
+             "#product_taxon_ids option[value='#{second.id}']",
+             "Collections / Featured"
+           )
+  end
+
   test "adds a product option row", %{conn: conn, product: product} do
     {:ok, view, _html} = live(conn, "/admin/products/#{product.id}/edit")
 

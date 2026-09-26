@@ -65,21 +65,47 @@ defmodule Harbor.Migration.V01 do
     create unique_index(:product_types, [:name])
     create unique_index(:product_types, [:slug])
 
-    ## Taxons
+    ## Taxonomies
 
-    create table(:taxons, primary_key: false) do
+    create table(:taxonomies, primary_key: false) do
       add :id, :binary_id, primary_key: true, default: fragment("uuidv7()")
       add :name, :string, null: false
       add :slug, :string, null: false
       add :position, :integer, null: false, default: 0
-      add :parent_id, references(:taxons, type: :binary_id)
+
+      timestamps(type: :timestamptz)
+    end
+
+    create unique_index(:taxonomies, [:name])
+    create unique_index(:taxonomies, [:slug])
+    create constraint(:taxonomies, :position_gte_zero, check: "position >= 0")
+
+    ## Taxons
+
+    create table(:taxons, primary_key: false) do
+      add :id, :binary_id, primary_key: true, default: fragment("uuidv7()")
+      add :taxonomy_id, references(:taxonomies, type: :binary_id), null: false
+      add :name, :string, null: false
+      add :slug, :string, null: false
+      add :position, :integer, null: false, default: 0
       add :parent_ids, {:array, :binary_id}, null: false, default: []
 
       timestamps(type: :timestamptz)
     end
 
+    create unique_index(:taxons, [:id, :taxonomy_id])
+
+    alter table(:taxons) do
+      add :parent_id,
+          references(:taxons,
+            type: :binary_id,
+            with: [taxonomy_id: :taxonomy_id],
+            name: :taxons_parent_in_taxonomy
+          )
+    end
+
     create unique_index(:taxons, [:slug])
-    create unique_index(:taxons, [:parent_id, :name], nulls_distinct: false)
+    create unique_index(:taxons, [:taxonomy_id, :parent_id, :name], nulls_distinct: false)
     create index(:taxons, [:parent_id, :position])
     create index(:taxons, [:parent_ids], using: :gin)
 
@@ -91,8 +117,8 @@ defmodule Harbor.Migration.V01 do
 
     execute """
     ALTER TABLE taxons
-        ADD CONSTRAINT taxons_parent_id_position_unique
-        UNIQUE NULLS NOT DISTINCT (parent_id, position)
+        ADD CONSTRAINT taxons_taxonomy_id_parent_id_position_unique
+        UNIQUE NULLS NOT DISTINCT (taxonomy_id, parent_id, position)
         DEFERRABLE INITIALLY DEFERRED
     """
 
@@ -1240,6 +1266,7 @@ defmodule Harbor.Migration.V01 do
     drop_if_exists table(:product_taxons)
     drop_if_exists table(:products)
     drop_if_exists table(:taxons)
+    drop_if_exists table(:taxonomies)
     drop_if_exists table(:product_types)
     drop_if_exists table(:brands)
     drop_if_exists table(:tax_codes)

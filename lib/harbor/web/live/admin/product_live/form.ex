@@ -496,7 +496,7 @@ defmodule Harbor.Web.Admin.ProductLive.Form do
 
   defp taxon_options do
     for taxon <- Catalog.list_taxons() do
-      {taxon.name, taxon.id}
+      {"#{taxon.taxonomy.name} / #{taxon.name}", taxon.id}
     end
   end
 
