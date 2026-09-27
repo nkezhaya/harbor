@@ -35,8 +35,7 @@ defmodule Harbor.CatalogTest do
         taxon_fixture(%{
           name: "Child Taxon #{suffix}",
           taxonomy_id: parent.taxonomy_id,
-          parent_id: parent.id,
-          parent_ids: [parent.id]
+          parent_id: parent.id
         })
 
       direct = product_fixture(%{name: "A Direct Product #{suffix}", primary_taxon_id: parent.id})
@@ -62,8 +61,7 @@ defmodule Harbor.CatalogTest do
         taxon_fixture(%{
           name: "Descendant Taxon #{suffix}",
           taxonomy_id: parent.taxonomy_id,
-          parent_id: parent.id,
-          parent_ids: [parent.id]
+          parent_id: parent.id
         })
 
       product =
@@ -85,8 +83,7 @@ defmodule Harbor.CatalogTest do
         taxon_fixture(%{
           name: "Nested Taxon #{suffix}",
           taxonomy_id: parent.taxonomy_id,
-          parent_id: parent.id,
-          parent_ids: [parent.id]
+          parent_id: parent.id
         })
 
       product =

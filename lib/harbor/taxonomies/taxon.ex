@@ -40,9 +40,10 @@ defmodule Harbor.Taxonomies.Taxon do
   @doc false
   def changeset(taxon, attrs) do
     taxon
-    |> cast(attrs, [:name, :slug, :position, :parent_id, :parent_ids])
+    |> cast(attrs, [:name, :slug, :position, :parent_id])
     |> validate_required([:taxonomy_id, :name, :position])
     |> Slug.put_new_slug(unique_by: __MODULE__)
+    |> prepare_changes(&put_parent_ids/1)
     |> assoc_constraint(:taxonomy)
     |> foreign_key_constraint(:parent_id,
       name: :taxons_parent_in_taxonomy,
@@ -59,6 +60,24 @@ defmodule Harbor.Taxonomies.Taxon do
     |> unique_constraint(:name, name: :taxons_taxonomy_id_parent_id_name_index)
     |> unique_constraint(:slug)
     |> unique_constraint(:position, name: :taxons_taxonomy_id_parent_id_position_unique)
+  end
+
+  defp put_parent_ids(changeset) do
+    parent_id = get_field(changeset, :parent_id)
+
+    cond do
+      is_nil(parent_id) ->
+        put_change(changeset, :parent_ids, [])
+
+      not changed?(changeset, :parent_id) ->
+        changeset
+
+      true ->
+        case changeset.repo.get(__MODULE__, parent_id) do
+          nil -> changeset
+          parent -> put_change(changeset, :parent_ids, parent.parent_ids ++ [parent.id])
+        end
+    end
   end
 
   @doc false

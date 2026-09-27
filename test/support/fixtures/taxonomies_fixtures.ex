@@ -17,10 +17,7 @@ defmodule Harbor.TaxonomiesFixtures do
 
     attrs =
       attrs
-      |> Enum.into(%{
-        name: "some name-#{System.unique_integer([:positive])}",
-        parent_ids: []
-      })
+      |> Enum.into(%{name: "some name-#{System.unique_integer([:positive])}"})
       |> Map.put_new_lazy(:taxonomy_id, fn -> taxonomy_fixture().id end)
 
     {:ok, taxon} = Taxonomies.create_taxon(scope, attrs)

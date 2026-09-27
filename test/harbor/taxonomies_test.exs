@@ -244,8 +244,7 @@ defmodule Harbor.TaxonomiesTest do
                Taxonomies.create_taxon(Scope.for_system(), %{
                  name: "Shirts",
                  taxonomy_id: parent.taxonomy_id,
-                 parent_id: parent.id,
-                 parent_ids: [parent.id]
+                 parent_id: parent.id
                })
 
       assert child.parent_id == parent.id
