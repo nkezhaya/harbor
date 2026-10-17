@@ -75,7 +75,20 @@ defmodule Harbor.Billing do
           payment_profile_id: payment_profile.id
         }
         |> PaymentIntent.changeset(provider_intent)
-        |> Repo.insert()
+        |> Repo.insert(on_conflict: :nothing, conflict_target: [:provider, :provider_ref])
+        |> case do
+          {:ok, %PaymentIntent{id: nil} = payment_intent} ->
+            payment_intent =
+              Repo.get_by!(PaymentIntent,
+                provider: payment_intent.provider,
+                provider_ref: payment_intent.provider_ref
+              )
+
+            {:ok, payment_intent}
+
+          result ->
+            result
+        end
 
       error ->
         error
