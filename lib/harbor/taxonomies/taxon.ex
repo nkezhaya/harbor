@@ -57,6 +57,10 @@ defmodule Harbor.Taxonomies.Taxon do
       name: :parent_cannot_be_self,
       message: "cannot be its own parent"
     )
+    |> check_constraint(:parent_id,
+      name: :taxon_cannot_be_own_ancestor,
+      message: "cannot be one of its descendants"
+    )
     |> unique_constraint(:name, name: :taxons_taxonomy_id_parent_id_name_index)
     |> unique_constraint(:slug)
     |> unique_constraint(:position, name: :taxons_taxonomy_id_parent_id_position_unique)

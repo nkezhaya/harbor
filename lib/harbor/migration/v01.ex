@@ -113,6 +113,7 @@ defmodule Harbor.Migration.V01 do
              check: "parent_id IS NULL OR parent_id != id"
            )
 
+    create constraint(:taxons, :taxon_cannot_be_own_ancestor, check: "NOT (id = ANY(parent_ids))")
     create constraint(:taxons, :position_gte_zero, check: "position >= 0")
 
     execute """

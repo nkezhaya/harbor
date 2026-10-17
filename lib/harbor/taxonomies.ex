@@ -1,6 +1,7 @@
 defmodule Harbor.Taxonomies do
   @moduledoc """
-  Manages taxonomies and their taxon hierarchies.
+  Manages taxonomies and their taxon hierarchies. Hierarchy writes through this
+  context derive ancestry and update descendants atomically.
   """
   import Ecto.Query
   import Harbor.Authorization
@@ -110,13 +111,58 @@ defmodule Harbor.Taxonomies do
     |> preload_taxon_result()
   end
 
+  @doc """
+  Updates a taxon. Changing its parent also updates all descendant ancestry paths
+  in the same transaction. Returns an error changeset for a move beneath itself
+  or one of its descendants.
+  """
   def update_taxon(%Scope{} = scope, %Taxon{} = taxon, attrs) do
     ensure_admin!(scope)
 
-    taxon
-    |> Taxon.changeset(attrs)
-    |> Repo.update()
+    Repo.transact(fn ->
+      changeset = Taxon.changeset(taxon, attrs)
+
+      case Repo.update(changeset) do
+        {:ok, updated} when updated.parent_id != taxon.parent_id ->
+          update_descendant_paths(updated)
+          {:ok, updated}
+
+        result ->
+          result
+      end
+    end)
     |> preload_taxon_result()
+  end
+
+  defp update_descendant_paths(taxon) do
+    parent_ids = taxon.parent_ids ++ [taxon.id]
+
+    children =
+      Taxon
+      |> where([child], child.parent_id == ^taxon.id)
+      |> select([child], %{
+        id: child.id,
+        parent_ids: type(^parent_ids, {:array, :binary_id})
+      })
+
+    descendants =
+      Taxon
+      |> join(:inner, [child], parent in "descendants", on: child.parent_id == parent.id)
+      |> select([child, parent], %{
+        id: child.id,
+        parent_ids: fragment("array_append(?, ?)", parent.parent_ids, parent.id)
+      })
+
+    subtree = union_all(children, ^descendants)
+
+    Taxon
+    |> recursive_ctes(true)
+    |> with_cte("descendants", as: ^subtree)
+    |> join(:inner, [taxon], descendant in "descendants", on: taxon.id == descendant.id)
+    |> update([_taxon, descendant],
+      set: [parent_ids: descendant.parent_ids, updated_at: ^taxon.updated_at]
+    )
+    |> Repo.update_all([])
   end
 
   defp preload_taxon_result({:ok, taxon}) do

@@ -3,10 +3,12 @@ defmodule Harbor.CatalogTest do
   import Harbor.CatalogFixtures
   import Harbor.TaxonomiesFixtures
 
+  alias Harbor.Accounts.Scope
   alias Harbor.AccountsFixtures
   alias Harbor.Catalog
   alias Harbor.Catalog.{Product, ProductImage}
   alias Harbor.TaxFixtures
+  alias Harbor.Taxonomies
 
   describe "list_products/2" do
     setup do
@@ -51,28 +53,6 @@ defmodule Harbor.CatalogTest do
       assert Enum.map(products, & &1.id) == [direct.id, descendant.id]
     end
 
-    test "returns descendant products when the selected parent has no direct products", %{
-      scope: scope
-    } do
-      suffix = System.unique_integer([:positive])
-      parent = taxon_fixture(%{name: "Empty Parent #{suffix}"})
-
-      child =
-        taxon_fixture(%{
-          name: "Descendant Taxon #{suffix}",
-          taxonomy_id: parent.taxonomy_id,
-          parent_id: parent.id
-        })
-
-      product =
-        product_fixture(%{name: "Only Descendant Product #{suffix}", primary_taxon_id: child.id})
-
-      assert %{entries: [matched], total: 1} =
-               Catalog.list_products(scope, %{"taxon" => parent.slug})
-
-      assert matched.id == product.id
-    end
-
     test "does not duplicate a product attached to both an ancestor and descendant taxon", %{
       scope: scope
     } do
@@ -95,6 +75,43 @@ defmodule Harbor.CatalogTest do
 
       assert %{entries: [matched], total: 1} =
                Catalog.list_products(scope, %{"taxon" => parent.slug})
+
+      assert matched.id == product.id
+    end
+
+    test "taxon filtering follows subtree moves and promotion to root", %{scope: scope} do
+      old_root = taxon_fixture()
+      new_root = taxon_fixture(%{taxonomy_id: old_root.taxonomy_id, position: 1})
+      branch = taxon_fixture(%{taxonomy_id: old_root.taxonomy_id, parent_id: old_root.id})
+      child = taxon_fixture(%{taxonomy_id: old_root.taxonomy_id, parent_id: branch.id})
+      grandchild = taxon_fixture(%{taxonomy_id: old_root.taxonomy_id, parent_id: child.id})
+      product = product_fixture(%{primary_taxon_id: grandchild.id})
+      guest_scope = Scope.for_guest()
+
+      assert %{entries: [matched], total: 1} =
+               Catalog.list_products(guest_scope, %{"taxon" => old_root.slug})
+
+      assert matched.id == product.id
+
+      assert %{entries: [], total: 0} =
+               Catalog.list_products(guest_scope, %{"taxon" => new_root.slug})
+
+      assert {:ok, moved} = Taxonomies.update_taxon(scope, branch, %{parent_id: new_root.id})
+
+      assert %{entries: [], total: 0} =
+               Catalog.list_products(guest_scope, %{"taxon" => old_root.slug})
+
+      assert %{entries: [matched], total: 1} =
+               Catalog.list_products(guest_scope, %{"taxon" => new_root.slug})
+
+      assert matched.id == product.id
+      assert {:ok, moved} = Taxonomies.update_taxon(scope, moved, %{parent_id: nil, position: 2})
+
+      assert %{entries: [], total: 0} =
+               Catalog.list_products(guest_scope, %{"taxon" => new_root.slug})
+
+      assert %{entries: [matched], total: 1} =
+               Catalog.list_products(guest_scope, %{"taxon" => moved.slug})
 
       assert matched.id == product.id
     end

@@ -248,7 +248,43 @@ defmodule Harbor.TaxonomiesTest do
                })
 
       assert child.parent_id == parent.id
+      assert child.parent_ids == [parent.id]
       assert child.taxonomy_id == parent.taxonomy_id
+    end
+
+    test "derives ancestry at every depth" do
+      taxonomy = taxonomy_fixture()
+
+      assert {:ok, root} =
+               Taxonomies.create_taxon(Scope.for_system(), %{
+                 name: "Root",
+                 taxonomy_id: taxonomy.id
+               })
+
+      child = taxon_fixture(%{taxonomy_id: taxonomy.id, parent_id: root.id})
+
+      assert {:ok, grandchild} =
+               Taxonomies.create_taxon(Scope.for_system(), %{
+                 "name" => "Grandchild",
+                 "taxonomy_id" => taxonomy.id,
+                 "parent_id" => child.id
+               })
+
+      assert grandchild.parent_ids == [root.id, child.id]
+    end
+
+    test "rejects a nonexistent parent" do
+      parent = taxon_fixture()
+      assert {:ok, _} = Taxonomies.delete_taxon(Scope.for_system(), parent)
+
+      assert {:error, changeset} =
+               Taxonomies.create_taxon(Scope.for_system(), %{
+                 name: "Child",
+                 taxonomy_id: parent.taxonomy_id,
+                 parent_id: parent.id
+               })
+
+      assert errors_on(changeset).parent_id == ["must belong to the same taxonomy"]
     end
 
     test "rejects a parent from another taxonomy" do
@@ -327,6 +363,133 @@ defmodule Harbor.TaxonomiesTest do
   end
 
   describe "update_taxon/3" do
+    test "moves an entire subtree without changing its internal parent links" do
+      root = taxon_fixture()
+      branch = taxon_fixture(%{taxonomy_id: root.taxonomy_id, parent_id: root.id})
+      child = taxon_fixture(%{taxonomy_id: root.taxonomy_id, parent_id: branch.id})
+      grandchild = taxon_fixture(%{taxonomy_id: root.taxonomy_id, parent_id: child.id})
+
+      sibling =
+        taxon_fixture(%{taxonomy_id: root.taxonomy_id, parent_id: branch.id, position: 1})
+
+      untouched =
+        taxon_fixture(%{taxonomy_id: root.taxonomy_id, parent_id: root.id, position: 1})
+
+      other_root = taxon_fixture(%{taxonomy_id: root.taxonomy_id, position: 1})
+      destination = taxon_fixture(%{taxonomy_id: root.taxonomy_id, parent_id: other_root.id})
+
+      assert {:ok, moved} =
+               Taxonomies.update_taxon(Scope.for_system(), branch, %{
+                 parent_id: destination.id,
+                 parent_ids: [root.id]
+               })
+
+      assert moved.parent_id == destination.id
+      assert moved.parent.id == destination.id
+      assert moved.parent_ids == [other_root.id, destination.id]
+
+      for descendant <- [child, sibling] do
+        updated = Taxonomies.get_taxon!(descendant.id)
+        assert updated.parent_id == branch.id
+        assert updated.parent_ids == [other_root.id, destination.id, branch.id]
+      end
+
+      updated = Taxonomies.get_taxon!(grandchild.id)
+      assert updated.parent_id == child.id
+      assert updated.parent_ids == [other_root.id, destination.id, branch.id, child.id]
+      assert Taxonomies.get_taxon!(untouched.id) == untouched
+      assert Taxonomies.get_taxon!(root.id) == root
+
+      new_child = taxon_fixture(%{taxonomy_id: root.taxonomy_id, parent_id: grandchild.id})
+
+      assert new_child.parent_ids == [
+               other_root.id,
+               destination.id,
+               branch.id,
+               child.id,
+               grandchild.id
+             ]
+    end
+
+    test "promotes a subtree to root" do
+      root = taxon_fixture()
+      branch = taxon_fixture(%{taxonomy_id: root.taxonomy_id, parent_id: root.id})
+      child = taxon_fixture(%{taxonomy_id: root.taxonomy_id, parent_id: branch.id})
+      grandchild = taxon_fixture(%{taxonomy_id: root.taxonomy_id, parent_id: child.id})
+
+      assert {:ok, moved} =
+               Taxonomies.update_taxon(Scope.for_system(), branch, %{
+                 "parent_id" => "",
+                 "position" => "1"
+               })
+
+      refute moved.parent_id
+      refute moved.parent
+      assert moved.parent_ids == []
+      assert Taxonomies.get_taxon!(child.id).parent_ids == [branch.id]
+      assert Taxonomies.get_taxon!(grandchild.id).parent_ids == [branch.id, child.id]
+    end
+
+    test "supports reversing ancestry through sequential moves" do
+      root = taxon_fixture()
+      child = taxon_fixture(%{taxonomy_id: root.taxonomy_id, parent_id: root.id})
+      grandchild = taxon_fixture(%{taxonomy_id: root.taxonomy_id, parent_id: child.id})
+
+      assert {:ok, _} =
+               Taxonomies.update_taxon(Scope.for_system(), child, %{parent_id: nil, position: 1})
+
+      assert {:ok, moved} =
+               Taxonomies.update_taxon(Scope.for_system(), root, %{
+                 parent_id: child.id,
+                 position: 1
+               })
+
+      assert moved.parent_ids == [child.id]
+      assert Taxonomies.get_taxon!(child.id).parent_ids == []
+      assert Taxonomies.get_taxon!(grandchild.id).parent_ids == [child.id]
+    end
+
+    test "ignores submitted ancestry" do
+      root = taxon_fixture()
+      child = taxon_fixture(%{taxonomy_id: root.taxonomy_id, parent_id: root.id})
+
+      assert {:ok, updated} =
+               Taxonomies.update_taxon(Scope.for_system(), child, %{
+                 "name" => "Renamed child",
+                 "parent_ids" => [child.id]
+               })
+
+      assert updated.name == "Renamed child"
+      assert updated.parent_ids == [root.id]
+      assert Taxonomies.get_taxon!(child.id).parent_ids == [root.id]
+    end
+
+    test "rejects self-parenting" do
+      taxon = taxon_fixture()
+
+      assert {:error, changeset} =
+               Taxonomies.update_taxon(Scope.for_system(), taxon, %{parent_id: taxon.id})
+
+      assert errors_on(changeset).parent_id == ["cannot be its own parent"]
+      assert Taxonomies.get_taxon!(taxon.id) == taxon
+    end
+
+    test "rejects moves beneath children or deeper descendants" do
+      root = taxon_fixture()
+      child = taxon_fixture(%{taxonomy_id: root.taxonomy_id, parent_id: root.id})
+      grandchild = taxon_fixture(%{taxonomy_id: root.taxonomy_id, parent_id: child.id})
+
+      for descendant <- [child, grandchild] do
+        assert {:error, changeset} =
+                 Taxonomies.update_taxon(Scope.for_system(), root, %{parent_id: descendant.id})
+
+        assert errors_on(changeset).parent_id == ["cannot be one of its descendants"]
+        assert Taxonomies.get_taxon!(root.id) == root
+        assert Taxonomies.get_taxon!(child.id) == child
+        assert Taxonomies.get_taxon!(grandchild.id) == grandchild
+      end
+    end
+
     test "does not accept changes to taxonomy ownership" do
       taxon = taxon_fixture()
       other = taxonomy_fixture()
