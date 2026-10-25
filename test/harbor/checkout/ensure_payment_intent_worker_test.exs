@@ -2,8 +2,8 @@ defmodule Harbor.Checkout.EnsurePaymentIntentWorkerTest do
   use Harbor.DataCase, async: true
 
   import Mox
+  import Harbor.CartsFixtures
   import Harbor.CatalogFixtures
-  import Harbor.CheckoutFixtures
   import Harbor.CustomersFixtures
 
   alias Harbor.{Billing, Checkout, Currency}

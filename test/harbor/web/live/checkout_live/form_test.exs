@@ -1,7 +1,7 @@
 defmodule Harbor.Web.CheckoutLive.FormTest do
   use Harbor.ConnCase, async: true
 
-  import Harbor.{CatalogFixtures, CheckoutFixtures, CustomersFixtures, ShippingFixtures}
+  import Harbor.{CartsFixtures, CatalogFixtures, CustomersFixtures, ShippingFixtures}
   import Phoenix.LiveViewTest
 
   alias Harbor.Accounts.Scope

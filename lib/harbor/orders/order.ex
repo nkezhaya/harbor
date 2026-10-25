@@ -6,7 +6,7 @@ defmodule Harbor.Orders.Order do
   import Money.Validate, only: [validate_money: 3]
 
   alias Harbor.Authorization
-  alias Harbor.Checkout.Cart
+  alias Harbor.Carts.Cart
   alias Harbor.Currency
   alias Harbor.Customers.{Address, Customer}
   alias Harbor.Orders.OrderItem

@@ -1,7 +1,7 @@
 defmodule Harbor.TaxTest do
   use Harbor.DataCase, async: true
 
-  import Harbor.{CatalogFixtures, CheckoutFixtures, CustomersFixtures, TaxFixtures}
+  import Harbor.{CartsFixtures, CatalogFixtures, CustomersFixtures, TaxFixtures}
 
   alias Harbor.{Checkout, Tax}
   alias Harbor.Tax.Calculation

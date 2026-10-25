@@ -1,23 +1,23 @@
-defmodule Harbor.CheckoutFixtures do
+defmodule Harbor.CartsFixtures do
   @moduledoc """
-  Test helpers for creating entities via the `Harbor.Checkout`
+  Test helpers for creating entities via the `Harbor.Carts`
   context.
   """
-  alias Harbor.Checkout
+  alias Harbor.Carts
 
   def cart_fixture(scope, attrs \\ %{}) do
     attrs = Enum.into(attrs, %{})
 
     {:ok, cart} =
       scope
-      |> Checkout.create_cart(attrs)
+      |> Carts.create_cart(attrs)
 
     cart
   end
 
   def cart_item_fixture(cart, attrs \\ %{}) do
     attrs = Enum.into(attrs, %{quantity: 42})
-    {:ok, cart_item} = Checkout.create_cart_item(cart, attrs)
+    {:ok, cart_item} = Carts.create_cart_item(cart, attrs)
 
     cart_item
   end

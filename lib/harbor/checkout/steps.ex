@@ -3,7 +3,7 @@ defmodule Harbor.Checkout.Steps do
   import Harbor.Authorization
 
   alias Harbor.Accounts.Scope
-  alias Harbor.{Checkout, Customers, Orders, Repo, Settings}
+  alias Harbor.{Carts, Checkout, Customers, Orders, Repo, Settings}
   alias Harbor.Checkout.{EnsurePaymentIntentWorker, Pricing, Session}
   alias Harbor.Customers.Address
   alias Harbor.Orders.Order
@@ -19,7 +19,7 @@ defmodule Harbor.Checkout.Steps do
 
       with {:ok, customer} <- Customers.save_customer_profile(scope, params),
            {:ok, _cart} <-
-             Checkout.update_cart(Scope.for_system(), order.cart, %{customer_id: customer.id}),
+             Carts.update_cart(Scope.for_system(), order.cart, %{customer_id: customer.id}),
            {:ok, _order} <-
              Orders.update_order(Scope.for_system(), order, %{
                customer_id: customer.id,

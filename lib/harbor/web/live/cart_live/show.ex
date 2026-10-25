@@ -4,9 +4,9 @@ defmodule Harbor.Web.CartLive.Show do
   """
   use Harbor.Web, :live_view
 
+  alias Harbor.Carts
+  alias Harbor.Carts.{Cart, CartItem}
   alias Harbor.Catalog.Variant
-  alias Harbor.Checkout
-  alias Harbor.Checkout.{Cart, CartItem}
 
   @impl true
   def render(assigns) do
@@ -82,7 +82,7 @@ defmodule Harbor.Web.CartLive.Show do
       |> assign(:variant, variant)
       |> assign(:variant_description, Variant.description(variant))
       |> assign(:price, variant.price)
-      |> assign(:form, to_form(Checkout.change_cart_item(assigns.cart_item)))
+      |> assign(:form, to_form(Carts.change_cart_item(assigns.cart_item)))
 
     ~H"""
     <li id={@id} class="flex py-6 sm:py-10">
@@ -186,7 +186,7 @@ defmodule Harbor.Web.CartLive.Show do
       ) do
     cart_item = find_cart_item!(socket.assigns.cart, cart_item_id)
 
-    case Checkout.update_cart_item(socket.assigns.current_scope, cart_item, cart_item_params) do
+    case Carts.update_cart_item(socket.assigns.current_scope, cart_item, cart_item_params) do
       {:ok, _updated} ->
         {:noreply, reload_cart(socket)}
 
@@ -200,9 +200,9 @@ defmodule Harbor.Web.CartLive.Show do
 
   @impl true
   def handle_event("remove_item", %{"cart_item_id" => cart_item_id}, socket) do
-    cart_item = Checkout.get_cart_item!(socket.assigns.current_scope, cart_item_id)
+    cart_item = Carts.get_cart_item!(socket.assigns.current_scope, cart_item_id)
 
-    case Checkout.delete_cart_item(socket.assigns.current_scope, cart_item) do
+    case Carts.delete_cart_item(socket.assigns.current_scope, cart_item) do
       {:ok, _deleted} ->
         {:noreply, reload_cart(socket)}
 
@@ -231,7 +231,7 @@ defmodule Harbor.Web.CartLive.Show do
   end
 
   defp reload_cart(socket) do
-    cart = Checkout.fetch_active_cart_with_items(socket.assigns.current_scope)
+    cart = Carts.fetch_active_cart_with_items(socket.assigns.current_scope)
 
     socket
     |> assign(:cart, cart)

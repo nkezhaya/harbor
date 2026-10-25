@@ -2,7 +2,7 @@ defmodule Harbor.AuthorizationTest do
   use Harbor.DataCase, async: true
 
   import Harbor.AccountsFixtures
-  import Harbor.CheckoutFixtures
+  import Harbor.CartsFixtures
   import Harbor.CustomersFixtures
   import Harbor.OrdersFixtures
 

@@ -5,7 +5,7 @@ defmodule Harbor.Web.LiveHooks do
   import Phoenix.Component, only: [assign: 3, assign_new: 3]
   import Phoenix.LiveView, only: [attach_hook: 4]
 
-  alias Harbor.{Checkout, Taxonomies}
+  alias Harbor.{Carts, Taxonomies}
   alias Harbor.Web.CartComponents
 
   def on_mount(:global, _params, _session, socket) do
@@ -19,7 +19,7 @@ defmodule Harbor.Web.LiveHooks do
         Taxonomies.list_root_taxons()
       end)
       |> assign_new(:cart, fn %{current_scope: current_scope} ->
-        Checkout.fetch_active_cart_with_items(current_scope)
+        Carts.fetch_active_cart_with_items(current_scope)
       end)
       |> attach_hook(:cart, :handle_event, &CartComponents.hooked_event/3)
 

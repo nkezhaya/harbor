@@ -4,14 +4,14 @@ defmodule Harbor.Web.CartComponents do
 
   The module exposes a `cart_popover/1` function component that renders a
   button with an accessible item count notification and an expandable popover
-  that lists the current [CartItem](`Harbor.Checkout.CartItem`) entries.
+  that lists the current [CartItem](`Harbor.Carts.CartItem`) entries.
   """
   use Harbor.Web, :component
   import Phoenix.LiveView, only: [push_navigate: 2, put_flash: 3]
 
+  alias Harbor.{Carts, Checkout}
+  alias Harbor.Carts.{Cart, CartItem}
   alias Harbor.Catalog.Variant
-  alias Harbor.Checkout
-  alias Harbor.Checkout.{Cart, CartItem}
   alias Harbor.Currency
 
   @doc """
@@ -145,7 +145,7 @@ defmodule Harbor.Web.CartComponents do
     required: true,
     doc: "the current [scope](https://hexdocs.pm/phoenix/scopes.html)"
 
-  attr :cart, Harbor.Checkout.Cart, default: nil
+  attr :cart, Harbor.Carts.Cart, default: nil
 
   def cart_popover(%{cart: cart} = assigns) do
     count =
@@ -309,9 +309,9 @@ defmodule Harbor.Web.CartComponents do
   """
   def hooked_event("add_to_cart", params, %{assigns: %{current_scope: current_scope}} = socket) do
     socket =
-      case Checkout.add_item_to_cart(current_scope, params) do
+      case Carts.add_item_to_cart(current_scope, params) do
         {:ok, _} ->
-          cart = Checkout.fetch_active_cart_with_items(current_scope)
+          cart = Carts.fetch_active_cart_with_items(current_scope)
           assign(socket, cart: cart)
 
         _ ->
@@ -322,7 +322,7 @@ defmodule Harbor.Web.CartComponents do
   end
 
   def hooked_event("checkout", _params, socket) do
-    cart = Checkout.fetch_or_create_active_cart(socket.assigns.current_scope)
+    cart = Carts.fetch_or_create_active_cart(socket.assigns.current_scope)
 
     socket =
       case Checkout.create_session(socket.assigns.current_scope, cart) do

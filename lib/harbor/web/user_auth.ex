@@ -6,7 +6,7 @@ defmodule Harbor.Web.UserAuth do
   import Phoenix.Controller
 
   alias Harbor.Accounts.{Scope, User}
-  alias Harbor.{Auth, Authorization, Checkout, Util}
+  alias Harbor.{Auth, Authorization, Carts, Util}
 
   # Make the remember me cookie valid for 14 days. This should match
   # the session validity setting in UserToken.
@@ -308,7 +308,7 @@ defmodule Harbor.Web.UserAuth do
 
   defp attach_guest_customer(%Scope{session_token: session_token} = scope)
        when is_binary(session_token) do
-    case Checkout.fetch_customer_from_active_cart(session_token) do
+    case Carts.fetch_customer_from_active_cart(session_token) do
       nil -> scope
       customer -> Scope.attach_customer(scope, customer)
     end

@@ -1,11 +1,11 @@
-defmodule Harbor.Checkout.CartItem do
+defmodule Harbor.Carts.CartItem do
   @moduledoc """
   Ecto schema for items within a shopping cart.
   """
   use Harbor.Schema
 
+  alias Harbor.Carts.Cart
   alias Harbor.Catalog.Variant
-  alias Harbor.Checkout.Cart
 
   @type t() :: %__MODULE__{}
 

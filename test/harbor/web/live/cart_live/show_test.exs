@@ -2,9 +2,9 @@ defmodule Harbor.Web.CartLive.ShowTest do
   use Harbor.ConnCase, async: true
 
   import Phoenix.LiveViewTest
-  import Harbor.{CatalogFixtures, CheckoutFixtures, CustomersFixtures}
+  import Harbor.{CartsFixtures, CatalogFixtures, CustomersFixtures}
 
-  alias Harbor.Checkout.CartItem
+  alias Harbor.Carts.CartItem
 
   setup %{conn: conn} do
     scope = guest_scope_fixture(customer: false)

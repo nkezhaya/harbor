@@ -1,7 +1,7 @@
 defmodule Harbor.Web.CheckoutLive.ReceiptTest do
   use Harbor.ConnCase, async: true
 
-  import Harbor.{CatalogFixtures, CheckoutFixtures, CustomersFixtures, ShippingFixtures}
+  import Harbor.{CartsFixtures, CatalogFixtures, CustomersFixtures, ShippingFixtures}
   import Mox
   import Phoenix.LiveViewTest
 

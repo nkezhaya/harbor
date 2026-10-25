@@ -31,7 +31,7 @@ defmodule Harbor.Web.Layouts do
     required: true,
     doc: "the current [scope](https://hexdocs.pm/phoenix/scopes.html)"
 
-  attr :cart, Harbor.Checkout.Cart, default: nil
+  attr :cart, Harbor.Carts.Cart, default: nil
   attr :root_taxons, :list, default: [], doc: "top-level product taxons for navigation"
   slot :inner_block, required: true
 
