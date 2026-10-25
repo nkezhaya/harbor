@@ -16,6 +16,7 @@ defmodule Harbor.Checkout.Session do
       default: :active
 
     field :current_step, Ecto.Enum, values: @current_step_values
+    field :lock_version, :integer, default: 1
 
     field :last_touched_at, :utc_datetime_usec
     field :expires_at, :utc_datetime_usec
@@ -32,6 +33,7 @@ defmodule Harbor.Checkout.Session do
     session
     |> cast(attrs, [:status, :current_step, :expires_at])
     |> put_new_expiration()
+    |> optimistic_lock(:lock_version)
     |> validate_required([:status, :order_id])
     |> check_constraint(:current_step, name: :check_current_step)
   end
@@ -44,7 +46,9 @@ defmodule Harbor.Checkout.Session do
 
   @doc false
   def payment_intent_changeset(session, params) do
-    cast(session, params, [:payment_intent_id])
+    session
+    |> cast(params, [:payment_intent_id])
+    |> optimistic_lock(:lock_version)
   end
 
   @doc false
@@ -54,6 +58,7 @@ defmodule Harbor.Checkout.Session do
     |> ensure_active()
     |> ensure_not_expired()
     |> put_change(:status, :completed)
+    |> optimistic_lock(:lock_version)
   end
 
   defp put_new_expiration(changeset) do

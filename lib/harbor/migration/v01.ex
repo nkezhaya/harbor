@@ -1108,6 +1108,7 @@ defmodule Harbor.Migration.V01 do
       add :order_id, references(:orders, type: :binary_id, on_delete: :delete_all), null: false
       add :status, :string, null: false, default: "active"
       add :current_step, :string
+      add :lock_version, :integer, null: false, default: 1
       add :last_touched_at, :timestamptz
       add :expires_at, :timestamptz, null: false
 

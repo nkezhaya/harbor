@@ -114,6 +114,18 @@ defmodule Harbor.CheckoutTest do
       assert updated.order.cart_id == cart.id
     end
 
+    test "rejects stale session updates", %{cart: cart, scope: scope} do
+      {:ok, session} = Checkout.create_session(scope, cart)
+
+      assert {:ok, _updated} = Checkout.update_session(scope, session, %{current_step: :review})
+
+      assert_raise Ecto.StaleEntryError, fn ->
+        Checkout.update_session(scope, session, %{current_step: :contact})
+      end
+
+      assert Repo.get!(Session, session.id).current_step == :review
+    end
+
     test "raises when the scope does not own the order cart", %{cart: cart, scope: scope} do
       {:ok, session} = Checkout.create_session(scope, cart)
       other_scope = guest_scope_fixture(customer: false)
