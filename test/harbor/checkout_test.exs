@@ -14,7 +14,7 @@ defmodule Harbor.CheckoutTest do
   alias Harbor.Accounts.Scope
   alias Harbor.{Billing, Carts, Checkout, Currency, Settings}
   alias Harbor.Carts.Cart
-  alias Harbor.Checkout.{EnsurePaymentIntentWorker, Session}
+  alias Harbor.Checkout.Session
   alias Harbor.Orders.Order
 
   setup do
@@ -137,7 +137,7 @@ defmodule Harbor.CheckoutTest do
   end
 
   describe "complete_contact_step/3" do
-    test "saves the customer, enqueues payment profile setup, and returns updated scope and session" do
+    test "saves the customer and returns the scope and session" do
       scope = guest_scope_fixture(customer: false)
       cart = cart_fixture(scope)
       {:ok, session} = Checkout.create_session(scope, cart)
@@ -154,14 +154,6 @@ defmodule Harbor.CheckoutTest do
 
       assert updated_scope.customer.email == "contact@example.com"
       assert session.id
-
-      assert_enqueued(
-        worker: EnsurePaymentIntentWorker,
-        args: %{
-          "customer_id" => updated_scope.customer.id,
-          "checkout_session_id" => session.id
-        }
-      )
     end
 
     test "returns a changeset when validation fails" do
@@ -171,8 +163,6 @@ defmodule Harbor.CheckoutTest do
 
       assert {:error, %Ecto.Changeset{}} =
                Checkout.complete_contact_step(scope, session, %{"email" => nil})
-
-      refute_enqueued(worker: EnsurePaymentIntentWorker)
     end
   end
 
@@ -589,8 +579,6 @@ defmodule Harbor.CheckoutTest do
 
       assert {:ok, session, scope} =
                Checkout.complete_contact_step(scope, session, %{"email" => "buyer@example.com"})
-
-      refute_enqueued(worker: EnsurePaymentIntentWorker)
 
       assert {:ok, session} =
                Checkout.complete_shipping_step(scope, session, %{

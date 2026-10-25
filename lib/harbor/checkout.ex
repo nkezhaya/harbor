@@ -202,8 +202,8 @@ defmodule Harbor.Checkout do
   end
 
   @doc """
-  Completes the contact step by saving the customer profile and enqueueing
-  payment profile setup work.
+  Completes the contact step by saving the customer profile and associating it
+  with the cart and order.
 
   Returns `{:ok, session, scope}` with the updated scope containing the saved
   customer, or `{:error, changeset}` when validation fails.
