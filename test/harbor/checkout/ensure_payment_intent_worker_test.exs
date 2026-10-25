@@ -1,4 +1,4 @@
-defmodule Harbor.Checkout.EnsureCheckoutPaymentIntentWorkerTest do
+defmodule Harbor.Checkout.EnsurePaymentIntentWorkerTest do
   use Harbor.DataCase, async: true
 
   import Mox
@@ -8,7 +8,7 @@ defmodule Harbor.Checkout.EnsureCheckoutPaymentIntentWorkerTest do
 
   alias Harbor.{Billing, Checkout, Currency}
   alias Harbor.Billing.{PaymentIntent, PaymentProviderMock}
-  alias Harbor.Checkout.{EnsureCheckoutPaymentIntentWorker, Session}
+  alias Harbor.Checkout.{EnsurePaymentIntentWorker, Session}
 
   setup :verify_on_exit!
 
@@ -55,7 +55,7 @@ defmodule Harbor.Checkout.EnsureCheckoutPaymentIntentWorkerTest do
     end)
 
     assert {:ok, _} =
-             perform_job(EnsureCheckoutPaymentIntentWorker, %{
+             perform_job(EnsurePaymentIntentWorker, %{
                "customer_id" => scope.customer.id,
                "checkout_session_id" => session.id
              })

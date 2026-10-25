@@ -4,7 +4,7 @@ defmodule Harbor.Checkout.Steps do
 
   alias Harbor.Accounts.Scope
   alias Harbor.{Checkout, Customers, Orders, Repo, Settings}
-  alias Harbor.Checkout.{EnsureCheckoutPaymentIntentWorker, Pricing, Session}
+  alias Harbor.Checkout.{EnsurePaymentIntentWorker, Pricing, Session}
   alias Harbor.Customers.Address
   alias Harbor.Orders.Order
 
@@ -42,7 +42,7 @@ defmodule Harbor.Checkout.Steps do
 
   defp enqueue_checkout_payment_intent(customer_id, checkout_session_id) do
     %{"customer_id" => customer_id, "checkout_session_id" => checkout_session_id}
-    |> EnsureCheckoutPaymentIntentWorker.new()
+    |> EnsurePaymentIntentWorker.new()
     |> Harbor.Oban.insert()
   end
 
